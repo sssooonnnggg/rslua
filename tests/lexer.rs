@@ -1,7 +1,7 @@
 #[allow(unused_must_use)]
 mod lexer_tests {
-    use rua::lexer::{LexError, Lexer};
-    use rua::token::*;
+    use rslua::lexer::{LexError, Lexer};
+    use rslua::token::*;
     use std::fs::File;
     use std::io::prelude::*;
 

@@ -1,11 +1,11 @@
 [package]
-name = "rua"
+name = "rslua"
 version = "0.1.0"
 description = "Yet another Lua lexer and Lua parser for Lua 5.3"
 authors = ["sssooonnnggg <sssooonnnggg111@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/sssooonnnggg/rua.git"
+repository = "https://github.com/sssooonnnggg/rslua.git"
 readme = "README.md"
 
 [dependencies]

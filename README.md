@@ -1,4 +1,4 @@
-# Rua
+# rslua
 
 Yet another Lua lexer and Lua parser for Lua 5.3.
 
@@ -8,7 +8,7 @@ Yet another Lua lexer and Lua parser for Lua 5.3.
 - **output** Result<Vec\<Token>, LexError>
 
 ```rust
-use rua::lexer::Lexer;
+use rslua::lexer::Lexer;
 let mut lexer = Lexer::new();
 let tokens = lexer.run(input_lua_code)?;
 ```

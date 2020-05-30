@@ -1,8 +1,8 @@
 #[allow(unused_must_use)]
 mod parser_tests {
-    use rua::ast::*;
-    use rua::lexer::Lexer;
-    use rua::parser::Parser;
+    use rslua::ast::*;
+    use rslua::lexer::Lexer;
+    use rslua::parser::Parser;
     use std::fs::File;
     use std::io::prelude::*;
 

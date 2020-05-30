@@ -1,9 +1,9 @@
 use std::str;
-use rua::ast::*;
-use rua::ast_walker::*;
-use rua::lexer::Lexer;
-use rua::parser::Parser;
-use rua::types::*;
+use rslua::ast::*;
+use rslua::ast_walker::*;
+use rslua::lexer::Lexer;
+use rslua::parser::Parser;
+use rslua::types::*;
 use std::fs::File;
 use std::io::prelude::*;
 
