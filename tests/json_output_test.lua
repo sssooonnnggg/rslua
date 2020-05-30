@@ -1,4 +1,4 @@
-package.path = package.path .. [[;f:\git\rust\rslua\?.lua]]
+-- package.path = package.path .. [[;f:\git\rust\rslua\?.lua]]
 local json = require 'tests.json_output'
 
 
