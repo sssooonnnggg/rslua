@@ -1,6 +1,5 @@
--- package.path = package.path .. [[;f:\git\rust\rslua\?.lua]]
-local json = require 'tests.json_output'
 
+local json = require 'tests.json_output'
 
 local fmt = string.format
 
