@@ -58,7 +58,7 @@ local function encode_table(val, stack)
   end
 end
 local function encode_string(val)
-  return "\"" .. val:gsub("[%z-\\\"]", escape_char) .. "\""
+  return "\"" .. val:gsub("[%z\1-\31\\\"]", escape_char) .. "\""
 end
 local function encode_number(val)
   if val ~= val or val <= -math.huge or val >= math.huge then

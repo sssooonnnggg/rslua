@@ -2,6 +2,7 @@ use crate::token::{Source, Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number};
 use crate::{debuggable, error, success};
 use std::mem;
+use std::str;
 
 // context for lexer
 struct Context<'a> {
@@ -52,10 +53,10 @@ impl<'a> Context<'a> {
     }
 
     // skip n chars, and write these chars to output
-    pub fn skip_into(&mut self, n: usize, output: &mut String) {
+    pub fn skip_into(&mut self, n: usize, output: &mut Vec<u8>) {
         for _i in 0..n {
             if let Some(c) = self.get() {
-                output.push(c as char);
+                output.push(c);
                 self.skip(1);
             } else {
                 break;
@@ -87,6 +88,7 @@ impl<'a> Context<'a> {
 
 pub struct Lexer {
     debug: bool,
+    raw_string: bool,
     tokens: Vec<Token>,
 }
 
@@ -109,8 +111,13 @@ impl<'a> Lexer {
     pub fn new() -> Self {
         Lexer {
             debug: false,
+            raw_string: false,
             tokens: Vec::<Token>::new(),
         }
+    }
+
+    pub fn set_raw_string(&mut self, raw_string: bool) {
+        self.raw_string = raw_string;
     }
 
     pub fn run(&mut self, input: &'a str) -> Result<Vec<Token>, LexError> {
@@ -265,7 +272,7 @@ impl<'a> Lexer {
 
     fn read_number(&mut self, ctx: &mut Context) -> LexResult {
         let mut expo = ('E', 'e');
-        let mut num_str = String::new();
+        let mut num_str: Vec<u8> = Vec::new();
         if self.check_current(ctx, '0') && self.check_next2(ctx, 'x', 'X') {
             expo = ('P', 'p');
             ctx.skip_into(2, &mut num_str);
@@ -283,11 +290,15 @@ impl<'a> Lexer {
                 break;
             }
         }
-        let num = Lexer::str_to_num(&num_str);
-        match num {
-            Number::Int(n) => success!((TokenType::Int, TokenValue::Int(n))),
-            Number::Float(n) => success!((TokenType::Flt, TokenValue::Float(n))),
-            _ => lex_error!(self, ctx, "malformed number"),
+        if let Ok(string) = str::from_utf8(&num_str) {
+            let num = Lexer::str_to_num(string);
+            match num {
+                Number::Int(n) => success!((TokenType::Int, TokenValue::Int(n))),
+                Number::Float(n) => success!((TokenType::Flt, TokenValue::Float(n))),
+                _ => lex_error!(self, ctx, "malformed number"),
+            }
+        } else {
+            unreachable!();
         }
     }
 
@@ -420,6 +431,7 @@ impl<'a> Lexer {
         let unfinished_error: &'static str = "unfinished string";
         while ctx.get() != start {
             match ctx.get() {
+                Some(b'\\') if self.raw_string => ctx.skip_into(2, &mut bytes),
                 Some(b'\\') => self.try_read_esc(ctx, &mut bytes)?,
                 Some(c) => {
                     if Lexer::is_line_break(c) {
@@ -553,15 +565,17 @@ impl<'a> Lexer {
                 ctx.next();
                 return success!((t, TokenValue::None));
             } else if self.check_current_if(ctx, |c| Lexer::is_valid_name_start(c)) {
-                let mut word = String::new();
+                let mut word: Vec<u8> = Vec::new();
                 ctx.skip_into(1, &mut word);
                 while self.check_current_if(ctx, |c| Lexer::is_valid_name(c)) {
                     ctx.skip_into(1, &mut word);
                 }
-                if let Some(t) = TokenType::from_keyword(&word) {
-                    return success!((t, TokenValue::None));
-                } else {
-                    return success!((TokenType::Name, TokenValue::Str(word)));
+                if let Ok(s) = str::from_utf8(&word) {
+                    if let Some(t) = TokenType::from_keyword(s) {
+                        return success!((t, TokenValue::None));
+                    } else {
+                        return success!((TokenType::Name, TokenValue::Str(s.to_string())));
+                    }
                 }
             } else {
                 return lex_error!(self, ctx, &format!("unknown token near {}", c as char));

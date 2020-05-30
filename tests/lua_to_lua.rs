@@ -1,4 +1,3 @@
-use std::str;
 use rslua::ast::*;
 use rslua::ast_walker::*;
 use rslua::lexer::Lexer;
@@ -6,6 +5,7 @@ use rslua::parser::Parser;
 use rslua::types::*;
 use std::fs::File;
 use std::io::prelude::*;
+use std::str;
 
 struct LuaWritter {
     output: String,
@@ -274,21 +274,25 @@ impl AstVisitor for LuaWritter {
     }
 
     fn string(&mut self, s: &str) {
-        let mut new_str:Vec<u8> = Vec::new();
+        let mut new_str: Vec<u8> = Vec::new();
         new_str.push(b'"');
         let bytes = s.as_bytes();
-        for i in 0..bytes.len() {
+        let mut i = 0;
+        while i < bytes.len() {
             match bytes[i] {
-                b'\\' => new_str.extend_from_slice("\\\\".as_bytes()),
-                b'"' => new_str.extend_from_slice("\\\"".as_bytes()),
-                b'\n' => new_str.extend_from_slice("\\n".as_bytes()),
-                b'\r' => new_str.extend_from_slice("\\r".as_bytes()),
-                b'\t' => new_str.extend_from_slice("\\t".as_bytes()),
-                b'\x07' => new_str.extend_from_slice("\\a".as_bytes()),
-                b'\x08' => new_str.extend_from_slice("\\b".as_bytes()),
-                b'\x0B' => new_str.extend_from_slice("\\v".as_bytes()),
-                b'\x0C' => new_str.extend_from_slice("\\f".as_bytes()),
-                _ => new_str.push(bytes[i]),
+                b'\\' => {
+                    new_str.push(bytes[i]);
+                    new_str.push(bytes[i + 1]);
+                    i += 2;
+                }
+                b'"' => {
+                    new_str.extend_from_slice("\\\"".as_bytes());
+                    i += 1;
+                }
+                _ => {
+                    new_str.push(bytes[i]);
+                    i += 1
+                }
             }
         }
         new_str.push(b'"');
@@ -483,6 +487,7 @@ impl AstVisitor for LuaWritter {
 fn try_convert(input: &str) -> String {
     let mut lexer = Lexer::new();
     lexer.set_debug(true);
+    lexer.set_raw_string(true);
     if let Ok(tokens) = lexer.run(&input) {
         let mut parser = Parser::new();
         parser.set_debug(true);
@@ -496,10 +501,7 @@ fn try_convert(input: &str) -> String {
 
 #[test]
 fn write_method_call() {
-    assert_eq!(
-        "str:sub(i, i)\n".to_string(),
-        try_convert("str:sub(i,i)")
-    );
+    assert_eq!("str:sub(i, i)\n".to_string(), try_convert("str:sub(i,i)"));
 }
 
 #[test]
