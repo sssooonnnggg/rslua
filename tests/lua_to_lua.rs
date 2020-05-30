@@ -385,7 +385,7 @@ impl AstVisitor for LuaWritter {
         match op {
             BinOp::Or => self.append_space("or"),
             BinOp::And => self.append_space("and"),
-            BinOp::Eq => self.append_space("or"),
+            BinOp::Eq => self.append_space("=="),
             BinOp::Ne => self.append_space("~="),
             BinOp::Lt => self.append_space("<"),
             BinOp::Gt => self.append_space(">"),
@@ -418,7 +418,7 @@ impl AstVisitor for LuaWritter {
         match op {
             UnOp::Minus => self.append("-"),
             UnOp::BNot => self.append("~"),
-            UnOp::Not => self.append("not"),
+            UnOp::Not => self.append_space("not"),
             UnOp::TLen => self.append("#"),
             _ => unreachable!(),
         }

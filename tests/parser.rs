@@ -486,4 +486,35 @@ mod parser_tests {
             }
         )
     }
+
+    #[test]
+    fn and() {
+        let ast = try_parse("return a == 1 and b == 2");
+        assert_eq!(
+            ast,
+            Block {
+                stats: vec![Stat::RetStat(RetStat {
+                    exprs: vec![Expr::BinExpr(BinExpr {
+                        op: BinOp::And,
+                        left: Box::new(Expr::BinExpr(BinExpr {
+                            op: BinOp::Eq,
+                            left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
+                                primary: PrimaryExpr::Name("a".to_string()),
+                                suffixes: vec![],
+                            })),
+                            right: Box::new(Expr::Int(1)),
+                        },)),
+                        right: Box::new(Expr::BinExpr(BinExpr {
+                            op: BinOp::Eq,
+                            left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
+                                primary: PrimaryExpr::Name("b".to_string()),
+                                suffixes: vec![],
+                            })),
+                            right: Box::new(Expr::Int(2)),
+                        })),
+                    })],
+                })],
+            }
+        );
+    }
 }

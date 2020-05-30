@@ -80,7 +80,7 @@ impl BinOp {
             TokenType::Le => BinOp::Le,
             TokenType::Gt => BinOp::Gt,
             TokenType::Ge => BinOp::Ge,
-            TokenType::And => BinOp::Add,
+            TokenType::And => BinOp::And,
             TokenType::Or => BinOp::Or,
             _ => BinOp::None,
         }

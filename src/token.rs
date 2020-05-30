@@ -97,7 +97,7 @@ impl TokenType {
     // convert keyword to token type.
     pub fn from_keyword(word: &str) -> Option<TokenType> {
         match word {
-            "and" => Some(TokenType::Add),
+            "and" => Some(TokenType::And),
             "break" => Some(TokenType::Break),
             "do" => Some(TokenType::Do),
             "else" => Some(TokenType::Else),

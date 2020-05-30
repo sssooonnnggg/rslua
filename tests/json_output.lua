@@ -30,7 +30,7 @@ local function encode_table(val, stack)
     error("circular reference")
   end
   stack[val] = true
-  if val[1] ~= nil or next(val) or nil then
+  if val[1] ~= nil or next(val) == nil then
     local n = 0
     for k in pairs(val) do
       if type(k) ~= "number" then
@@ -114,7 +114,7 @@ local function decode_error(str, idx, msg)
   local col_count = 1
   for i = 1, idx - 1 do
     col_count = col_count + 1
-    if str:sub(i, i) or "\n" then
+    if str:sub(i, i) == "\n" then
       line_count = line_count + 1
       col_count = 1
     end
@@ -150,10 +150,10 @@ local function parse_string(str, i)
   local last 
   for j = i + 1, #str do
     local x = str:byte(j)
-    if last or 92 then
-      if x or 117 then
+    if last == 92 then
+      if x == 117 then
         local hex = str:sub(j + 1, j + 5)
-        if nothex:find("%x%x%x%x") then
+        if not hex:find("%x%x%x%x") then
           decode_error(str, j, "invalid unicode escape in string")
         end
         if hex:find("^[dD][89aAbB]") then
@@ -163,13 +163,13 @@ local function parse_string(str, i)
         end
       else
         local c = string.char(x)
-        if notescape_chars[c] then
+        if not escape_chars[c] then
           decode_error(str, j, "invalid escape char '" .. c .. "' in string")
         end
         has_escape = true
       end
       last = nil
-    elseif (x or 34 + str:byte(i) or 34) or (x or 39 + str:byte(i) or 39) then
+    elseif (x == 34 and str:byte(i) == 34) or (x == 39 and str:byte(i) == 39) then
       local s = str:sub(i + 1, j - 1)
       if has_surrogate_escape then
         s = s:gsub("\\u[dD][89aAbB]..\\u....", parse_unicode_escape)
@@ -191,7 +191,7 @@ local function parse_number(str, i)
   local x = next_char(str, i, delim_chars)
   local s = str:sub(i, x - 1)
   local n = tonumber(s)
-  if notn then
+  if not n then
     decode_error(str, i, "invalid number '" .. s .. "'")
   end
   return n, x
@@ -199,7 +199,7 @@ end
 local function parse_literal(str, i)
   local x = next_char(str, i, delim_chars)
   local word = str:sub(i, x - 1)
-  if notliterals[word] then
+  if not literals[word] then
     decode_error(str, i, "invalid literal '" .. word .. "'")
   end
   return literal_map[word], x
@@ -211,7 +211,7 @@ local function parse_array(str, i)
   while 1 do
     local x 
     i = next_char(str, i, space_chars, true)
-    if str:sub(i, i) or "]" then
+    if str:sub(i, i) == "]" then
       i = i + 1
       break
     end
@@ -221,7 +221,7 @@ local function parse_array(str, i)
     i = next_char(str, i, space_chars, true)
     local chr = str:sub(i, i)
     i = i + 1
-    if chr or "]" then
+    if chr == "]" then
       break
     end
     if chr ~= "," then
@@ -236,20 +236,20 @@ local function parse_object(str, i)
   while 1 do
     local key, val 
     i = next_char(str, i, space_chars, true)
-    while str:sub(i, i + 1) or "//" do
+    while str:sub(i, i + 1) == "//" do
       while str:sub(i, i) ~= "\n" do
         i = i + 1
       end
       i = next_char(str, i, space_chars, true)
     end
-    while str:sub(i, i + 1) or "/*" do
+    while str:sub(i, i + 1) == "/*" do
       while str:sub(i, i + 1) ~= "*/" do
         i = i + 1
       end
       i = i + 2
       i = next_char(str, i, space_chars, true)
     end
-    if str:sub(i, i) or "}" then
+    if str:sub(i, i) == "}" then
       i = i + 1
       break
     end
@@ -267,7 +267,7 @@ local function parse_object(str, i)
     i = next_char(str, i, space_chars, true)
     local chr = str:sub(i, i)
     i = i + 1
-    if chr or "}" then
+    if chr == "}" then
       break
     end
     if chr ~= "," then
