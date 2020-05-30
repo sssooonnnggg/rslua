@@ -1,6 +1,6 @@
 # Rua
 
-Yet another lexer and parser for Lua 5.3.
+Yet another Lua lexer and Lua parser for Lua 5.3.
 
 ## Lexer
 
