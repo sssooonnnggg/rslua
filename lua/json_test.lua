@@ -1,5 +1,5 @@
 
-local json = require 'tmp.json'
+local json = require 'json'
 
 local fmt = string.format
 
