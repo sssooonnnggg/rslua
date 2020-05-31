@@ -156,7 +156,7 @@ impl<'a> Lexer {
     fn read_line_break(&self, ctx: &mut Context) -> LexResult {
         let old = ctx.get();
         ctx.next();
-        if old != ctx.get() {
+        if old != ctx.get() && self.check_current_if(ctx, |c| Lexer::is_line_break(c)) {
             ctx.next();
         }
         ctx.inc_line();
