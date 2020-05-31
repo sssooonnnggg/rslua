@@ -29,6 +29,6 @@ Use `ast_walker` to travel the AST, implement the `ast_visitor` trait to run cus
 
 ## A complete example
 
-Read `lua/json.lua` , parse it, walk the AST and generate formatted lua code to `json_output.lua`.
+Read Lua source files, parse them, generate ASTs and walk them through, use a `LuaWritter` struct which impletements the `ast_visitor` trait to re-generate formatted Lua source again.
 
 See [tests/lua_to_lua.rs](tests/lua_to_lua.rs)
