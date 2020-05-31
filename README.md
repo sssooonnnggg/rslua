@@ -25,10 +25,10 @@ let block = parser.run(tokens)?;
 
 ## AST walker
 
-Use `ast_walker` to travel the AST, implement the `ast_visitor` trait to run custom logic.
+Use `ast_walker` to travel the AST, implement the `AstVisitor` trait to run custom logic.
 
 ## A complete example
 
-Read Lua source files, parse them, generate ASTs and walk them through, use a `LuaWritter` struct which impletements the `ast_visitor` trait to re-generate formatted Lua source again.
+Read Lua source files, parse them, generate ASTs and walk them through, use a `LuaWritter` struct which impletements the `AstVisitor` trait to re-generate formatted Lua source again.
 
 See [tests/lua_to_lua.rs](tests/lua_to_lua.rs)
