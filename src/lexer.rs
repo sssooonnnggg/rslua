@@ -273,19 +273,23 @@ impl<'a> Lexer {
     fn read_number(&mut self, ctx: &mut Context) -> LexResult {
         let mut expo = ('E', 'e');
         let mut num_str: Vec<u8> = Vec::new();
+        let mut hex = false;
         if self.check_current(ctx, '0') && self.check_next2(ctx, 'x', 'X') {
             expo = ('P', 'p');
             ctx.skip_into(2, &mut num_str);
+            hex = true;
         }
+        let is_digit = |c| {
+            (hex && Lexer::is_hex_digit(c)) || (!hex && Lexer::is_digit(c)) || (c as char) == '.'
+        };
         loop {
-            if self.check_next2(ctx, expo.0, expo.1) {
+            if self.check_current_if(ctx, is_digit) {
+                ctx.skip_into(1, &mut num_str)
+            } else if self.check_current2(ctx, expo.0, expo.1) {
                 ctx.skip_into(1, &mut num_str);
-                if self.check_next2(ctx, '-', '+') {
+                if self.check_current2(ctx, '-', '+') {
                     ctx.skip_into(1, &mut num_str)
                 }
-            }
-            if self.check_current_if(ctx, |c| Lexer::is_hex_digit(c) || (c as char) == '.') {
-                ctx.skip_into(1, &mut num_str)
             } else {
                 break;
             }
@@ -789,7 +793,7 @@ impl<'a> Lexer {
         }
     }
 
-    fn check_if(&self, src: Option<u8>, f: fn(u8) -> bool) -> bool {
+    fn check_if(&self, src: Option<u8>, f: impl Fn(u8) -> bool) -> bool {
         match src {
             Some(c) => f(c),
             None => false,
@@ -800,7 +804,11 @@ impl<'a> Lexer {
         self.check(ctx.get(), c)
     }
 
-    fn check_current_if(&self, ctx: &Context, f: fn(u8) -> bool) -> bool {
+    fn check_current2(&self, ctx: &Context, c1: char, c2: char) -> bool {
+        self.check(ctx.get(), c1) || self.check(ctx.get(), c2)
+    }
+
+    fn check_current_if(&self, ctx: &Context, f: impl Fn(u8) -> bool) -> bool {
         self.check_if(ctx.get(), f)
     }
 

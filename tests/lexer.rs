@@ -162,10 +162,41 @@ mod lexer_tests {
         assert_eq!(Some(0.1171875), Lexer::str_to_float("0x0.1E"));
         assert_eq!(Some(162.1875), Lexer::str_to_float("0xA23p-4"));
         assert_eq!(Some(3.1415926), Lexer::str_to_float("0X1.921FB54442D18P+1"));
+        assert_eq!(Some(13e-2), Lexer::str_to_float("13e-2"));
         assert_eq!(None, Lexer::str_to_float("a34E1"));
         assert_eq!(None, Lexer::str_to_float("3.14.1"));
         assert_eq!(None, Lexer::str_to_float("3..14"));
         assert_eq!(None, Lexer::str_to_float("3..14ss"));
+    }
+
+    #[test]
+    fn number() {
+        let tokens = try_lexer("13e-2");
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    t: TokenType::Flt,
+                    value: TokenValue::Float(0.13),
+                    source: Source {
+                        pos: 0,
+                        length: 5,
+                        line: 1,
+                        col: 1
+                    }
+                },
+                Token {
+                    t: TokenType::Eos,
+                    value: TokenValue::None,
+                    source: Source {
+                        pos: 5,
+                        length: 0,
+                        line: 1,
+                        col: 6
+                    }
+                }
+            ]
+        )
     }
 
     #[test]
