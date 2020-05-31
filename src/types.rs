@@ -1,6 +1,6 @@
 
-pub type IntType = i32;
-pub type FloatType = f32;
+pub type IntType = i64;
+pub type FloatType = f64;
 pub enum Number {
     Int(IntType),
     Float(FloatType),

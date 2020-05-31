@@ -3,16 +3,16 @@ local json = {
 }
 local encode 
 local escape_char_map = {
-  ["\\"] = "\\",
-  ["\""] = "\"",
-  ["\b"] = "b",
-  ["\f"] = "f",
-  ["\n"] = "n",
-  ["\r"] = "r",
-  ["\t"] = "t",
+  [ "\\" ] = "\\",
+  [ "\"" ] = "\"",
+  [ "\b" ] = "b",
+  [ "\f" ] = "f",
+  [ "\n" ] = "n",
+  [ "\r" ] = "r",
+  [ "\t" ] = "t",
 }
 local escape_char_map_inv = {
-  ["/"] = "/",
+  [ "/" ] = "/",
 }
 for k, v in pairs(escape_char_map) do
   escape_char_map_inv[v] = k
@@ -58,7 +58,7 @@ local function encode_table(val, stack)
   end
 end
 local function encode_string(val)
-  return "\"" .. val:gsub("[%z\1-\31\\\"]", escape_char) .. "\""
+  return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
 end
 local function encode_number(val)
   if val ~= val or val <= -math.huge or val >= math.huge then
@@ -67,11 +67,11 @@ local function encode_number(val)
   return string.format("%.14g", val)
 end
 local type_func_map = {
-  ["nil"] = encode_nil,
-  ["table"] = encode_table,
-  ["string"] = encode_string,
-  ["number"] = encode_number,
-  ["boolean"] = tostring,
+  [ "nil" ] = encode_nil,
+  [ "table" ] = encode_table,
+  [ "string" ] = encode_string,
+  [ "number" ] = encode_number,
+  [ "boolean" ] = tostring,
 }
 encode = function (val, stack)
   local t = type(val)
@@ -94,12 +94,12 @@ local function create_set(...)
 end
 local space_chars = create_set(" ", "\t", "\r", "\n")
 local delim_chars = create_set(" ", "\t", "\r", "\n", "]", "}", ",")
-local escape_chars = create_set("\\", "/", "\"", "b", "f", "n", "r", "t", "u")
+local escape_chars = create_set("\\", "/", '"', "b", "f", "n", "r", "t", "u")
 local literals = create_set("true", "false", "null")
 local literal_map = {
-  ["true"] = true,
-  ["false"] = false,
-  ["null"] = nil,
+  [ "true" ] = true,
+  [ "false" ] = false,
+  [ "null" ] = nil,
 }
 local function next_char(str, idx, set, negate)
   for i = idx, #str do
@@ -227,7 +227,7 @@ local function parse_object(str, i)
       i = i + 1
       break
     end
-    if str:sub(i, i) ~= "\"" then
+    if str:sub(i, i) ~= '"' then
       decode_error(str, i, "expected string for key")
     end
     key, i = parse(str, i)
@@ -251,23 +251,23 @@ local function parse_object(str, i)
   return res, i
 end
 local char_func_map = {
-  ["\""] = parse_string,
-  ["0"] = parse_number,
-  ["1"] = parse_number,
-  ["2"] = parse_number,
-  ["3"] = parse_number,
-  ["4"] = parse_number,
-  ["5"] = parse_number,
-  ["6"] = parse_number,
-  ["7"] = parse_number,
-  ["8"] = parse_number,
-  ["9"] = parse_number,
-  ["-"] = parse_number,
-  ["t"] = parse_literal,
-  ["f"] = parse_literal,
-  ["n"] = parse_literal,
-  ["["] = parse_array,
-  ["{"] = parse_object,
+  [ '"' ] = parse_string,
+  [ "0" ] = parse_number,
+  [ "1" ] = parse_number,
+  [ "2" ] = parse_number,
+  [ "3" ] = parse_number,
+  [ "4" ] = parse_number,
+  [ "5" ] = parse_number,
+  [ "6" ] = parse_number,
+  [ "7" ] = parse_number,
+  [ "8" ] = parse_number,
+  [ "9" ] = parse_number,
+  [ "-" ] = parse_number,
+  [ "t" ] = parse_literal,
+  [ "f" ] = parse_literal,
+  [ "n" ] = parse_literal,
+  [ "[" ] = parse_array,
+  [ "{" ] = parse_object,
 }
 parse = function (str, idx)
   local chr = str:sub(idx, idx)

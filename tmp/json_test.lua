@@ -1,4 +1,4 @@
-local json = require("tests.json_output")
+local json = require('tmp.json')
 local fmt = string.format
 local function test(name, func)
   xpcall(function ()
@@ -26,12 +26,12 @@ local function equal(a, b)
 end
 test("numbers", function ()
   local t = {
-    ["123.456"] = 123.456,
-    ["-123"] = -123,
-    ["-567.765"] = -567.765,
-    ["12.3"] = 12.3,
-    ["0"] = 0,
-    ["0.10000000012"] = 0.1,
+    [ "123.456" ] = 123.456,
+    [ "-123" ] = -123,
+    [ "-567.765" ] = -567.765,
+    [ "12.3" ] = 12.3,
+    [ "0" ] = 0,
+    [ "0.10000000012" ] = 0.10000000012,
   }
   for k, v in pairs(t) do
     local res = json.decode(k)
@@ -85,21 +85,21 @@ test("objects", function ()
 end)
 test("decode invalid", function ()
   local t = {
-    "",
-    " ",
-    "{",
-    "[",
-    "{\"x\" : ",
-    "{\"x\" : 1",
-    "{\"x\" : z }",
-    "{\"x\" : 123z }",
-    "{x : 123 }",
-    "{10 : 123 }",
-    "{]",
-    "[}",
-    "\"a",
-    "10 xx",
-    "{}123",
+    '',
+    ' ',
+    '{',
+    '[',
+    '{"x" : ',
+    '{"x" : 1',
+    '{"x" : z }',
+    '{"x" : 123z }',
+    '{x : 123 }',
+    '{10 : 123 }',
+    '{]',
+    '[}',
+    '"a',
+    '10 xx',
+    '{}123',
   }
   for i, v in ipairs(t) do
     local status = pcall(json.decode, v)
@@ -108,12 +108,12 @@ test("decode invalid", function ()
 end)
 test("decode invalid string", function ()
   local t = {
-    "\"\z\"",
-    "\"\1\"",
-    "\"\u000z\"",
-    "\"\ud83d\ude0q\"",
-    "\"x\ny\"",
-    "\"x\0y\"",
+    [["\z"]],
+    [["\1"]],
+    [["\u000z"]],
+    [["\ud83d\ude0q"]],
+    '"x\ny"',
+    '"x\0y"',
   }
   for i, v in ipairs(t) do
     local status, err = pcall(json.decode, v)
@@ -122,13 +122,13 @@ test("decode invalid string", function ()
 end)
 test("decode escape", function ()
   local t = {
-    ["\"\u263a\""] = "☺",
-    ["\"\ud83d\ude02\""] = "😂",
-    ["\"\r\n\t\\\"\""] = "\r\n\t\\\"",
-    ["\"\\\""] = "\\",
-    ["\"\\\\\""] = "\\\\",
-    ["\"\/\""] = "/",
-    ["\"\\u \u263a\""] = "\u ☺",
+    [ [["\u263a"]] ] = '☺',
+    [ [["\ud83d\ude02"]] ] = '😂',
+    [ [["\r\n\t\\\""]] ] = '\r\n\t\\"',
+    [ [["\\"]] ] = '\\',
+    [ [["\\\\"]] ] = '\\\\',
+    [ [["\/"]] ] = '/',
+    [ [["\\u \u263a"]] ] = [[\u ☺]],
   }
   for k, v in pairs(t) do
     local res = json.decode(k)
@@ -137,9 +137,9 @@ test("decode escape", function ()
 end)
 test("decode empty", function ()
   local t = {
-    ["[]"] = {},
-    ["{}"] = {},
-    ["\"\""] = "",
+    [ '[]' ] = {},
+    [ '{}' ] = {},
+    [ '""' ] = "",
   }
   for k, v in pairs(t) do
     local res = json.decode(k)
@@ -148,7 +148,7 @@ test("decode empty", function ()
 end)
 test("decode collection", function ()
   local t = {
-    ["[1, 2, 3, 4, 5, 6]"] = {
+    [ '[1, 2, 3, 4, 5, 6]' ] = {
       1,
       2,
       3,
@@ -156,17 +156,17 @@ test("decode collection", function ()
       5,
       6,
     },
-    ["[1, 2, 3, \"hello\"]"] = {
+    [ '[1, 2, 3, "hello"]' ] = {
       1,
       2,
       3,
       "hello",
     },
-    ["{ \"name\": \"test\", \"id\": 231 }"] = {
+    [ '{ "name": "test", "id": 231 }' ] = {
       name = "test",
       id = 231,
     },
-    ["{\"x\":1,\"y\":2,\"z\":[1,2,3]}"] = {
+    [ '{"x":1,"y":2,"z":[1,2,3]}' ] = {
       x = 1,
       y = 2,
       z = {
@@ -184,11 +184,11 @@ end)
 test("encode invalid", function ()
   local t = {
     {
-      [1000] = "b",
+      [ 1000 ] = "b",
     },
     {
-      [function ()
-      end] = 12,
+      [ function ()
+      end ] = 12,
     },
     {
       nil,
@@ -198,15 +198,15 @@ test("encode invalid", function ()
     },
     {
       x = 10,
-      [1] = 2,
+      [ 1 ] = 2,
     },
     {
-      [1] = "a",
-      [3] = "b",
+      [ 1 ] = "a",
+      [ 3 ] = "b",
     },
     {
       x = 10,
-      [4] = 5,
+      [ 4 ] = 5,
     },
   }
   for i, v in ipairs(t) do
@@ -227,11 +227,11 @@ test("encode invalid number", function ()
 end)
 test("encode escape", function ()
   local t = {
-    ["\"x\""] = "\"\"x\"\"",
-    ["x\ny"] = "\"x\ny\"",
-    ["x\0y"] = "\"x\u0000y\"",
-    ["x\27y"] = "\"x\u001by\"",
-    ["\r\n\t\\\""] = "\"\r\n\t\\\"\"",
+    [ '"x"' ] = [["\"x\""]],
+    [ 'x\ny' ] = [["x\ny"]],
+    [ 'x\0y' ] = [["x\u0000y"]],
+    [ 'x\27y' ] = [["x\u001by"]],
+    [ '\r\n\t\\"' ] = [["\r\n\t\\\""]],
   }
   for k, v in pairs(t) do
     local res = json.encode(k)

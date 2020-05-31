@@ -88,7 +88,7 @@ impl<'a> Context<'a> {
 
 pub struct Lexer {
     debug: bool,
-    raw_string: bool,
+    use_origin_string: bool,
     tokens: Vec<Token>,
 }
 
@@ -111,13 +111,14 @@ impl<'a> Lexer {
     pub fn new() -> Self {
         Lexer {
             debug: false,
-            raw_string: false,
+            use_origin_string: false,
             tokens: Vec::<Token>::new(),
         }
     }
 
-    pub fn set_raw_string(&mut self, raw_string: bool) {
-        self.raw_string = raw_string;
+    // if use origin string, lexer won't escape special chars and keep the quotes or string boundaries.
+    pub fn set_use_origin_string(&mut self, use_origin_string: bool) {
+        self.use_origin_string = use_origin_string;
     }
 
     pub fn run(&mut self, input: &'a str) -> Result<Vec<Token>, LexError> {
@@ -429,13 +430,16 @@ impl<'a> Lexer {
     }
 
     fn read_short_string(&mut self, ctx: &mut Context) -> LexResult {
-        let start = ctx.get();
-        ctx.next();
         let mut bytes: Vec<u8> = Vec::new();
+        let start = ctx.get();
+        if self.use_origin_string {
+            bytes.push(start.unwrap());
+        }
+        ctx.next();
         let unfinished_error: &'static str = "unfinished string";
         while ctx.get() != start {
             match ctx.get() {
-                Some(b'\\') if self.raw_string => ctx.skip_into(2, &mut bytes),
+                Some(b'\\') if self.use_origin_string => ctx.skip_into(2, &mut bytes),
                 Some(b'\\') => self.try_read_esc(ctx, &mut bytes)?,
                 Some(c) => {
                     if Lexer::is_line_break(c) {
@@ -447,6 +451,9 @@ impl<'a> Lexer {
                 }
                 None => return lex_error!(self, ctx, unfinished_error),
             }
+        }
+        if self.use_origin_string {
+            bytes.push(ctx.get().unwrap());
         }
         if let Ok(string) = String::from_utf8(bytes) {
             ctx.next();
@@ -484,22 +491,36 @@ impl<'a> Lexer {
         sem: &str,
     ) -> Result<Source, LexError> {
         let line = ctx.line;
+        let mut start = 0;
+
+        if self.use_origin_string {
+            start = ctx.current - 2 - sep_count;
+        }
 
         // skip first line break
         if self.check_current_if(ctx, |c| Lexer::is_line_break(c)) {
             self.read_line_break(ctx)?;
         }
 
-        let start = ctx.current;
+        if !self.use_origin_string {
+            start = ctx.current;
+        }
+
         let col = ctx.col;
         while let Some(c) = ctx.get() {
             match c {
                 b']' => {
                     if self.try_read_long_string_boundary(ctx, b']') == sep_count as i8 {
+                        let length;
+                        if self.use_origin_string {
+                            length = ctx.current - start;
+                        } else {
+                            length = ctx.current - 2 - sep_count - start;
+                        }
                         return Ok(Source {
                             line,
                             pos: start,
-                            length: ctx.current - 2 - sep_count - start,
+                            length,
                             col,
                         });
                     } else {

@@ -48,6 +48,17 @@ impl LuaWritter {
         self.space();
     }
 
+    fn space_append(&mut self, content: &str) {
+        self.space();
+        self.append(content);
+    }
+
+    fn space_append_space(&mut self, content: &str) {
+        self.space();
+        self.append(content);
+        self.space();
+    }
+
     fn append_inc(&mut self, content: &str) {
         self.append(content);
         self.incline();
@@ -146,8 +157,7 @@ impl AstVisitor for LuaWritter {
                 self.append(", ");
             }
         }
-        self.space();
-        self.append_space("in");
+        self.space_append_space("in");
         false
     }
 
@@ -234,11 +244,10 @@ impl AstVisitor for LuaWritter {
         for (n, suffix) in stat.left.iter().enumerate() {
             ast_walker::walk_suffixedexpr(suffix, self);
             if n < stat.left.len() - 1 {
-                self.append(", ");
+                self.append_space(",");
             }
         }
-        self.space();
-        self.append_space("=");
+        self.space_append_space("=");
         ast_walker::walk_exprlist(&stat.right, self);
     }
 
@@ -275,31 +284,7 @@ impl AstVisitor for LuaWritter {
     }
 
     fn string(&mut self, s: &str) {
-        let mut new_str: Vec<u8> = Vec::new();
-        new_str.push(b'"');
-        let bytes = s.as_bytes();
-        let mut i = 0;
-        while i < bytes.len() {
-            match bytes[i] {
-                b'\\' => {
-                    new_str.push(bytes[i]);
-                    new_str.push(bytes[i + 1]);
-                    i += 2;
-                }
-                b'"' => {
-                    new_str.extend_from_slice("\\\"".as_bytes());
-                    i += 1;
-                }
-                _ => {
-                    new_str.push(bytes[i]);
-                    i += 1
-                }
-            }
-        }
-        new_str.push(b'"');
-        if let Ok(s) = str::from_utf8(&new_str) {
-            self.append(s);
-        }
+        self.append(s);
     }
 
     fn vararg(&mut self) {
@@ -356,13 +341,12 @@ impl AstVisitor for LuaWritter {
     }
 
     fn field_kv_sep(&mut self) {
-        self.space();
-        self.append_space("=");
+        self.space_append_space("=");
     }
 
     fn begin_field_key(&mut self, key: &FieldKey) -> bool {
         match key {
-            FieldKey::Expr(_) => self.append("["),
+            FieldKey::Expr(_) => self.append_space("["),
             _ => (),
         }
         false
@@ -370,7 +354,7 @@ impl AstVisitor for LuaWritter {
 
     fn end_field_key(&mut self, key: &FieldKey) {
         match key {
-            FieldKey::Expr(_) => self.append("]"),
+            FieldKey::Expr(_) => self.space_append("]"),
             _ => (),
         }
     }
@@ -382,31 +366,31 @@ impl AstVisitor for LuaWritter {
     }
 
     fn binop(&mut self, op: BinOp) {
-        self.space();
-        match op {
-            BinOp::Or => self.append_space("or"),
-            BinOp::And => self.append_space("and"),
-            BinOp::Eq => self.append_space("=="),
-            BinOp::Ne => self.append_space("~="),
-            BinOp::Lt => self.append_space("<"),
-            BinOp::Gt => self.append_space(">"),
-            BinOp::Le => self.append_space("<="),
-            BinOp::Ge => self.append_space(">="),
-            BinOp::BOr => self.append_space("|"),
-            BinOp::BXor => self.append_space("~"),
-            BinOp::BAnd => self.append_space("&"),
-            BinOp::Shl => self.append_space("<<"),
-            BinOp::Shr => self.append_space(">>"),
-            BinOp::Concat => self.append_space(".."),
-            BinOp::Add => self.append_space("+"),
-            BinOp::Minus => self.append_space("-"),
-            BinOp::Mul => self.append_space("*"),
-            BinOp::Mod => self.append_space("%"),
-            BinOp::Div => self.append_space("/"),
-            BinOp::IDiv => self.append_space("//"),
-            BinOp::Pow => self.append_space("^"),
+        let string = match op {
+            BinOp::Or => "or",
+            BinOp::And => "and",
+            BinOp::Eq => "==",
+            BinOp::Ne => "~=",
+            BinOp::Lt => "<",
+            BinOp::Gt => ">",
+            BinOp::Le => "<=",
+            BinOp::Ge => ">=",
+            BinOp::BOr => "|",
+            BinOp::BXor => "~",
+            BinOp::BAnd => "&",
+            BinOp::Shl => "<<",
+            BinOp::Shr => ">>",
+            BinOp::Concat => "..",
+            BinOp::Add => "+",
+            BinOp::Minus => "-",
+            BinOp::Mul => "*",
+            BinOp::Mod => "%",
+            BinOp::Div => "/",
+            BinOp::IDiv => "//",
+            BinOp::Pow => "^",
             _ => unreachable!(),
         };
+        self.space_append_space(string);
     }
 
     fn end_bin_expr(&mut self) {}
@@ -488,7 +472,7 @@ impl AstVisitor for LuaWritter {
 fn try_convert(input: &str) -> String {
     let mut lexer = Lexer::new();
     lexer.set_debug(true);
-    lexer.set_raw_string(true);
+    lexer.set_use_origin_string(true);
     if let Ok(tokens) = lexer.run(&input) {
         let mut parser = Parser::new();
         parser.set_debug(true);
