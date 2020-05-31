@@ -4,6 +4,7 @@ use rslua::lexer::Lexer;
 use rslua::parser::Parser;
 use rslua::types::*;
 use std::fs::File;
+use std::fs::{create_dir, read_dir};
 use std::io::prelude::*;
 use std::str;
 
@@ -499,6 +500,17 @@ fn try_convert(input: &str) -> String {
     unreachable!()
 }
 
+fn convert_lua(src: &str, dst: &str) -> std::io::Result<()> {
+    let mut file = File::open(src)?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)?;
+
+    let output = try_convert(&content);
+    let mut file = File::create(dst)?;
+    file.write_all(output.as_bytes())?;
+    Ok(())
+}
+
 #[test]
 fn write_method_call() {
     assert_eq!("str:sub(i, i)\n".to_string(), try_convert("str:sub(i,i)"));
@@ -506,12 +518,22 @@ fn write_method_call() {
 
 #[test]
 fn lua_to_lua() -> std::io::Result<()> {
-    let mut file = File::open(r"lua/json.lua")?;
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
+    let lua_dir: &'static str = "./lua";
+    let tmp: &'static str = "./tmp";
+    if let Err(_e) = read_dir(tmp) {
+        create_dir(tmp)?
+    }
 
-    let output = try_convert(&content);
-    let mut file = File::create("tests/json_output.lua")?;
-    file.write_all(output.as_bytes())?;
+    // convert lua files in `lua` folder
+    for entry in read_dir(lua_dir)? {
+        let entry = entry?;
+        let file_name = entry.file_name();
+        let name = file_name.to_str().unwrap();
+        let src = format!("{}/{}", lua_dir, name);
+        let dst = format!("{}/{}", tmp, name);
+        println!("{}, {}", src, dst);
+        convert_lua(&src, &dst)?;
+    }
+
     Ok(())
 }
