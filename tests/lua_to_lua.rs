@@ -276,11 +276,16 @@ impl AstVisitor for LuaWritter {
     }
 
     fn float(&mut self, f: FloatType) {
-        self.append(&format!("{}", f));
+        let string = if f.fract() == 0.0 {
+            format!("{}.0", f)
+        } else {
+            f.to_string()
+        };
+        self.append(&string);
     }
 
     fn int(&mut self, i: IntType) {
-        self.append(&format!("{}", i));
+        self.append(&i.to_string());
     }
 
     fn string(&mut self, s: &str) {
