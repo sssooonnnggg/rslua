@@ -9,7 +9,7 @@ mod lexer_tests {
         let mut lexer = Lexer::new();
         lexer.set_debug(true);
         let tokens = lexer.run(input);
-        println!("{:?}", tokens);
+        println!("{:#?}", tokens);
         tokens.ok().unwrap()
     }
 
@@ -161,7 +161,10 @@ mod lexer_tests {
         assert_eq!(Some(0.345), Lexer::str_to_float(".345"));
         assert_eq!(Some(0.1171875), Lexer::str_to_float("0x0.1E"));
         assert_eq!(Some(162.1875), Lexer::str_to_float("0xA23p-4"));
-        assert_eq!(Some(3.141592653589793), Lexer::str_to_float("0X1.921FB54442D18P+1"));
+        assert_eq!(
+            Some(3.141592653589793),
+            Lexer::str_to_float("0X1.921FB54442D18P+1")
+        );
         assert_eq!(Some(13e-2), Lexer::str_to_float("13e-2"));
         assert_eq!(None, Lexer::str_to_float("a34E1"));
         assert_eq!(None, Lexer::str_to_float("3.14.1"));
@@ -226,6 +229,36 @@ mod lexer_tests {
                     }
                 }
             ]
+        )
+    }
+
+    #[test]
+    fn idiv() {
+        let tokens = try_lexer("//");
+        assert_eq!(
+            tokens,
+            vec![
+                Token {
+                    t: TokenType::IDiv,
+                    value: TokenValue::None,
+                    source: Source {
+                        pos: 0,
+                        length: 2,
+                        line: 1,
+                        col: 1,
+                    },
+                },
+                Token {
+                    t: TokenType::Eos,
+                    value: TokenValue::None,
+                    source: Source {
+                        pos: 2,
+                        length: 0,
+                        line: 1,
+                        col: 3,
+                    },
+                },
+            ],
         )
     }
 }

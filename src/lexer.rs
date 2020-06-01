@@ -135,7 +135,7 @@ impl<'a> Lexer {
                     b'=' => self.read_eq_assign(&mut ctx)?,
                     b'<' => self.read_le_shl_lt(&mut ctx)?,
                     b'>' => self.read_ge_shr_gt(&mut ctx)?,
-                    b'/' if self.check_next(&ctx, '-') => self.read_idiv(&mut ctx)?,
+                    b'/' if self.check_next(&ctx, '/') => self.read_idiv(&mut ctx)?,
                     b'~' => self.read_ne_xor(&mut ctx)?,
                     b':' => self.read_colon(&mut ctx)?,
                     b'.' => self.read_attr_concat_dots_numbers(&mut ctx)?,
@@ -699,7 +699,7 @@ impl<'a> Lexer {
     pub fn str_to_int(s: &str) -> Option<IntType> {
         let bytes = s.as_bytes();
         let len = bytes.len();
-        let mut r: u32 = 0;
+        let mut r: IntType = 0;
         let mut i = 0;
         let mut empty = true;
         i = Lexer::skip_spaces(bytes, i);
@@ -707,13 +707,13 @@ impl<'a> Lexer {
         if Lexer::starts_with_0x(bytes, i) {
             i += 2;
             while i < len && Lexer::is_hex_digit(bytes[i]) {
-                r = (r << 4) + (Lexer::to_hex_digit(bytes[i]) as u32);
+                r = (r << 4) + (Lexer::to_hex_digit(bytes[i]) as IntType);
                 i += 1;
                 empty = false;
             }
         } else {
             while i < len && Lexer::is_digit(bytes[i]) {
-                r = r * 10 + (Lexer::to_digit(bytes[i]) as u32);
+                r = r * 10 + (Lexer::to_digit(bytes[i]) as IntType);
                 i += 1;
                 empty = false;
             }
