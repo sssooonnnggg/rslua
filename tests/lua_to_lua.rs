@@ -504,7 +504,7 @@ use std::process::Command;
 fn exists_lua_bin() -> Option<String> {
     if let Ok(_) = Command::new("lua").output() {
         Some("lua".to_string())
-    } else if let Ok(_) = Command::new("lua53").output() {
+    } else if let Ok(_) = Command::new("lua5.3").output() {
         Some("lua53".to_string())
     } else {
         None
