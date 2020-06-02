@@ -500,6 +500,29 @@ fn convert_lua(src: &str, dst: &str) -> std::io::Result<()> {
     Ok(())
 }
 
+use std::process::Command;
+fn exists_lua_bin() -> Option<String> {
+    if let Ok(_) = Command::new("lua").output() {
+        Some("lua".to_string())
+    } else if let Ok(_) = Command::new("lua53").output() {
+        Some("lua53".to_string())
+    } else {
+        None
+    }
+}
+
+fn execute_lua_tests(bin: &str, dir: &str) -> String {
+    let output = Command::new(&bin)
+        .current_dir(dir)
+        .arg("test_all.lua")
+        .output();
+
+    str::from_utf8(&output.ok().unwrap().stdout)
+        .ok()
+        .unwrap()
+        .to_string()
+}
+
 #[test]
 fn write_method_call() {
     assert_eq!("str:sub(i, i)\n".to_string(), try_convert("str:sub(i,i)"));
@@ -522,6 +545,15 @@ fn lua_to_lua() -> std::io::Result<()> {
         let dst = format!("{}/{}", tmp, name);
         println!("{}, {}", src, dst);
         convert_lua(&src, &dst)?;
+    }
+
+    if let Some(bin) = exists_lua_bin() {
+
+        // execute lua sources from origin paths and temp paths, then compare their outputs
+        assert_eq!(
+            execute_lua_tests(&bin, "./lua"),
+            execute_lua_tests(&bin, "./tmp")
+        );
     }
 
     Ok(())
