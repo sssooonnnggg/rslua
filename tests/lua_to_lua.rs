@@ -505,7 +505,7 @@ fn exists_lua_bin() -> Option<String> {
     if let Ok(_) = Command::new("lua").output() {
         Some("lua".to_string())
     } else if let Ok(_) = Command::new("lua5.3").output() {
-        Some("lua53".to_string())
+        Some("lua5.3".to_string())
     } else {
         None
     }
@@ -551,8 +551,8 @@ fn lua_to_lua() -> std::io::Result<()> {
 
         // execute lua sources from origin paths and temp paths, then compare their outputs
         assert_eq!(
-            execute_lua_tests(&bin, "./lua"),
-            execute_lua_tests(&bin, "./tmp")
+            execute_lua_tests(&bin, "lua"),
+            execute_lua_tests(&bin, "tmp")
         );
     }
 
