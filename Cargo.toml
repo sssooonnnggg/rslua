@@ -1,6 +1,6 @@
 [package]
 name = "rslua"
-version = "0.2.2"
+version = "0.2.3"
 description = "Yet another Lua lexer and Lua parser for Lua 5.3"
 authors = ["sssooonnnggg <sssooonnnggg111@gmail.com>"]
 edition = "2018"
