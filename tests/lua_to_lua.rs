@@ -242,7 +242,7 @@ impl AstVisitor for LuaWritter {
 
     fn assign_stat(&mut self, stat: &AssignStat) {
         for (n, suffix) in stat.left.iter().enumerate() {
-            ast_walker::walk_suffixedexpr(suffix, self);
+            ast_walker::walk_assinable(suffix, self);
             if n < stat.left.len() - 1 {
                 self.append_space(",");
             }
@@ -252,7 +252,7 @@ impl AstVisitor for LuaWritter {
     }
 
     fn call_stat(&mut self, stat: &CallStat) {
-        ast_walker::walk_suffixedexpr(&stat.call, self);
+        ast_walker::walk_assinable(&stat.call, self);
     }
 
     fn expr(&mut self, _stat: &Expr) -> bool {
@@ -421,12 +421,6 @@ impl AstVisitor for LuaWritter {
     }
 
     fn end_suffixed_expr(&mut self) {}
-
-    fn begin_primary_expr(&mut self, _expr: &PrimaryExpr) -> bool {
-        false
-    }
-
-    fn end_primary_expr(&mut self) {}
 
     fn name(&mut self, name: &str) {
         self.append(name);

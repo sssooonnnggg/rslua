@@ -119,27 +119,41 @@ pub enum Expr {
     Nil,
     True,
     False,
+    VarArg,
     Float(FloatType),
     Int(IntType),
     String(String),
+    Name(String),
+    ParenExpr(Box<Expr>),
     FuncBody(FuncBody),
     Table(Table),
     BinExpr(BinExpr),
     UnExpr(UnExpr),
-    VarArg,
     SuffixedExpr(SuffixedExpr),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SuffixedExpr {
-    pub primary: PrimaryExpr,
-    pub suffixes: Vec<Suffix>,
+pub enum Assignable {
+    Name(String),
+    ParenExpr(Box<Expr>),
+    SuffixedExpr(SuffixedExpr),
+}
+
+impl Expr {
+    pub fn to_assignable(self) -> Assignable {
+        match self {
+            Expr::Name(s) => Assignable::Name(s),
+            Expr::ParenExpr(p) => Assignable::ParenExpr(p),
+            Expr::SuffixedExpr(s) => Assignable::SuffixedExpr(s),
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
-pub enum PrimaryExpr {
-    Name(String),
-    ParenExpr(Box<Expr>),
+pub struct SuffixedExpr {
+    pub primary: Box<Expr>,
+    pub suffixes: Vec<Suffix>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -301,13 +315,13 @@ pub struct GotoStat {
 
 #[derive(PartialEq, Debug)]
 pub struct AssignStat {
-    pub left: Vec<SuffixedExpr>,
+    pub left: Vec<Assignable>,
     pub right: Vec<Expr>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct CallStat {
-    pub call: SuffixedExpr,
+    pub call: Assignable,
 }
 
 #[derive(PartialEq, Debug)]

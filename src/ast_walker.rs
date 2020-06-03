@@ -74,9 +74,6 @@ pub trait AstVisitor {
     fn begin_suffixed_expr(&mut self, expr: &SuffixedExpr) -> bool;
     fn end_suffixed_expr(&mut self);
 
-    fn begin_primary_expr(&mut self, expr: &PrimaryExpr) -> bool;
-    fn end_primary_expr(&mut self);
-
     fn name(&mut self, name: &str);
     fn attr(&mut self, attr: &str);
     fn method(&mut self, method: &str);
@@ -251,6 +248,8 @@ pub mod ast_walker {
                 Expr::Int(i) => visitor.int(*i),
                 Expr::String(string) => visitor.string(string),
                 Expr::VarArg => visitor.vararg(),
+                Expr::Name(s) => visitor.name(s),
+                Expr::ParenExpr(expr) => walk_parenexpr(expr, visitor),
                 Expr::FuncBody(body) => {
                     visitor.anonymous_func();
                     walk_funcbody(body, visitor)
@@ -289,7 +288,7 @@ pub mod ast_walker {
 
     pub fn walk_suffixedexpr<T: AstVisitor>(expr: &SuffixedExpr, visitor: &mut T) {
         if !visitor.begin_suffixed_expr(expr) {
-            walk_primaryexpr(&expr.primary, visitor);
+            walk_expr(&expr.primary, visitor);
             for suf in expr.suffixes.iter() {
                 if !visitor.suffix(suf) {
                     match suf {
@@ -302,6 +301,14 @@ pub mod ast_walker {
             }
         }
         visitor.end_suffixed_expr();
+    }
+
+    pub fn walk_assinable<T: AstVisitor>(assignable: &Assignable, visitor: &mut T) {
+        match assignable {
+            Assignable::SuffixedExpr(s) => walk_suffixedexpr(s, visitor),
+            Assignable::Name(s) => visitor.name(s),
+            Assignable::ParenExpr(expr) => walk_parenexpr(expr, visitor),
+        }
     }
 
     pub fn walk_index<T: AstVisitor>(expr: &Expr, visitor: &mut T) {
@@ -320,16 +327,6 @@ pub mod ast_walker {
             }
         }
         visitor.end_func_args();
-    }
-
-    pub fn walk_primaryexpr<T: AstVisitor>(expr: &PrimaryExpr, visitor: &mut T) {
-        if !visitor.begin_primary_expr(expr) {
-            match expr {
-                PrimaryExpr::Name(n) => visitor.name(n),
-                PrimaryExpr::ParenExpr(expr) => walk_parenexpr(&expr, visitor),
-            }
-        }
-        visitor.end_primary_expr();
     }
 
     pub fn walk_parenexpr<T: AstVisitor>(expr: &Expr, visitor: &mut T) {

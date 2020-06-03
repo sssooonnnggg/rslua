@@ -345,19 +345,21 @@ impl Parser {
     fn exprstat(&mut self) -> ParseResult<Stat> {
         let expr = self.suffixedexpr()?;
         if self.test(TokenType::Assign) || self.test(TokenType::Comma) {
-            Ok(Stat::AssignStat(self.assignment(expr)?))
+            Ok(Stat::AssignStat(self.assignment(expr.to_assignable())?))
         } else {
-            Ok(Stat::CallStat(CallStat { call: expr }))
+            Ok(Stat::CallStat(CallStat {
+                call: expr.to_assignable(),
+            }))
         }
     }
 
     // assignment -> ',' suffixedexp assignment
     // assignment -> '=' explist
-    fn assignment(&mut self, expr: SuffixedExpr) -> ParseResult<AssignStat> {
-        let mut left: Vec<SuffixedExpr> = Vec::new();
-        left.push(expr);
+    fn assignment(&mut self, first: Assignable) -> ParseResult<AssignStat> {
+        let mut left: Vec<Assignable> = Vec::new();
+        left.push(first);
         while self.test_next(TokenType::Comma) {
-            left.push(self.suffixedexpr()?)
+            left.push(self.suffixedexpr()?.to_assignable())
         }
         self.check_next(TokenType::Assign)?;
         let right = self.exprlist()?;
@@ -428,14 +430,14 @@ impl Parser {
                 self.next();
                 return Ok(Expr::FuncBody(self.funcbody()?));
             }
-            _ => return Ok(Expr::SuffixedExpr(self.suffixedexpr()?)),
+            _ => return Ok(self.suffixedexpr()?),
         };
         self.next();
         Ok(expr)
     }
 
     // suffixedexpr -> primaryexpr { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
-    fn suffixedexpr(&mut self) -> ParseResult<SuffixedExpr> {
+    fn suffixedexpr(&mut self) -> ParseResult<Expr> {
         let primary = self.primaryexpr()?;
         let mut suffixes: Vec<Suffix> = Vec::new();
         loop {
@@ -462,19 +464,26 @@ impl Parser {
             }
         }
 
-        Ok(SuffixedExpr { primary, suffixes })
+        if suffixes.is_empty() {
+            Ok(primary)
+        } else {
+            Ok(Expr::SuffixedExpr(SuffixedExpr {
+                primary: Box::new(primary),
+                suffixes,
+            }))
+        }
     }
 
     // primaryexp -> NAME | '(' expr ')'
-    fn primaryexpr(&mut self) -> ParseResult<PrimaryExpr> {
+    fn primaryexpr(&mut self) -> ParseResult<Expr> {
         let expr = match self.current_token_type() {
-            TokenType::Name => PrimaryExpr::Name(self.check_name()?),
+            TokenType::Name => Expr::Name(self.check_name()?),
             TokenType::Lp => {
                 let line = self.current_line();
                 self.next();
                 let expr = self.expr()?;
                 self.check_match(TokenType::Rp, TokenType::Lp, line)?;
-                PrimaryExpr::ParenExpr(Box::new(expr))
+                Expr::ParenExpr(Box::new(expr))
             }
             _ => {
                 return syntax_error!(

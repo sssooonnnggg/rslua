@@ -102,16 +102,7 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::ForStat(ForStat::ForList(ForList {
                     vars: vec![String::from("a"), String::from("b"),],
-                    exprs: vec![
-                        Expr::SuffixedExpr(SuffixedExpr {
-                            primary: PrimaryExpr::Name("c".to_string()),
-                            suffixes: vec![]
-                        }),
-                        Expr::SuffixedExpr(SuffixedExpr {
-                            primary: PrimaryExpr::Name("d".to_string()),
-                            suffixes: vec![]
-                        })
-                    ],
+                    exprs: vec![Expr::Name("c".to_string()), Expr::Name("d".to_string())],
                     body: Block { stats: vec![] },
                 },),),],
             }
@@ -139,10 +130,7 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::RepeatStat(RepeatStat {
                     cond: Expr::BinExpr(BinExpr {
-                        left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
-                            primary: PrimaryExpr::Name(String::from("a")),
-                            suffixes: vec![],
-                        })),
+                        left: Box::new(Expr::Name("a".to_string())),
                         op: BinOp::Gt,
                         right: Box::new(Expr::Int(0))
                     }),
@@ -240,19 +228,10 @@ mod parser_tests {
                         Expr::BinExpr(BinExpr {
                             left: Box::new(Expr::Int(1)),
                             op: BinOp::Add,
-                            right: Box::new(Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("a".to_string()),
-                                suffixes: vec![]
-                            }))
+                            right: Box::new(Expr::Name("a".to_string()))
                         }),
-                        Expr::SuffixedExpr(SuffixedExpr {
-                            primary: PrimaryExpr::Name("b".to_string()),
-                            suffixes: vec![]
-                        }),
-                        Expr::SuffixedExpr(SuffixedExpr {
-                            primary: PrimaryExpr::Name("c".to_string()),
-                            suffixes: vec![]
-                        })
+                        Expr::Name("b".to_string()),
+                        Expr::Name("c".to_string()),
                     ],
                 })],
             }
@@ -280,18 +259,9 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::AssignStat(AssignStat {
                     left: vec![
-                        SuffixedExpr {
-                            primary: PrimaryExpr::Name("a".to_string()),
-                            suffixes: vec![],
-                        },
-                        SuffixedExpr {
-                            primary: PrimaryExpr::Name("b".to_string()),
-                            suffixes: vec![],
-                        },
-                        SuffixedExpr {
-                            primary: PrimaryExpr::Name("c".to_string()),
-                            suffixes: vec![],
-                        },
+                        Assignable::Name("a".to_string()),
+                        Assignable::Name("b".to_string()),
+                        Assignable::Name("c".to_string()),
                     ],
                     right: vec![Expr::Int(1), Expr::Int(2), Expr::Int(3),],
                 })],
@@ -306,14 +276,14 @@ mod parser_tests {
             ast,
             Block {
                 stats: vec![Stat::CallStat(CallStat {
-                    call: SuffixedExpr {
-                        primary: PrimaryExpr::Name("foo".to_string()),
+                    call: Assignable::SuffixedExpr(SuffixedExpr {
+                        primary: Box::new(Expr::Name("foo".to_string())),
                         suffixes: vec![Suffix::FuncArgs(FuncArgs::Exprs(vec![
                             Expr::Int(1),
                             Expr::Int(2),
                             Expr::Int(3),
                         ]))],
-                    },
+                    }),
                 })],
             }
         )
@@ -326,23 +296,14 @@ mod parser_tests {
             ast,
             Block {
                 stats: vec![Stat::CallStat(CallStat {
-                    call: SuffixedExpr {
-                        primary: PrimaryExpr::Name("a".to_string()),
+                    call: Assignable::SuffixedExpr(SuffixedExpr {
+                        primary: Box::new(Expr::Name("a".to_string())),
                         suffixes: vec![Suffix::FuncArgs(FuncArgs::Exprs(vec![
-                            Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("a".to_string()),
-                                suffixes: vec![],
-                            }),
-                            Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("b".to_string()),
-                                suffixes: vec![],
-                            }),
-                            Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("c".to_string()),
-                                suffixes: vec![],
-                            }),
+                            Expr::Name("a".to_string()),
+                            Expr::Name("b".to_string()),
+                            Expr::Name("c".to_string()),
                         ]))],
-                    },
+                    }),
                 })],
             }
         )
@@ -385,10 +346,7 @@ mod parser_tests {
                             Field::RecFileld(RecField {
                                 key: FieldKey::Expr(Expr::BinExpr(BinExpr {
                                     op: BinOp::Minus,
-                                    left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
-                                        primary: PrimaryExpr::Name("a".to_string()),
-                                        suffixes: vec![],
-                                    })),
+                                    left: Box::new(Expr::Name("a".to_string())),
                                     right: Box::new(Expr::Int(1)),
                                 })),
                                 value: Expr::Int(3),
@@ -407,15 +365,15 @@ mod parser_tests {
             ast,
             Block {
                 stats: vec![Stat::CallStat(CallStat {
-                    call: SuffixedExpr {
-                        primary: PrimaryExpr::Name("a".to_string()),
+                    call: Assignable::SuffixedExpr(SuffixedExpr {
+                        primary: Box::new(Expr::Name("a".to_string())),
                         suffixes: vec![
                             Suffix::Method("b".to_string()),
                             Suffix::FuncArgs(FuncArgs::Table(Table { fields: vec![] })),
                             Suffix::FuncArgs(FuncArgs::String("literal".to_string())),
                             Suffix::FuncArgs(FuncArgs::Exprs(vec![])),
                         ],
-                    },
+                    }),
                 })],
             },
         );
@@ -466,22 +424,16 @@ mod parser_tests {
             ast,
             Block {
                 stats: vec![Stat::CallStat(CallStat {
-                    call: SuffixedExpr {
-                        primary: PrimaryExpr::Name("str".to_string()),
+                    call: Assignable::SuffixedExpr(SuffixedExpr {
+                        primary: Box::new(Expr::Name("str".to_string())),
                         suffixes: vec![
                             Suffix::Method("sub".to_string()),
                             Suffix::FuncArgs(FuncArgs::Exprs(vec![
-                                Expr::SuffixedExpr(SuffixedExpr {
-                                    primary: PrimaryExpr::Name("i".to_string()),
-                                    suffixes: vec![],
-                                }),
-                                Expr::SuffixedExpr(SuffixedExpr {
-                                    primary: PrimaryExpr::Name("i".to_string()),
-                                    suffixes: vec![],
-                                }),
+                                Expr::Name("i".to_string()),
+                                Expr::Name("i".to_string()),
                             ])),
                         ]
-                    },
+                    }),
                 })],
             }
         )
@@ -498,18 +450,12 @@ mod parser_tests {
                         op: BinOp::And,
                         left: Box::new(Expr::BinExpr(BinExpr {
                             op: BinOp::Eq,
-                            left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("a".to_string()),
-                                suffixes: vec![],
-                            })),
+                            left: Box::new(Expr::Name("a".to_string())),
                             right: Box::new(Expr::Int(1)),
                         },)),
                         right: Box::new(Expr::BinExpr(BinExpr {
                             op: BinOp::Eq,
-                            left: Box::new(Expr::SuffixedExpr(SuffixedExpr {
-                                primary: PrimaryExpr::Name("b".to_string()),
-                                suffixes: vec![],
-                            })),
+                            left: Box::new(Expr::Name("b".to_string())),
                             right: Box::new(Expr::Int(2)),
                         })),
                     })],
