@@ -22,31 +22,32 @@ pub enum OpMode {
     iAx,
 }
 
-pub const SIZE_OP: usize = 6;
-pub const SIZE_A: usize = 8;
-pub const SIZE_B: usize = 9;
-pub const SIZE_C: usize = 9;
-pub const SIZE_Ax: usize = SIZE_C + SIZE_B + SIZE_A;
-pub const SIZE_Bx: usize = SIZE_C + SIZE_B;
+pub const SIZE_OP: u32 = 6;
+pub const SIZE_A: u32 = 8;
+pub const SIZE_B: u32 = 9;
+pub const SIZE_C: u32 = 9;
+pub const SIZE_Ax: u32 = SIZE_C + SIZE_B + SIZE_A;
+pub const SIZE_Bx: u32 = SIZE_C + SIZE_B;
 
-pub const POS_OP: usize = 0;
-pub const POS_A: usize = POS_OP + SIZE_OP;
-pub const POS_C: usize = POS_A + SIZE_A;
-pub const POS_B: usize = POS_C + SIZE_C;
-pub const POS_Bx: usize = POS_C;
-pub const POS_Ax: usize = POS_A;
+pub const POS_OP: u32 = 0;
+pub const POS_A: u32 = POS_OP + SIZE_OP;
+pub const POS_C: u32 = POS_A + SIZE_A;
+pub const POS_B: u32 = POS_C + SIZE_C;
+pub const POS_Bx: u32 = POS_C;
+pub const POS_Ax: u32 = POS_A;
 
-pub const MAXARG_A: usize = ((1 << SIZE_A) - 1);
-pub const MAXARG_B: usize = ((1 << SIZE_B) - 1);
-pub const MAXARG_C: usize = ((1 << SIZE_C) - 1);
-pub const MAXARG_Ax: usize = (1 << SIZE_Ax) - 1;
-pub const MAXARG_Bx: usize = (1 << SIZE_Bx) - 1;
-pub const MAXARG_sBx: usize = MAXARG_Bx >> 1;
+pub const MAXARG_A: u32 = ((1 << SIZE_A) - 1);
+pub const MAXARG_B: u32 = ((1 << SIZE_B) - 1);
+pub const MAXARG_C: u32 = ((1 << SIZE_C) - 1);
+pub const MAXARG_Ax: u32 = (1 << SIZE_Ax) - 1;
+pub const MAXARG_Bx: u32 = (1 << SIZE_Bx) - 1;
+pub const MAXARG_sBx: i32 = (MAXARG_Bx as i32) >> 1;
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     // A B
     // R(A) := R(B)
-    Move,
+    Move = 0,
     // A Bx
     // R(A) := Kst(Bx)
     LoadK,
@@ -209,4 +210,120 @@ pub enum OpCode {
     // Ax
     // extra (larger) argument for previous opcode
     ExtraArg,
+}
+
+impl OpCode {
+    pub fn from_u32(u: u32) -> OpCode {
+        match u {
+            _ if OpCode::Move as u32 == u => OpCode::Move,
+            _ if OpCode::LoadK as u32 == u => OpCode::LoadK,
+            _ if OpCode::LoadKx as u32 == u => OpCode::LoadKx,
+            _ if OpCode::LoadBool as u32 == u => OpCode::LoadBool,
+            _ if OpCode::LoadNil as u32 == u => OpCode::LoadNil,
+            _ if OpCode::GetUpVal as u32 == u => OpCode::GetUpVal,
+            _ if OpCode::GetTabUp as u32 == u => OpCode::GetTabUp,
+            _ if OpCode::GetTable as u32 == u => OpCode::GetTable,
+            _ if OpCode::SetTabUp as u32 == u => OpCode::SetTabUp,
+            _ if OpCode::SetUpVal as u32 == u => OpCode::SetUpVal,
+            _ if OpCode::SetTable as u32 == u => OpCode::SetTable,
+            _ if OpCode::NewTable as u32 == u => OpCode::NewTable,
+            _ if OpCode::Self_ as u32 == u => OpCode::Self_,
+            _ if OpCode::Add as u32 == u => OpCode::Add,
+            _ if OpCode::Sub as u32 == u => OpCode::Sub,
+            _ if OpCode::Mul as u32 == u => OpCode::Mul,
+            _ if OpCode::Mod as u32 == u => OpCode::Mod,
+            _ if OpCode::Pow as u32 == u => OpCode::Pow,
+            _ if OpCode::Div as u32 == u => OpCode::Div,
+            _ if OpCode::IDiv as u32 == u => OpCode::IDiv,
+            _ if OpCode::BAdd as u32 == u => OpCode::BAdd,
+            _ if OpCode::BOr as u32 == u => OpCode::BOr,
+            _ if OpCode::BXor as u32 == u => OpCode::BXor,
+            _ if OpCode::Shl as u32 == u => OpCode::Shl,
+            _ if OpCode::Shr as u32 == u => OpCode::Shr,
+            _ if OpCode::Unm as u32 == u => OpCode::Unm,
+            _ if OpCode::BNot as u32 == u => OpCode::BNot,
+            _ if OpCode::Not as u32 == u => OpCode::Not,
+            _ if OpCode::Len as u32 == u => OpCode::Len,
+            _ if OpCode::Concat as u32 == u => OpCode::Concat,
+            _ if OpCode::Jmp as u32 == u => OpCode::Jmp,
+            _ if OpCode::Eq as u32 == u => OpCode::Eq,
+            _ if OpCode::Lt as u32 == u => OpCode::Lt,
+            _ if OpCode::Le as u32 == u => OpCode::Le,
+            _ if OpCode::Test as u32 == u => OpCode::Test,
+            _ if OpCode::TestSet as u32 == u => OpCode::TestSet,
+            _ if OpCode::Call as u32 == u => OpCode::Call,
+            _ if OpCode::TailCall as u32 == u => OpCode::TailCall,
+            _ if OpCode::Return as u32 == u => OpCode::Return,
+            _ if OpCode::ForLoop as u32 == u => OpCode::ForLoop,
+            _ if OpCode::ForPrep as u32 == u => OpCode::ForPrep,
+            _ if OpCode::TForCall as u32 == u => OpCode::TForCall,
+            _ if OpCode::TForLoop as u32 == u => OpCode::TForLoop,
+            _ if OpCode::SetList as u32 == u => OpCode::SetList,
+            _ if OpCode::Closure as u32 == u => OpCode::Closure,
+            _ if OpCode::Vararg as u32 == u => OpCode::Vararg,
+            _ if OpCode::ExtraArg as u32 == u => OpCode::ExtraArg,
+            _ => unreachable!("unknown op code : {}!", u),
+        }
+    }
+}
+
+pub struct Instruction(u32);
+
+#[allow(dead_code)]
+#[allow(non_snake_case)]
+impl Instruction {
+    pub fn get_op(&self) -> OpCode {
+        OpCode::from_u32(((self.0) >> POS_OP) & Instruction::mask1(SIZE_OP, 0))
+    }
+    pub fn set_op(&mut self, op: OpCode) {
+        self.set_arg(op as u32, POS_OP, SIZE_OP)
+    }
+    pub fn get_arg_A(&self) -> u32 {
+        self.get_arg(POS_A, SIZE_A)
+    }
+    pub fn set_arg_A(&mut self, value: u32) {
+        self.set_arg(value, POS_A, SIZE_A);
+    }
+    pub fn get_arg_B(&self) -> u32 {
+        self.get_arg(POS_B, SIZE_B)
+    }
+    pub fn set_arg_B(&mut self, value: u32) {
+        self.set_arg(value, POS_B, SIZE_B);
+    }
+    pub fn get_arg_C(&self) -> u32 {
+        self.get_arg(POS_C, SIZE_C)
+    }
+    pub fn set_arg_C(&mut self, value: u32) {
+        self.set_arg(value, POS_C, SIZE_C);
+    }
+    pub fn get_arg_Ax(&self) -> u32 {
+        self.get_arg(POS_Ax, SIZE_Ax)
+    }
+    pub fn set_arg_Ax(&mut self, value: u32) {
+        self.set_arg(value, POS_Ax, SIZE_Ax);
+    }
+    pub fn get_arg_Bx(&self) -> u32 {
+        self.get_arg(POS_Bx, SIZE_Bx)
+    }
+    pub fn set_arg_Bx(&mut self, value: u32) {
+        self.set_arg(value, POS_Bx, SIZE_Bx);
+    }
+    pub fn get_arg_sBx(&mut self) -> i32 {
+        (self.get_arg(POS_Bx, SIZE_Bx) as i32) - MAXARG_sBx
+    }
+    pub fn set_argsBx(&mut self, value: i32) {
+        self.set_arg((value + MAXARG_sBx) as u32, POS_Bx, SIZE_Bx);
+    }
+    fn get_arg(&self, pos: u32, size: u32) -> u32 {
+        (self.0 >> pos) & Instruction::mask1(size, 0)
+    }
+    fn set_arg(&mut self, value: u32, pos: u32, size: u32) {
+        self.0 = Instruction::mask0(size, pos) | (value << POS_OP) & Instruction::mask1(size, pos)
+    }
+    fn mask1(n: u32, p: u32) -> u32 {
+        (!((!0u32) << n)) << p
+    }
+    fn mask0(n: u32, p: u32) -> u32 {
+        !Instruction::mask1(n, p)
+    }
 }
