@@ -275,54 +275,83 @@ impl Instruction {
     pub fn get_op(&self) -> OpCode {
         OpCode::from_u32(((self.0) >> POS_OP) & Instruction::mask1(SIZE_OP, 0))
     }
+
     pub fn set_op(&mut self, op: OpCode) {
         self.set_arg(op as u32, POS_OP, SIZE_OP)
     }
+
     pub fn get_arg_A(&self) -> u32 {
         self.get_arg(POS_A, SIZE_A)
     }
+
     pub fn set_arg_A(&mut self, value: u32) {
         self.set_arg(value, POS_A, SIZE_A);
     }
+
     pub fn get_arg_B(&self) -> u32 {
         self.get_arg(POS_B, SIZE_B)
     }
+
     pub fn set_arg_B(&mut self, value: u32) {
         self.set_arg(value, POS_B, SIZE_B);
     }
+
     pub fn get_arg_C(&self) -> u32 {
         self.get_arg(POS_C, SIZE_C)
     }
+
     pub fn set_arg_C(&mut self, value: u32) {
         self.set_arg(value, POS_C, SIZE_C);
     }
+
     pub fn get_arg_Ax(&self) -> u32 {
         self.get_arg(POS_Ax, SIZE_Ax)
     }
+
     pub fn set_arg_Ax(&mut self, value: u32) {
         self.set_arg(value, POS_Ax, SIZE_Ax);
     }
+
     pub fn get_arg_Bx(&self) -> u32 {
         self.get_arg(POS_Bx, SIZE_Bx)
     }
+
     pub fn set_arg_Bx(&mut self, value: u32) {
         self.set_arg(value, POS_Bx, SIZE_Bx);
     }
+
     pub fn get_arg_sBx(&mut self) -> i32 {
         (self.get_arg(POS_Bx, SIZE_Bx) as i32) - MAXARG_sBx
     }
-    pub fn set_argsBx(&mut self, value: i32) {
+
+    pub fn set_arg_sBx(&mut self, value: i32) {
         self.set_arg((value + MAXARG_sBx) as u32, POS_Bx, SIZE_Bx);
     }
+
+    pub fn create_ABC(op: OpCode, a: u32, b: u32, c: u32) -> Self {
+        Instruction(((op as u32) << POS_OP) | (a << POS_A) | (b << POS_B) | (c << POS_C))
+    }
+
+    pub fn create_ABx(op: OpCode, a: u32, bx: u32) -> Self {
+        Instruction(((op as u32) << POS_OP) | (a << POS_A) | (bx << POS_Bx))
+    }
+
+    pub fn create_Ax(op: OpCode, a: u32) -> Self {
+        Instruction(((op as u32) << POS_OP) | (a << POS_Ax))
+    }
+
     fn get_arg(&self, pos: u32, size: u32) -> u32 {
         (self.0 >> pos) & Instruction::mask1(size, 0)
     }
+
     fn set_arg(&mut self, value: u32, pos: u32, size: u32) {
         self.0 = Instruction::mask0(size, pos) | (value << POS_OP) & Instruction::mask1(size, pos)
     }
+
     fn mask1(n: u32, p: u32) -> u32 {
         (!((!0u32) << n)) << p
     }
+
     fn mask0(n: u32, p: u32) -> u32 {
         !Instruction::mask1(n, p)
     }
