@@ -1,4 +1,4 @@
-use crate::token::{Source, Token, TokenType, TokenValue};
+use crate::tokens::{Source, Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number};
 use crate::{debuggable, error, success};
 use std::mem;

@@ -1,4 +1,4 @@
-pub mod token;
+pub mod tokens;
 pub mod macros;
 pub mod lexer;
 pub mod types;

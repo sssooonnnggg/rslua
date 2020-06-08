@@ -1,4 +1,4 @@
-use crate::token::TokenType;
+use crate::tokens::TokenType;
 use crate::types::{FloatType, IntType};
 
 #[derive(Copy, Clone, PartialEq, Debug)]

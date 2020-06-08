@@ -1,7 +1,7 @@
 use crate::{debuggable, error};
 
 use crate::ast::*;
-use crate::token::{Token, TokenType, TokenValue};
+use crate::tokens::{Token, TokenType, TokenValue};
 
 pub struct Parser {
     tokens: Vec<Token>,
