@@ -29,10 +29,10 @@ impl ops::Sub<Source> for Source {
     type Output = Source;
     fn sub(self, rhs: Source) -> Source {
         Source {
-            pos: self.pos,
-            length: rhs.pos + rhs.length - self.pos,
-            line: self.line,
-            col: self.col,
+            pos: rhs.pos,
+            length: self.pos + self.length - rhs.pos,
+            line: rhs.line,
+            col: rhs.col,
         }
     }
 }

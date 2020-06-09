@@ -141,7 +141,11 @@ pub mod ast_walker {
     use crate::ast::*;
 
     pub fn walk_block<T: AstVisitor>(block: &Block, visitor: &mut T) {
-        for stat in block.stats.iter() {
+        for StatInfo {
+            source: _source,
+            stat,
+        } in block.stats.iter()
+        {
             walk_stat(stat, visitor);
             visitor.stat_sep();
         }

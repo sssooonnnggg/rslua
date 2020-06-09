@@ -57,7 +57,8 @@ mod parser_tests {
                         },
                     ],
                     else_block: Some(Block { stats: vec![] }),
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -71,7 +72,8 @@ mod parser_tests {
                 stats: vec![Stat::WhileStat(WhileStat {
                     cond: Expr::True,
                     block: Block { stats: vec![] },
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -89,7 +91,8 @@ mod parser_tests {
                     limit: Expr::Int(10),
                     step: Some(Expr::Int(1)),
                     body: Block { stats: vec![] },
-                }))],
+                }))
+                .to_stat_info()],
             }
         );
         assert_eq!(
@@ -99,7 +102,8 @@ mod parser_tests {
                     vars: vec![String::from("a"), String::from("b"),],
                     exprs: vec![Expr::Name("c".to_string()), Expr::Name("d".to_string())],
                     body: Block { stats: vec![] },
-                },),),],
+                },),)
+                .to_stat_info()],
             }
         )
     }
@@ -112,7 +116,8 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::DoBlock(DoBlock {
                     block: Block { stats: vec![] },
-                },),],
+                },)
+                .to_stat_info()],
             }
         )
     }
@@ -130,7 +135,8 @@ mod parser_tests {
                         right: Box::new(Expr::Int(0))
                     }),
                     block: Block { stats: vec![] },
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -155,7 +161,8 @@ mod parser_tests {
                         ],
                         block: Block { stats: vec![] },
                     },
-                })]
+                })
+                .to_stat_info()]
             }
         )
     }
@@ -180,7 +187,8 @@ mod parser_tests {
                         ],
                         block: Block { stats: vec![] },
                     },
-                })]
+                })
+                .to_stat_info()]
             }
         )
     }
@@ -194,7 +202,8 @@ mod parser_tests {
                 stats: vec![Stat::LocalStat(LocalStat {
                     names: vec!["a".to_string(), "b".to_string(), "c".to_string()],
                     exprs: vec![Expr::Int(1), Expr::Int(2), Expr::Int(3),],
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -207,7 +216,8 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::LabelStat(LabelStat {
                     label: "LABEL".to_string()
-                })]
+                })
+                .to_stat_info()]
             }
         )
     }
@@ -228,7 +238,8 @@ mod parser_tests {
                         Expr::Name("b".to_string()),
                         Expr::Name("c".to_string()),
                     ],
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -241,7 +252,8 @@ mod parser_tests {
             Block {
                 stats: vec![Stat::GotoStat(GotoStat {
                     label: "LABEL".to_string()
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -259,7 +271,8 @@ mod parser_tests {
                         Assignable::Name("c".to_string()),
                     ],
                     right: vec![Expr::Int(1), Expr::Int(2), Expr::Int(3),],
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -279,7 +292,8 @@ mod parser_tests {
                             Expr::Int(3),
                         ]))],
                     }),
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -299,7 +313,8 @@ mod parser_tests {
                             Expr::Name("c".to_string()),
                         ]))],
                     }),
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -320,7 +335,8 @@ mod parser_tests {
                             Field::ListField(Expr::String("2".to_string()))
                         ]
                     })]
-                })],
+                })
+                .to_stat_info()],
             }
         );
         assert_eq!(
@@ -348,7 +364,8 @@ mod parser_tests {
                             }),
                         ],
                     })],
-                })],
+                })
+                .to_stat_info()],
             }
         );
     }
@@ -369,7 +386,8 @@ mod parser_tests {
                             Suffix::FuncArgs(FuncArgs::Exprs(vec![])),
                         ],
                     }),
-                })],
+                })
+                .to_stat_info()],
             },
         );
     }
@@ -391,7 +409,8 @@ mod parser_tests {
                             right: Box::new(Expr::Int(3)),
                         })),
                     })],
-                })],
+                })
+                .to_stat_info()],
             }
         );
         assert_eq!(
@@ -407,7 +426,8 @@ mod parser_tests {
                         })),
                         right: Box::new(Expr::Int(3)),
                     })],
-                })],
+                })
+                .to_stat_info()],
             }
         );
     }
@@ -429,7 +449,8 @@ mod parser_tests {
                             ])),
                         ]
                     }),
-                })],
+                })
+                .to_stat_info()],
             }
         )
     }
@@ -454,7 +475,8 @@ mod parser_tests {
                             right: Box::new(Expr::Int(2)),
                         })),
                     })],
-                })],
+                })
+                .to_stat_info()],
             }
         );
     }

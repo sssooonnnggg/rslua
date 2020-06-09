@@ -2,6 +2,7 @@ use crate::{debuggable, error};
 
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
+use crate::types::Source;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -59,14 +60,16 @@ impl Parser {
 
     // block -> { stat [';'] }
     fn block(&mut self) -> ParseResult<Block> {
-        let mut stats: Vec<Stat> = Vec::new();
+        let mut stats: Vec<StatInfo> = Vec::new();
+        let saved = self.current_source();
         while !self.is_block_end() {
             let (stat, should_break) = match self.current_token_type() {
                 TokenType::Return => (self.stat()?, true),
                 _ => (self.stat()?, false),
             };
             if let Some(stat) = stat {
-                stats.push(stat);
+                let source = self.current_source() - saved;
+                stats.push(StatInfo { source, stat });
             }
             if should_break {
                 break;
@@ -599,6 +602,11 @@ impl Parser {
     fn current_token_type(&self) -> TokenType {
         let token = self.current_token();
         token.t
+    }
+
+    fn current_source(&self) -> Source {
+        let token = self.current_token();
+        token.source
     }
 
     fn current_line(&self) -> usize {

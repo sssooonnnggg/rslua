@@ -1,6 +1,6 @@
 use crate::tokens::TokenType;
+use crate::types::Source;
 use crate::types::{FloatType, IntType};
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum UnOp {
     Minus,
@@ -341,7 +341,37 @@ pub enum Stat {
     CallStat(CallStat),
 }
 
+impl Stat {
+    pub fn to_stat_info(self) -> StatInfo {
+        StatInfo {
+            stat: self,
+            source: Source::new(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct StatInfo {
+    pub stat: Stat,
+    pub source: Source,
+}
+
+impl StatInfo {
+    pub fn from_stat(stat: Stat) -> Self {
+        StatInfo {
+            stat,
+            source: Source::new(),
+        }
+    }
+}
+
+impl PartialEq for StatInfo {
+    fn eq(&self, other:&Self) -> bool {
+        self.stat == other.stat
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub struct Block {
-    pub stats: Vec<Stat>,
+    pub stats: Vec<StatInfo>,
 }
