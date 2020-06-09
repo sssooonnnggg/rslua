@@ -1,6 +1,6 @@
 # rslua
 
-Yet another Lua lexer and Lua parser for Lua 5.3.
+Yet another Lua lexer and Lua parser for Lua 5.3 written in pure Rust.
 
 ## Lexer
 
