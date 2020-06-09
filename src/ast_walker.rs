@@ -3,91 +3,91 @@ use crate::types::*;
 
 // if visitor return `true`, walker will not travel its child nodes
 pub trait AstVisitor {
-    fn stat_sep(&mut self);
+    fn stat_sep(&mut self) {}
 
-    fn begin_if(&mut self, cond: &Expr) -> bool;
-    fn then(&mut self, block: &Block) -> bool;
-    fn begin_else_if(&mut self, cond: &Expr) -> bool;
-    fn begin_else(&mut self, block: &Block) -> bool;
-    fn end_if(&mut self);
+    fn begin_if(&mut self, _cond: &Expr) -> bool { false }
+    fn then(&mut self, _block: &Block) -> bool { false }
+    fn begin_else_if(&mut self, _cond: &Expr) -> bool { false }
+    fn begin_else(&mut self, _block: &Block) -> bool { false }
+    fn end_if(&mut self) {}
 
-    fn begin_while(&mut self, cond: &Expr) -> bool;
-    fn begin_while_block(&mut self, block: &Block) -> bool;
-    fn end_while(&mut self);
+    fn begin_while(&mut self, _cond: &Expr) -> bool { false }
+    fn begin_while_block(&mut self, _block: &Block) -> bool { false }
+    fn end_while(&mut self) {}
 
-    fn begin_do_block(&mut self, block: &Block) -> bool;
-    fn end_do_block(&mut self);
+    fn begin_do_block(&mut self, _block: &Block) -> bool { false }
+    fn end_do_block(&mut self) {}
 
-    fn for_num(&mut self, fornum: &ForNum) -> bool;
-    fn for_list(&mut self, forlist: &ForList) -> bool;
-    fn begin_for_block(&mut self, block: &Block) -> bool;
-    fn end_for(&mut self);
+    fn for_num(&mut self, _fornum: &ForNum) -> bool { false }
+    fn for_list(&mut self, _forlist: &ForList) -> bool { false }
+    fn begin_for_block(&mut self, _block: &Block) -> bool { false }
+    fn end_for(&mut self) {}
 
-    fn begin_repeat(&mut self, block: &Block) -> bool;
-    fn until(&mut self);
-    fn end_repeat(&mut self);
+    fn begin_repeat(&mut self, _block: &Block) -> bool { false }
+    fn until(&mut self) {}
+    fn end_repeat(&mut self) {}
 
-    fn func(&mut self, funcstat: &FuncStat);
+    fn func(&mut self, _funcstat: &FuncStat) {}
 
-    fn local_stat(&mut self, stat: &LocalStat);
-    fn label_stat(&mut self, stat: &LabelStat);
-    fn ret_stat(&mut self, stat: &RetStat);
-    fn break_stat(&mut self, stat: &BreakStat);
-    fn goto_stat(&mut self, stat: &GotoStat);
-    fn assign_stat(&mut self, stat: &AssignStat);
-    fn call_stat(&mut self, stat: &CallStat);
+    fn local_stat(&mut self, _stat: &LocalStat) {}
+    fn label_stat(&mut self, _stat: &LabelStat) {}
+    fn ret_stat(&mut self, _stat: &RetStat) {}
+    fn break_stat(&mut self, _stat: &BreakStat) {}
+    fn goto_stat(&mut self, _stat: &GotoStat) {}
+    fn assign_stat(&mut self, _stat: &AssignStat) {}
+    fn call_stat(&mut self, _stat: &CallStat) {}
 
-    fn expr(&mut self, stat: &Expr) -> bool;
-    fn expr_sep(&mut self);
+    fn expr(&mut self, _stat: &Expr) -> bool { false }
+    fn expr_sep(&mut self) {}
 
-    fn nil(&mut self);
-    fn true_(&mut self);
-    fn false_(&mut self);
-    fn float(&mut self, f: FloatType);
-    fn int(&mut self, i: IntType);
-    fn string(&mut self, s: &str);
-    fn vararg(&mut self);
+    fn nil(&mut self) {}
+    fn true_(&mut self) {}
+    fn false_(&mut self) {}
+    fn float(&mut self, _f: FloatType) {}
+    fn int(&mut self, _i: IntType) {}
+    fn string(&mut self, _s: &str) {}
+    fn vararg(&mut self) {}
 
-    fn anonymous_func(&mut self);
-    fn begin_func_body(&mut self, body: &FuncBody) -> bool;
-    fn end_func_body(&mut self);
+    fn anonymous_func(&mut self) {}
+    fn begin_func_body(&mut self, _body: &FuncBody) -> bool { false }
+    fn end_func_body(&mut self) {}
 
-    fn begin_table(&mut self, t: &Table) -> bool;
-    fn end_table(&mut self, t: &Table);
+    fn begin_table(&mut self, _t: &Table) -> bool { false }
+    fn end_table(&mut self, _t: &Table) {}
 
-    fn field_sep(&mut self);
+    fn field_sep(&mut self) {}
 
-    fn begin_rec_field(&mut self, field: &RecField) -> bool;
-    fn field_kv_sep(&mut self);
-    fn begin_field_key(&mut self, key: &FieldKey) -> bool;
-    fn end_field_key(&mut self, key: &FieldKey);
-    fn end_rec_field(&mut self);
+    fn begin_rec_field(&mut self, _field: &RecField) -> bool { false }
+    fn field_kv_sep(&mut self) {}
+    fn begin_field_key(&mut self, _key: &FieldKey) -> bool { false }
+    fn end_field_key(&mut self, _key: &FieldKey) {}
+    fn end_rec_field(&mut self) {}
 
-    fn begin_bin_expr(&mut self, expr: &BinExpr) -> bool;
-    fn binop(&mut self, op: BinOp);
-    fn end_bin_expr(&mut self);
+    fn begin_bin_expr(&mut self, _expr: &BinExpr) -> bool { false }
+    fn binop(&mut self, _op: BinOp) {}
+    fn end_bin_expr(&mut self) {}
 
-    fn begin_un_expr(&mut self, expr: &UnExpr) -> bool;
-    fn unop(&mut self, op: UnOp);
-    fn end_un_expr(&mut self);
+    fn begin_un_expr(&mut self, _expr: &UnExpr) -> bool { false }
+    fn unop(&mut self, _op: UnOp) {}
+    fn end_un_expr(&mut self) {}
 
-    fn begin_suffixed_expr(&mut self, expr: &SuffixedExpr) -> bool;
-    fn end_suffixed_expr(&mut self);
+    fn begin_suffixed_expr(&mut self, _expr: &SuffixedExpr) -> bool { false }
+    fn end_suffixed_expr(&mut self) {}
 
-    fn name(&mut self, name: &str);
-    fn attr(&mut self, attr: &str);
-    fn method(&mut self, method: &str);
+    fn name(&mut self, _name: &str) {}
+    fn attr(&mut self, _attr: &str) {}
+    fn method(&mut self, _method: &str) {}
 
-    fn begin_index(&mut self, expr: &Expr) -> bool;
-    fn end_index(&mut self);
+    fn begin_index(&mut self, _expr: &Expr) -> bool { false }
+    fn end_index(&mut self) {}
 
-    fn begin_func_args(&mut self, args: &FuncArgs) -> bool;
-    fn end_func_args(&mut self);
+    fn begin_func_args(&mut self, _args: &FuncArgs) -> bool { false }
+    fn end_func_args(&mut self) {}
 
-    fn begin_paren_expr(&mut self, expr: &Expr) -> bool;
-    fn end_paren_expr(&mut self);
+    fn begin_paren_expr(&mut self, _expr: &Expr) -> bool { false }
+    fn end_paren_expr(&mut self) {}
 
-    fn suffix(&mut self, suf: &Suffix) -> bool;
+    fn suffix(&mut self, _suf: &Suffix) -> bool { false }
 }
 
 pub mod ast_walker {

@@ -255,10 +255,6 @@ impl AstVisitor for LuaWritter {
         ast_walker::walk_assinable(&stat.call, self);
     }
 
-    fn expr(&mut self, _stat: &Expr) -> bool {
-        false
-    }
-
     fn expr_sep(&mut self) {
         self.append(", ");
     }
@@ -327,9 +323,9 @@ impl AstVisitor for LuaWritter {
         } else {
             self.append("{}");
         }
-
         false
     }
+
     fn end_table(&mut self, t: &Table) {
         if t.fields.len() > 0 {
             self.leave_scope();
@@ -339,10 +335,6 @@ impl AstVisitor for LuaWritter {
 
     fn field_sep(&mut self) {
         self.append_inc(",");
-    }
-
-    fn begin_rec_field(&mut self, _field: &RecField) -> bool {
-        false
     }
 
     fn field_kv_sep(&mut self) {
@@ -362,12 +354,6 @@ impl AstVisitor for LuaWritter {
             FieldKey::Expr(_) => self.space_append("]"),
             _ => (),
         }
-    }
-
-    fn end_rec_field(&mut self) {}
-
-    fn begin_bin_expr(&mut self, _expr: &BinExpr) -> bool {
-        false
     }
 
     fn binop(&mut self, op: BinOp) {
@@ -398,12 +384,6 @@ impl AstVisitor for LuaWritter {
         self.space_append_space(string);
     }
 
-    fn end_bin_expr(&mut self) {}
-
-    fn begin_un_expr(&mut self, _expr: &UnExpr) -> bool {
-        false
-    }
-
     fn unop(&mut self, op: UnOp) {
         match op {
             UnOp::Minus => self.append("-"),
@@ -413,14 +393,6 @@ impl AstVisitor for LuaWritter {
             _ => unreachable!(),
         }
     }
-
-    fn end_un_expr(&mut self) {}
-
-    fn begin_suffixed_expr(&mut self, _expr: &SuffixedExpr) -> bool {
-        false
-    }
-
-    fn end_suffixed_expr(&mut self) {}
 
     fn name(&mut self, name: &str) {
         self.append(name);
@@ -461,10 +433,6 @@ impl AstVisitor for LuaWritter {
 
     fn end_paren_expr(&mut self) {
         self.append(")");
-    }
-
-    fn suffix(&mut self, _suf: &Suffix) -> bool {
-        false
     }
 }
 

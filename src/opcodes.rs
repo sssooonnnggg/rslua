@@ -16,32 +16,32 @@
 // unsigned argument.
 
 pub enum OpMode {
-    iABC,
-    iABx,
-    iAsBx,
-    iAx,
+    IABC,
+    IABx,
+    IAsBx,
+    IAx,
 }
 
 pub const SIZE_OP: u32 = 6;
 pub const SIZE_A: u32 = 8;
 pub const SIZE_B: u32 = 9;
 pub const SIZE_C: u32 = 9;
-pub const SIZE_Ax: u32 = SIZE_C + SIZE_B + SIZE_A;
-pub const SIZE_Bx: u32 = SIZE_C + SIZE_B;
+pub const SIZE_AX: u32 = SIZE_C + SIZE_B + SIZE_A;
+pub const SIZE_BX: u32 = SIZE_C + SIZE_B;
 
 pub const POS_OP: u32 = 0;
 pub const POS_A: u32 = POS_OP + SIZE_OP;
 pub const POS_C: u32 = POS_A + SIZE_A;
 pub const POS_B: u32 = POS_C + SIZE_C;
-pub const POS_Bx: u32 = POS_C;
-pub const POS_Ax: u32 = POS_A;
+pub const POS_BX: u32 = POS_C;
+pub const POS_AX: u32 = POS_A;
 
-pub const MAXARG_A: u32 = ((1 << SIZE_A) - 1);
-pub const MAXARG_B: u32 = ((1 << SIZE_B) - 1);
-pub const MAXARG_C: u32 = ((1 << SIZE_C) - 1);
-pub const MAXARG_Ax: u32 = (1 << SIZE_Ax) - 1;
-pub const MAXARG_Bx: u32 = (1 << SIZE_Bx) - 1;
-pub const MAXARG_sBx: i32 = (MAXARG_Bx as i32) >> 1;
+pub const MAXARG_A: u32 = (1 << SIZE_A) - 1;
+pub const MAXARG_B: u32 = (1 << SIZE_B) - 1;
+pub const MAXARG_C: u32 = (1 << SIZE_C) - 1;
+pub const MAXARG_AX: u32 = (1 << SIZE_AX) - 1;
+pub const MAXARG_BX: u32 = (1 << SIZE_BX) - 1;
+pub const MAXARG_SBX: i32 = (MAXARG_BX as i32) >> 1;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
@@ -305,27 +305,27 @@ impl Instruction {
     }
 
     pub fn get_arg_Ax(&self) -> u32 {
-        self.get_arg(POS_Ax, SIZE_Ax)
+        self.get_arg(POS_AX, SIZE_AX)
     }
 
     pub fn set_arg_Ax(&mut self, value: u32) {
-        self.set_arg(value, POS_Ax, SIZE_Ax);
+        self.set_arg(value, POS_AX, SIZE_AX);
     }
 
     pub fn get_arg_Bx(&self) -> u32 {
-        self.get_arg(POS_Bx, SIZE_Bx)
+        self.get_arg(POS_BX, SIZE_BX)
     }
 
     pub fn set_arg_Bx(&mut self, value: u32) {
-        self.set_arg(value, POS_Bx, SIZE_Bx);
+        self.set_arg(value, POS_BX, SIZE_BX);
     }
 
     pub fn get_arg_sBx(&mut self) -> i32 {
-        (self.get_arg(POS_Bx, SIZE_Bx) as i32) - MAXARG_sBx
+        (self.get_arg(POS_BX, SIZE_BX) as i32) - MAXARG_SBX
     }
 
     pub fn set_arg_sBx(&mut self, value: i32) {
-        self.set_arg((value + MAXARG_sBx) as u32, POS_Bx, SIZE_Bx);
+        self.set_arg((value + MAXARG_SBX) as u32, POS_BX, SIZE_BX);
     }
 
     pub fn create_ABC(op: OpCode, a: u32, b: u32, c: u32) -> Self {
@@ -333,11 +333,11 @@ impl Instruction {
     }
 
     pub fn create_ABx(op: OpCode, a: u32, bx: u32) -> Self {
-        Instruction(((op as u32) << POS_OP) | (a << POS_A) | (bx << POS_Bx))
+        Instruction(((op as u32) << POS_OP) | (a << POS_A) | (bx << POS_BX))
     }
 
     pub fn create_Ax(op: OpCode, a: u32) -> Self {
-        Instruction(((op as u32) << POS_OP) | (a << POS_Ax))
+        Instruction(((op as u32) << POS_OP) | (a << POS_AX))
     }
 
     fn get_arg(&self, pos: u32, size: u32) -> u32 {
