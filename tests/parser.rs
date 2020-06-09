@@ -31,12 +31,7 @@ mod parser_tests {
 
     #[test]
     fn empty_stat() {
-        assert_eq!(
-            try_parse(";;;;"),
-            Block {
-                stats: vec![]
-            }
-        );
+        assert_eq!(try_parse(";;;;"), Block { stats: vec![] });
     }
 
     #[test]
@@ -61,7 +56,7 @@ mod parser_tests {
                             block: Block { stats: vec![] },
                         },
                     ],
-                    else_block: Block { stats: vec![] },
+                    else_block: Some(Block { stats: vec![] }),
                 })],
             }
         )

@@ -210,7 +210,7 @@ pub struct BinExpr {
 #[derive(PartialEq, Debug)]
 pub struct IfStat {
     pub cond_blocks: Vec<CondBlock>,
-    pub else_block: Block,
+    pub else_block: Option<Block>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -344,10 +344,4 @@ pub enum Stat {
 #[derive(PartialEq, Debug)]
 pub struct Block {
     pub stats: Vec<Stat>,
-}
-
-impl Block {
-    pub fn empty() -> Self {
-        Block { stats: Vec::new() }
-    }
 }

@@ -5,25 +5,47 @@ use crate::types::*;
 pub trait AstVisitor {
     fn stat_sep(&mut self) {}
 
-    fn begin_if(&mut self, _cond: &Expr) -> bool { false }
-    fn then(&mut self, _block: &Block) -> bool { false }
-    fn begin_else_if(&mut self, _cond: &Expr) -> bool { false }
-    fn begin_else(&mut self, _block: &Block) -> bool { false }
+    fn begin_if(&mut self, _cond: &Expr) -> bool {
+        false
+    }
+    fn then(&mut self, _block: &Block) -> bool {
+        false
+    }
+    fn begin_else_if(&mut self, _cond: &Expr) -> bool {
+        false
+    }
+    fn begin_else(&mut self, _block: &Block) -> bool {
+        false
+    }
     fn end_if(&mut self) {}
 
-    fn begin_while(&mut self, _cond: &Expr) -> bool { false }
-    fn begin_while_block(&mut self, _block: &Block) -> bool { false }
+    fn begin_while(&mut self, _cond: &Expr) -> bool {
+        false
+    }
+    fn begin_while_block(&mut self, _block: &Block) -> bool {
+        false
+    }
     fn end_while(&mut self) {}
 
-    fn begin_do_block(&mut self, _block: &Block) -> bool { false }
+    fn begin_do_block(&mut self, _block: &Block) -> bool {
+        false
+    }
     fn end_do_block(&mut self) {}
 
-    fn for_num(&mut self, _fornum: &ForNum) -> bool { false }
-    fn for_list(&mut self, _forlist: &ForList) -> bool { false }
-    fn begin_for_block(&mut self, _block: &Block) -> bool { false }
+    fn for_num(&mut self, _fornum: &ForNum) -> bool {
+        false
+    }
+    fn for_list(&mut self, _forlist: &ForList) -> bool {
+        false
+    }
+    fn begin_for_block(&mut self, _block: &Block) -> bool {
+        false
+    }
     fn end_for(&mut self) {}
 
-    fn begin_repeat(&mut self, _block: &Block) -> bool { false }
+    fn begin_repeat(&mut self, _block: &Block) -> bool {
+        false
+    }
     fn until(&mut self) {}
     fn end_repeat(&mut self) {}
 
@@ -37,7 +59,9 @@ pub trait AstVisitor {
     fn assign_stat(&mut self, _stat: &AssignStat) {}
     fn call_stat(&mut self, _stat: &CallStat) {}
 
-    fn expr(&mut self, _stat: &Expr) -> bool { false }
+    fn expr(&mut self, _stat: &Expr) -> bool {
+        false
+    }
     fn expr_sep(&mut self) {}
 
     fn nil(&mut self) {}
@@ -49,45 +73,67 @@ pub trait AstVisitor {
     fn vararg(&mut self) {}
 
     fn anonymous_func(&mut self) {}
-    fn begin_func_body(&mut self, _body: &FuncBody) -> bool { false }
+    fn begin_func_body(&mut self, _body: &FuncBody) -> bool {
+        false
+    }
     fn end_func_body(&mut self) {}
 
-    fn begin_table(&mut self, _t: &Table) -> bool { false }
+    fn begin_table(&mut self, _t: &Table) -> bool {
+        false
+    }
     fn end_table(&mut self, _t: &Table) {}
 
     fn field_sep(&mut self) {}
 
-    fn begin_rec_field(&mut self, _field: &RecField) -> bool { false }
+    fn begin_rec_field(&mut self, _field: &RecField) -> bool {
+        false
+    }
     fn field_kv_sep(&mut self) {}
-    fn begin_field_key(&mut self, _key: &FieldKey) -> bool { false }
+    fn begin_field_key(&mut self, _key: &FieldKey) -> bool {
+        false
+    }
     fn end_field_key(&mut self, _key: &FieldKey) {}
     fn end_rec_field(&mut self) {}
 
-    fn begin_bin_expr(&mut self, _expr: &BinExpr) -> bool { false }
+    fn begin_bin_expr(&mut self, _expr: &BinExpr) -> bool {
+        false
+    }
     fn binop(&mut self, _op: BinOp) {}
     fn end_bin_expr(&mut self) {}
 
-    fn begin_un_expr(&mut self, _expr: &UnExpr) -> bool { false }
+    fn begin_un_expr(&mut self, _expr: &UnExpr) -> bool {
+        false
+    }
     fn unop(&mut self, _op: UnOp) {}
     fn end_un_expr(&mut self) {}
 
-    fn begin_suffixed_expr(&mut self, _expr: &SuffixedExpr) -> bool { false }
+    fn begin_suffixed_expr(&mut self, _expr: &SuffixedExpr) -> bool {
+        false
+    }
     fn end_suffixed_expr(&mut self) {}
 
     fn name(&mut self, _name: &str) {}
     fn attr(&mut self, _attr: &str) {}
     fn method(&mut self, _method: &str) {}
 
-    fn begin_index(&mut self, _expr: &Expr) -> bool { false }
+    fn begin_index(&mut self, _expr: &Expr) -> bool {
+        false
+    }
     fn end_index(&mut self) {}
 
-    fn begin_func_args(&mut self, _args: &FuncArgs) -> bool { false }
+    fn begin_func_args(&mut self, _args: &FuncArgs) -> bool {
+        false
+    }
     fn end_func_args(&mut self) {}
 
-    fn begin_paren_expr(&mut self, _expr: &Expr) -> bool { false }
+    fn begin_paren_expr(&mut self, _expr: &Expr) -> bool {
+        false
+    }
     fn end_paren_expr(&mut self) {}
 
-    fn suffix(&mut self, _suf: &Suffix) -> bool { false }
+    fn suffix(&mut self, _suf: &Suffix) -> bool {
+        false
+    }
 }
 
 pub mod ast_walker {
@@ -136,9 +182,11 @@ pub mod ast_walker {
                     walk_block(&else_if_block.block, visitor);
                 }
             }
-            if stat.else_block.stats.len() > 0 {
-                if !visitor.begin_else(&stat.else_block) {
-                    walk_block(&stat.else_block, visitor);
+            if let Some(else_block) = &stat.else_block {
+                if else_block.stats.len() > 0 {
+                    if !visitor.begin_else(else_block) {
+                        walk_block(else_block, visitor);
+                    }
                 }
             }
             visitor.end_if();

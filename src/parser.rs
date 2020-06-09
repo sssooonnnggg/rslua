@@ -137,9 +137,9 @@ impl Parser {
         while self.current_token_type() == TokenType::ElseIf {
             cond_blocks.push(self.test_then_block()?);
         }
-        let mut else_block = Block::empty();
+        let mut else_block = None;
         if self.test_next(TokenType::Else) {
-            else_block = self.block()?;
+            else_block = Some(self.block()?);
         }
         self.check_match(TokenType::End, TokenType::If, line)?;
         Ok(IfStat {
