@@ -103,7 +103,6 @@ pub mod ast_walker {
 
     pub fn walk_stat<T: AstVisitor>(stat: &Stat, visitor: &mut T) {
         match stat {
-            Stat::Empty => (),
             Stat::IfStat(ifstat) => walk_ifstat(ifstat, visitor),
             Stat::WhileStat(whilestat) => walk_whilestat(whilestat, visitor),
             Stat::DoBlock(doblock) => walk_doblockstat(doblock, visitor),

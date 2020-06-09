@@ -61,68 +61,72 @@ impl Parser {
     fn block(&mut self) -> ParseResult<Block> {
         let mut stats: Vec<Stat> = Vec::new();
         while !self.is_block_end() {
-            match self.current_token_type() {
-                TokenType::Return => {
-                    stats.push(self.stat()?);
-                    break;
-                }
-                _ => stats.push(self.stat()?),
+            let (stat, should_break) = match self.current_token_type() {
+                TokenType::Return => (self.stat()?, true),
+                _ => (self.stat()?, false),
+            };
+            if let Some(stat) = stat {
+                stats.push(stat);
+            }
+            if should_break {
+                break;
             }
         }
         Ok(Block { stats })
     }
 
-    fn stat(&mut self) -> ParseResult<Stat> {
+    fn stat(&mut self) -> ParseResult<Option<Stat>> {
         let line = self.current_line();
-        match self.current_token_type() {
+        let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
                 self.next();
-                Ok(Stat::Empty)
+                return Ok(None);
             }
             // stat -> if stat
-            TokenType::If => Ok(Stat::IfStat(self.ifstat()?)),
+            TokenType::If => Stat::IfStat(self.ifstat()?),
             // stat -> while stat
-            TokenType::While => Ok(Stat::WhileStat(self.whilestat()?)),
+            TokenType::While => Stat::WhileStat(self.whilestat()?),
             // stat -> DO block END
             TokenType::Do => {
                 self.next();
                 let block = self.block()?;
                 self.check_match(TokenType::End, TokenType::Do, line)?;
-                Ok(Stat::DoBlock(DoBlock { block }))
+                Stat::DoBlock(DoBlock { block })
             }
             // stat -> forstat
-            TokenType::For => Ok(Stat::ForStat(self.forstat()?)),
+            TokenType::For => Stat::ForStat(self.forstat()?),
             // stat -> repeatstat
-            TokenType::Repeat => Ok(Stat::RepeatStat(self.repeatstat()?)),
+            TokenType::Repeat => Stat::RepeatStat(self.repeatstat()?),
             // stat -> funcstat
-            TokenType::Function => Ok(Stat::FuncStat(self.funcstat()?)),
+            TokenType::Function => Stat::FuncStat(self.funcstat()?),
             // stat -> localstat
             TokenType::Local => {
                 self.next();
                 if self.test(TokenType::Function) {
-                    Ok(Stat::FuncStat(self.localfunc()?))
+                    Stat::FuncStat(self.localfunc()?)
                 } else {
-                    Ok(Stat::LocalStat(self.localstat()?))
+                    Stat::LocalStat(self.localstat()?)
                 }
             }
             // stat -> label
             TokenType::DbColon => {
                 self.next();
-                Ok(Stat::LabelStat(self.labelstat()?))
+                Stat::LabelStat(self.labelstat()?)
             }
             // stat -> retstat
             TokenType::Return => {
                 self.next();
-                Ok(Stat::RetStat(self.retstat()?))
+                Stat::RetStat(self.retstat()?)
             }
             // stat -> breakstat
-            TokenType::Break => Ok(Stat::BreakStat(self.breakstat()?)),
+            TokenType::Break => Stat::BreakStat(self.breakstat()?),
             // stat -> gotostat
-            TokenType::Goto => Ok(Stat::GotoStat(self.gotostat()?)),
+            TokenType::Goto => Stat::GotoStat(self.gotostat()?),
             // stat -> func | assignment
-            _ => Ok(self.exprstat()?),
-        }
+            _ => self.exprstat()?,
+        };
+        Ok(Some(stat))
     }
 
     // ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END

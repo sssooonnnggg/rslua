@@ -326,7 +326,6 @@ pub struct CallStat {
 
 #[derive(PartialEq, Debug)]
 pub enum Stat {
-    Empty,
     IfStat(IfStat),
     WhileStat(WhileStat),
     DoBlock(DoBlock),

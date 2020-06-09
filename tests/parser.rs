@@ -34,7 +34,7 @@ mod parser_tests {
         assert_eq!(
             try_parse(";;;;"),
             Block {
-                stats: vec![Stat::Empty, Stat::Empty, Stat::Empty, Stat::Empty]
+                stats: vec![]
             }
         );
     }
