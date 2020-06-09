@@ -6,3 +6,4 @@ pub mod opcodes;
 pub mod parser;
 pub mod tokens;
 pub mod types;
+pub mod compiler;
