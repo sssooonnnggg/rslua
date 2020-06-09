@@ -1,12 +1,4 @@
-use crate::types::{FloatType, IntType};
-
-#[derive(Debug, PartialEq)]
-pub struct Source {
-    pub pos: usize,
-    pub length: usize,
-    pub line: usize,
-    pub col: usize,
-}
+use crate::types::{FloatType, IntType, Source};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TokenType {

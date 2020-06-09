@@ -2,6 +2,7 @@
 mod lexer_tests {
     use rslua::lexer::{LexError, Lexer};
     use rslua::tokens::*;
+    use rslua::types::Source;
     use std::fs::File;
     use std::io::prelude::*;
 
