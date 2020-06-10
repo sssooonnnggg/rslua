@@ -15,11 +15,15 @@
 // represented by 2*max), which is half the maximum for the corresponding
 // unsigned argument.
 
+#[derive(Debug, Copy, Clone)]
 pub enum OpMode {
+    IA,
+    IAB,
     IABC,
     IABx,
     IAsBx,
     IAx,
+    IAC,
 }
 
 pub const SIZE_OP: u32 = 6;
@@ -272,6 +276,10 @@ pub struct Instruction(u32);
 #[allow(dead_code)]
 #[allow(non_snake_case)]
 impl Instruction {
+    pub fn new() -> Self {
+        Instruction(0)
+    }
+
     pub fn get_op(&self) -> OpCode {
         OpCode::from_u32(((self.0) >> POS_OP) & Instruction::mask1(SIZE_OP, 0))
     }
@@ -320,7 +328,7 @@ impl Instruction {
         self.set_arg(value, POS_BX, SIZE_BX);
     }
 
-    pub fn get_arg_sBx(&mut self) -> i32 {
+    pub fn get_arg_sBx(&self) -> i32 {
         (self.get_arg(POS_BX, SIZE_BX) as i32) - MAXARG_SBX
     }
 
@@ -334,6 +342,12 @@ impl Instruction {
 
     pub fn create_ABx(op: OpCode, a: u32, bx: u32) -> Self {
         Instruction(((op as u32) << POS_OP) | (a << POS_A) | (bx << POS_BX))
+    }
+
+    pub fn create_AsBx(op: OpCode, a: u32, sBx: i32) -> Self {
+        Instruction(
+            ((op as u32) << POS_OP) | (a << POS_A) | (((sBx + MAXARG_SBX) as u32) << POS_BX),
+        )
     }
 
     pub fn create_Ax(op: OpCode, a: u32) -> Self {
@@ -354,5 +368,121 @@ impl Instruction {
 
     fn mask0(n: u32, p: u32) -> u32 {
         !Instruction::mask1(n, p)
+    }
+
+    pub fn mode(&self) -> OpMode {
+        match self.get_op() {
+            OpCode::Move => OpMode::IAB,
+            OpCode::LoadK => OpMode::IABx,
+            OpCode::LoadKx => OpMode::IA,
+            OpCode::LoadBool => OpMode::IABC,
+            OpCode::LoadNil => OpMode::IAB,
+            OpCode::GetUpVal => OpMode::IAB,
+            OpCode::GetTabUp => OpMode::IABC,
+            OpCode::GetTable => OpMode::IABC,
+            OpCode::SetTabUp => OpMode::IABC,
+            OpCode::SetUpVal => OpMode::IAB,
+            OpCode::SetTable => OpMode::IABC,
+            OpCode::NewTable => OpMode::IABC,
+            OpCode::Self_ => OpMode::IABC,
+            OpCode::Add => OpMode::IABC,
+            OpCode::Sub => OpMode::IABC,
+            OpCode::Mul => OpMode::IABC,
+            OpCode::Mod => OpMode::IABC,
+            OpCode::Pow => OpMode::IABC,
+            OpCode::Div => OpMode::IABC,
+            OpCode::IDiv => OpMode::IABC,
+            OpCode::BAdd => OpMode::IABC,
+            OpCode::BOr => OpMode::IABC,
+            OpCode::BXor => OpMode::IABC,
+            OpCode::Shl => OpMode::IABC,
+            OpCode::Shr => OpMode::IABC,
+            OpCode::Unm => OpMode::IAB,
+            OpCode::BNot => OpMode::IAB,
+            OpCode::Not => OpMode::IAB,
+            OpCode::Len => OpMode::IAB,
+            OpCode::Concat => OpMode::IABC,
+            OpCode::Jmp => OpMode::IAsBx,
+            OpCode::Eq => OpMode::IABC,
+            OpCode::Lt => OpMode::IABC,
+            OpCode::Le => OpMode::IABC,
+            OpCode::Test => OpMode::IAC,
+            OpCode::TestSet => OpMode::IABC,
+            OpCode::Call => OpMode::IABC,
+            OpCode::TailCall => OpMode::IABC,
+            OpCode::Return => OpMode::IAB,
+            OpCode::ForLoop => OpMode::IAsBx,
+            OpCode::ForPrep => OpMode::IAsBx,
+            OpCode::TForCall => OpMode::IAC,
+            OpCode::TForLoop => OpMode::IAsBx,
+            OpCode::SetList => OpMode::IAsBx,
+            OpCode::Closure => OpMode::IABx,
+            OpCode::Vararg => OpMode::IAB,
+            OpCode::ExtraArg => OpMode::IAx,
+        }
+    }
+}
+
+use std::fmt;
+impl fmt::Debug for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.mode() {
+            OpMode::IA => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                " ",
+                " "
+            ),
+            OpMode::IAB => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                self.get_arg_B(),
+                " "
+            ),
+            OpMode::IABC => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                self.get_arg_B(),
+                self.get_arg_C()
+            ),
+            OpMode::IAC => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                " ",
+                self.get_arg_C()
+            ),
+            OpMode::IABx => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                self.get_arg_Bx(),
+                " "
+            ),
+            OpMode::IAsBx => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_A(),
+                self.get_arg_sBx(),
+                " "
+            ),
+            OpMode::IAx => write!(
+                f,
+                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                format!("{:?}", self.get_op()),
+                self.get_arg_Ax(),
+                " ",
+                " "
+            ),
+        }
     }
 }
