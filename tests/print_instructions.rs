@@ -49,12 +49,12 @@ fn print_instruction() {
     println!("{}", string);
     assert_eq!(
         string,
-        r#"Instruction [LoadKx    123            ]
-Instruction [Move      123  456       ]
-Instruction [LoadK     123  456       ]
-Instruction [LoadBool  123  456  511  ]
-Instruction [Jmp       123  -255      ]
-Instruction [TForCall  123       511  ]
+        r#"| LoadKx     | 123   |       |       |
+| Move       | 123   | 456   |       |
+| LoadK      | 123   | 456   |       |
+| LoadBool   | 123   | 456   | 511   |
+| Jmp        | 123   | -255  |       |
+| TForCall   | 123   |       | 511   |
 "#
     )
 }

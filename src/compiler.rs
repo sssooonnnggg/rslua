@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::opcodes::Instruction;
+use crate::opcodes::{Instruction, OpCode};
 use crate::types::{FloatType, IntType};
 
 pub enum Const {
@@ -31,6 +31,27 @@ impl Proto {
             protos: Vec::new(),
         }
     }
+
+    pub fn append_return(&mut self, first: u32, nret: u32) {
+        self.code
+            .push(Instruction::create_ABC(OpCode::Return, first, nret + 1, 0));
+    }
+}
+
+use std::fmt;
+impl fmt::Debug for Proto {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "instructions :")?;
+        writeln!(
+            f,
+            "| {:<5} | {:<10} | {:<5} | {:<5} | {:<5} |",
+            "line", "OP", "A", "B", "C"
+        )?;
+        for instruction in self.code.iter().enumerate() {
+            writeln!(f, "| {:<5} {:?}", instruction.0 + 1, instruction.1)?;
+        }
+        Ok(())
+    }
 }
 
 pub struct Compiler {
@@ -50,8 +71,16 @@ impl Compiler {
 
     fn main_func(&mut self, block: &Block) -> Proto {
         self.push_proto(Proto::new());
+        self.open_func();
         ast_walker::walk_block(block, self);
+        self.close_func();
         self.pop_proto()
+    }
+
+    fn open_func(&mut self) {}
+
+    fn close_func(&mut self) {
+        self.get_proto().append_return(0, 0);
     }
 
     fn push_proto(&mut self, proto: Proto) {

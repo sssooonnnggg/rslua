@@ -429,7 +429,7 @@ impl fmt::Debug for Instruction {
         match self.mode() {
             OpMode::IA => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 " ",
@@ -437,7 +437,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IAB => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 self.get_arg_B(),
@@ -445,7 +445,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IABC => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 self.get_arg_B(),
@@ -453,7 +453,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IAC => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 " ",
@@ -461,7 +461,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IABx => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 self.get_arg_Bx(),
@@ -469,7 +469,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IAsBx => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_A(),
                 self.get_arg_sBx(),
@@ -477,7 +477,7 @@ impl fmt::Debug for Instruction {
             ),
             OpMode::IAx => write!(
                 f,
-                "Instruction [{:<10}{:<5}{:<5}{:<5}]",
+                "| {:<10} | {:<5} | {:<5} | {:<5} |",
                 format!("{:?}", self.get_op()),
                 self.get_arg_Ax(),
                 " ",
