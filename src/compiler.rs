@@ -43,6 +43,17 @@ impl Compiler {
         }
         unreachable!()
     }
+
+    fn adjust_assign(&mut self, names: &Vec<String>, exprs: &Vec<Expr>) {
+        let extra = names.len() as i32 - exprs.len() as i32;
+        if let Some(last_expr) = exprs.last() {
+            if last_expr.has_mult_ret() {
+                todo!("process mult ret")
+            }
+        }
+
+        if extra > 0 {}
+    }
 }
 
 impl AstVisitor for Compiler {
@@ -51,5 +62,7 @@ impl AstVisitor for Compiler {
         for name in stat.names.iter() {
             proto.add_local_var(name);
         }
+        ast_walker::walk_exprlist(&stat.exprs, self);
+        self.adjust_assign(&stat.names, &stat.exprs);
     }
 }

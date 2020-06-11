@@ -132,6 +132,16 @@ pub enum Expr {
     SuffixedExpr(SuffixedExpr),
 }
 
+impl Expr {
+    pub fn has_mult_ret(&self) -> bool {
+        match self {
+            Expr::SuffixedExpr(s) => s.has_mult_ret(),
+            Expr::VarArg => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum Assignable {
     Name(String),
@@ -154,6 +164,12 @@ impl Expr {
 pub struct SuffixedExpr {
     pub primary: Box<Expr>,
     pub suffixes: Vec<Suffix>,
+}
+
+impl SuffixedExpr {
+    pub fn has_mult_ret(&self) -> bool {
+        todo!()
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -366,7 +382,7 @@ impl StatInfo {
 }
 
 impl PartialEq for StatInfo {
-    fn eq(&self, other:&Self) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.stat == other.stat
     }
 }

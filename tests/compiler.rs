@@ -1,6 +1,7 @@
 use rslua::compiler::*;
 use rslua::lexer::*;
 use rslua::parser::*;
+use rslua::proto::*;
 
 fn try_compile(input: &str) -> Proto {
     let mut lexer = Lexer::new();
@@ -18,13 +19,13 @@ fn try_compile(input: &str) -> Proto {
     unreachable!()
 }
 
-fn try_compile_to_string(input:&str) -> String {
+fn try_compile_to_string(input: &str) -> String {
     format!("{:?}", try_compile(input))
 }
 
 mod compiler_tests {
     use super::*;
-    
+
     #[test]
     fn empty_block() {
         assert_eq!(
@@ -34,7 +35,8 @@ locals :
 instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | Return     | 0     | 1     |       |
-"#);
+"#
+        );
     }
 
     #[test]
@@ -49,6 +51,7 @@ locals :
 instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | Return     | 0     | 1     |       |
-"#);
+"#
+        );
     }
 }
