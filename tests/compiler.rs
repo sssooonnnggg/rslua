@@ -29,7 +29,24 @@ mod compiler_tests {
     fn empty_block() {
         assert_eq!(
             try_compile_to_string(";"),
-            r#"instructions :
+            r#"
+locals :
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | Return     | 0     | 1     |       |
+"#);
+    }
+
+    #[test]
+    fn local_stat() {
+        assert_eq!(
+            try_compile_to_string("local a, b, c"),
+            r#"
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | Return     | 0     | 1     |       |
 "#);
