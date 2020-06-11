@@ -1,7 +1,7 @@
 use rslua::compiler::*;
+use rslua::func::Proto;
 use rslua::lexer::*;
 use rslua::parser::*;
-use rslua::proto::*;
 
 fn try_compile(input: &str) -> Proto {
     let mut lexer = Lexer::new();
@@ -31,6 +31,7 @@ mod compiler_tests {
         assert_eq!(
             try_compile_to_string(";"),
             r#"
+stack size : 2
 locals :
 instructions :
 | line  | OP         | A     | B     | C     |
@@ -44,13 +45,15 @@ instructions :
         assert_eq!(
             try_compile_to_string("local a, b, c"),
             r#"
+stack size : 3
 locals :
 | 0     | a          |
 | 1     | b          |
 | 2     | c          |
 instructions :
 | line  | OP         | A     | B     | C     |
-| 1     | Return     | 0     | 1     |       |
+| 1     | LoadNil    | 0     | 2     |       |
+| 2     | Return     | 0     | 1     |       |
 "#
         );
     }

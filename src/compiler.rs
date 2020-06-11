@@ -1,15 +1,15 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::proto::Proto;
+use crate::func::{Proto, ProtoContext};
 
 pub struct Compiler {
-    proto_stack: Vec<Proto>,
+    proto_contexts: Vec<ProtoContext>,
 }
 
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
-            proto_stack: Vec::new(),
+            proto_contexts: Vec::new(),
         }
     }
 
@@ -18,27 +18,32 @@ impl Compiler {
     }
 
     fn main_func(&mut self, block: &Block) -> Proto {
-        self.push_proto(Proto::new());
+        self.push_proto();
         self.proto().open();
         ast_walker::walk_block(block, self);
         self.proto().close();
         self.pop_proto()
     }
 
-    fn push_proto(&mut self, proto: Proto) {
-        self.proto_stack.push(proto);
+    fn push_proto(&mut self) {
+        self.proto_contexts.push(ProtoContext::new());
     }
 
     fn pop_proto(&mut self) -> Proto {
-        if let Some(proto) = self.proto_stack.pop() {
-            return proto;
+        if let Some(context) = self.proto_contexts.pop() {
+            return context.proto;
         }
         unreachable!()
     }
 
     // get current proto ref from stack
     fn proto(&mut self) -> &mut Proto {
-        if let Some(last) = self.proto_stack.last_mut() {
+        &mut self.context().proto
+    }
+
+    // get current proto context
+    fn context(&mut self) -> &mut ProtoContext {
+        if let Some(last) = self.proto_contexts.last_mut() {
             return last;
         }
         unreachable!()
@@ -52,7 +57,12 @@ impl Compiler {
             }
         }
 
-        if extra > 0 {}
+        if extra > 0 {
+            let context = self.context();
+            let from = context.free_reg;
+            context.reverse_regs(extra as u32);
+            context.proto.code_nil(from, extra as u32);
+        }
     }
 }
 

@@ -13,7 +13,8 @@ pub struct LocalVal {
 pub struct UpVal {}
 
 pub struct Proto {
-    pub param_count: usize,
+    pub stack_size: u32,
+    pub param_count: u32,
     pub code: Vec<Instruction>,
     pub consts: Vec<Const>,
     pub local_vars: Vec<LocalVal>,
@@ -24,6 +25,7 @@ pub struct Proto {
 impl Proto {
     pub fn new() -> Proto {
         Proto {
+            stack_size: 2,
             param_count: 0,
             code: Vec::new(),
             consts: Vec::new(),
@@ -44,6 +46,12 @@ impl Proto {
             .push(Instruction::create_ABC(OpCode::Return, first, nret + 1, 0));
     }
 
+    pub fn code_nil(&mut self, from: u32, n: u32) {
+        // TODO : optimize for duplicate LoadNil
+        self.code
+            .push(Instruction::create_ABC(OpCode::LoadNil, from, n - 1, 0));
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),
@@ -55,6 +63,8 @@ use std::fmt;
 impl fmt::Debug for Proto {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f)?;
+
+        writeln!(f, "stack size : {}", self.stack_size)?;
 
         writeln!(f, "locals :")?;
         for (i, local) in self.local_vars.iter().enumerate() {
@@ -72,5 +82,31 @@ impl fmt::Debug for Proto {
         }
 
         Ok(())
+    }
+}
+
+pub struct ProtoContext {
+    pub free_reg: u32,
+    pub proto: Proto,
+}
+
+impl ProtoContext {
+    pub fn new() -> Self {
+        ProtoContext {
+            free_reg: 0,
+            proto: Proto::new(),
+        }
+    }
+
+    pub fn check_stack(&mut self, n: u32) {
+        let new_stack = self.free_reg + n;
+        if new_stack > self.proto.stack_size {
+            self.proto.stack_size = new_stack;
+        }
+    }
+
+    pub fn reverse_regs(&mut self, n: u32) {
+        self.check_stack(n);
+        self.free_reg += n;
     }
 }
