@@ -32,6 +32,7 @@ mod compiler_tests {
             try_compile_to_string(";"),
             r#"
 stack size : 2
+consts :
 locals :
 instructions :
 | line  | OP         | A     | B     | C     |
@@ -46,6 +47,7 @@ instructions :
             try_compile_to_string("local a, b, c"),
             r#"
 stack size : 3
+consts :
 locals :
 | 0     | a          |
 | 1     | b          |
@@ -54,6 +56,30 @@ instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | LoadNil    | 0     | 2     |       |
 | 2     | Return     | 0     | 1     |       |
+"#
+        );
+    }
+
+    #[test]
+    fn local_stat_with_const() {
+        assert_eq!(
+            try_compile_to_string("local a, b, c = 1, 2.0, '123'"),
+            r#"
+stack size : 3
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 123        |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | LoadK      | 2     | 2     |       |
+| 4     | Return     | 0     | 1     |       |
 "#
         );
     }

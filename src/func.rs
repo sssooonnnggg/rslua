@@ -1,3 +1,4 @@
+use crate::ast::*;
 use crate::opcodes::{Instruction, OpCode};
 use crate::types::{FloatType, IntType};
 
@@ -52,10 +53,24 @@ impl Proto {
             .push(Instruction::create_ABC(OpCode::LoadNil, from, n - 1, 0));
     }
 
+    pub fn code_const(&mut self, reg_index: u32, const_index: u32) {
+        self.code.push(Instruction::create_ABx(
+            OpCode::LoadK,
+            reg_index,
+            const_index,
+        ));
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),
         });
+    }
+
+    pub fn add_const(&mut self, k: Const) -> u32 {
+        let index = self.consts.len();
+        self.consts.push(k);
+        index as u32
     }
 }
 
@@ -65,6 +80,20 @@ impl fmt::Debug for Proto {
         writeln!(f)?;
 
         writeln!(f, "stack size : {}", self.stack_size)?;
+
+        writeln!(f, "consts :")?;
+        for (i, k) in self.consts.iter().enumerate() {
+            writeln!(
+                f,
+                "| {:<5} | {:<10} |",
+                i,
+                match k {
+                    Const::Int(i) => i.to_string(),
+                    Const::Float(f) => f.to_string(),
+                    Const::Str(s) => s.clone(),
+                }
+            )?;
+        }
 
         writeln!(f, "locals :")?;
         for (i, local) in self.local_vars.iter().enumerate() {
@@ -108,5 +137,24 @@ impl ProtoContext {
     pub fn reverse_regs(&mut self, n: u32) {
         self.check_stack(n);
         self.free_reg += n;
+    }
+
+    pub fn load_expr_to_reg(&mut self, expr: &Expr, reg: u32) {
+        let proto = &mut self.proto;
+        match expr {
+            Expr::Int(i) => {
+                let k = proto.add_const(Const::Int(*i));
+                proto.code_const(reg, k);
+            }
+            Expr::Float(f) => {
+                let k = proto.add_const(Const::Float(*f));
+                proto.code_const(reg, k);
+            }
+            Expr::String(s) => {
+                let k = proto.add_const(Const::Str(s.clone()));
+                proto.code_const(reg, k);
+            }
+            _ => todo!(),
+        }
     }
 }

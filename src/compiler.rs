@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::func::{Proto, ProtoContext};
+use crate::func::{Const, Proto, ProtoContext};
+use crate::types::{FloatType, IntType};
 
 pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
@@ -53,6 +54,7 @@ impl Compiler {
         let extra = names.len() as i32 - exprs.len() as i32;
         if let Some(last_expr) = exprs.last() {
             if last_expr.has_mult_ret() {
+                // TODO : process multi return value
                 todo!("process mult ret")
             }
         }
@@ -74,5 +76,12 @@ impl AstVisitor for Compiler {
         }
         ast_walker::walk_exprlist(&stat.exprs, self);
         self.adjust_assign(&stat.names, &stat.exprs);
+    }
+
+    fn expr(&mut self, expr: &Expr) -> bool {
+        let context = self.context();
+        context.reverse_regs(1);
+        context.load_expr_to_reg(expr, context.free_reg - 1);
+        true
     }
 }
