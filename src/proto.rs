@@ -72,10 +72,23 @@ impl Proto {
             .push(Instruction::create_ABC(OpCode::Return, first, nret + 1, 0));
     }
 
-    pub fn code_nil(&mut self, from: u32, n: u32) {
+    pub fn code_nil(&mut self, start_reg: u32, n: u32) {
         // TODO : optimize for duplicate LoadNil
-        self.code
-            .push(Instruction::create_ABC(OpCode::LoadNil, from, n - 1, 0));
+        self.code.push(Instruction::create_ABC(
+            OpCode::LoadNil,
+            start_reg,
+            n - 1,
+            0,
+        ));
+    }
+
+    pub fn code_bool(&mut self, reg: u32, v: bool) {
+        self.code.push(Instruction::create_ABC(
+            OpCode::LoadBool,
+            reg,
+            if v { 1 } else { 0 },
+            0,
+        ));
     }
 
     pub fn code_const(&mut self, reg_index: u32, const_index: u32) {
@@ -185,6 +198,9 @@ impl ProtoContext {
                 let k = proto.add_const(Const::Str(s.clone()));
                 proto.code_const(reg, k);
             }
+            Expr::Nil => proto.code_nil(reg, 1),
+            Expr::True => proto.code_bool(reg, true),
+            Expr::False => proto.code_bool(reg, false),
             _ => todo!(),
         }
     }

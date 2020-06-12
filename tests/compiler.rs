@@ -1,7 +1,7 @@
 use rslua::compiler::*;
-use rslua::func::Proto;
 use rslua::lexer::*;
 use rslua::parser::*;
+use rslua::proto::Proto;
 
 fn try_compile(input: &str) -> Proto {
     let mut lexer = Lexer::new();
@@ -111,13 +111,28 @@ instructions :
 | 6     | LoadK      | 5     | 2     |       |
 | 7     | Return     | 0     | 1     |       |
 "#;
+        assert_eq!(try_compile_and_print(stat1), output);
+        assert_eq!(try_compile_and_print(stat2), output);
+    }
+
+    #[test]
+    fn local_stat_nil_bool() {
         assert_eq!(
-            try_compile_and_print(stat1),
-            output
-        );
-        assert_eq!(
-            try_compile_and_print(stat2),
-            output
-        );
+            try_compile_and_print("local a, b, c = true, nil, false"),
+            r#"
+stack size : 3
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadBool   | 0     | 1     | 0     |
+| 2     | LoadNil    | 1     | 0     |       |
+| 3     | LoadBool   | 2     | 0     | 0     |
+| 4     | Return     | 0     | 1     |       |
+"#
+        )
     }
 }

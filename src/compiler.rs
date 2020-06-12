@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::func::{Const, Proto, ProtoContext};
+use crate::proto::{Const, Proto, ProtoContext};
 use crate::types::{FloatType, IntType};
 
 pub struct Compiler {
