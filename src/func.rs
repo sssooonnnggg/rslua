@@ -6,11 +6,14 @@ use crate::ast::*;
 use crate::opcodes::{Instruction, OpCode};
 use crate::types::{FloatType, IntType};
 
+#[derive(Clone, PartialEq)]
 pub enum Const {
     Int(IntType),
     Float(FloatType),
     Str(String),
 }
+
+impl Eq for Const {}
 
 impl Hash for Const {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -90,9 +93,15 @@ impl Proto {
     }
 
     pub fn add_const(&mut self, k: Const) -> u32 {
-        let index = self.consts.len();
-        self.consts.push(k);
-        index as u32
+        match self.const_map.get(&k) {
+            Some(index) => *index,
+            None => {
+                let index = self.consts.len();
+                self.consts.push(k.clone());
+                self.const_map.insert(k, index as u32);
+                index as u32
+            }
+        }
     }
 }
 

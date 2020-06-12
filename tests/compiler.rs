@@ -82,5 +82,32 @@ instructions :
 | 4     | Return     | 0     | 1     |       |
 "#
         );
+
+        assert_eq!(
+            try_compile_to_string("local a, b, c, d, e, f = 1, 2.0, '123', 1, 2.00, [[123]]",),
+            r#"
+stack size : 6
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | "123"      |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | LoadK      | 2     | 2     |       |
+| 4     | LoadK      | 3     | 0     |       |
+| 5     | LoadK      | 4     | 1     |       |
+| 6     | LoadK      | 5     | 2     |       |
+| 7     | Return     | 0     | 1     |       |
+"#
+        );
     }
 }
