@@ -90,7 +90,7 @@ impl fmt::Debug for Proto {
                 match k {
                     Const::Int(i) => i.to_string(),
                     Const::Float(f) => f.to_string(),
-                    Const::Str(s) => s.clone(),
+                    Const::Str(s) => format!("\"{}\"", s.clone()),
                 }
             )?;
         }
