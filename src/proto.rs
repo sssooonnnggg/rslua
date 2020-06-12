@@ -99,10 +99,24 @@ impl Proto {
         ));
     }
 
+    pub fn code_move(&mut self, reg: u32, src: u32) {
+        self.code
+            .push(Instruction::create_ABC(OpCode::Move, reg, src, 0));
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),
         });
+    }
+
+    pub fn get_local_var(&self, name: &str) -> Option<u32> {
+        for (i, var) in self.local_vars.iter().enumerate() {
+            if var.name == name {
+                return Some(i as u32);
+            }
+        }
+        None
     }
 
     pub fn add_const(&mut self, k: Const) -> u32 {

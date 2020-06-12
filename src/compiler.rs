@@ -97,6 +97,12 @@ impl AstVisitor for Compiler {
             Expr::Nil => proto.code_nil(reg, 1),
             Expr::True => proto.code_bool(reg, true),
             Expr::False => proto.code_bool(reg, false),
+            Expr::Name(name) => {
+                if let Some(src) = proto.get_local_var(name) {
+                    proto.code_move(reg, src);
+                }
+                // TODO : process upval and globals
+            }
             _ => todo!(),
         }
         true
