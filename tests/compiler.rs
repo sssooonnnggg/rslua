@@ -19,7 +19,7 @@ fn try_compile(input: &str) -> Proto {
     unreachable!()
 }
 
-fn try_compile_to_string(input: &str) -> String {
+fn try_compile_and_print(input: &str) -> String {
     format!("{:?}", try_compile(input))
 }
 
@@ -29,7 +29,7 @@ mod compiler_tests {
     #[test]
     fn empty_block() {
         assert_eq!(
-            try_compile_to_string(";"),
+            try_compile_and_print(";"),
             r#"
 stack size : 2
 consts :
@@ -44,7 +44,7 @@ instructions :
     #[test]
     fn local_stat() {
         assert_eq!(
-            try_compile_to_string("local a, b, c"),
+            try_compile_and_print("local a, b, c"),
             r#"
 stack size : 3
 consts :
@@ -63,7 +63,7 @@ instructions :
     #[test]
     fn local_stat_with_const() {
         assert_eq!(
-            try_compile_to_string("local a, b, c = 1, 2.0, '123'"),
+            try_compile_and_print("local a, b, c = 1, 2.0, '123'"),
             r#"
 stack size : 3
 consts :
@@ -82,10 +82,13 @@ instructions :
 | 4     | Return     | 0     | 1     |       |
 "#
         );
+    }
 
-        assert_eq!(
-            try_compile_to_string("local a, b, c, d, e, f = 1, 2.0, '123', 1, 2.00, [[123]]",),
-            r#"
+    #[test]
+    fn local_stat_with_duplicate_consts() {
+        let stat1 = "local a, b, c, d, e, f = 1, 2.0, '123', 1, 2.00, [[123]]";
+        let stat2 = "local a, b, c = 1, 2.0, '123'; local d, e, f = 1, 2.00, [[123]]";
+        let output = r#"
 stack size : 6
 consts :
 | 0     | 1          |
@@ -107,7 +110,14 @@ instructions :
 | 5     | LoadK      | 4     | 1     |       |
 | 6     | LoadK      | 5     | 2     |       |
 | 7     | Return     | 0     | 1     |       |
-"#
+"#;
+        assert_eq!(
+            try_compile_and_print(stat1),
+            output
+        );
+        assert_eq!(
+            try_compile_and_print(stat2),
+            output
         );
     }
 }
