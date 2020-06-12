@@ -50,8 +50,8 @@ impl Compiler {
         unreachable!()
     }
 
-    fn adjust_assign(&mut self, names: &Vec<String>, exprs: &Vec<Expr>) {
-        let extra = names.len() as i32 - exprs.len() as i32;
+    fn adjust_assign(&mut self, num_left: usize, exprs: &Vec<Expr>) -> i32 {
+        let extra = num_left as i32 - exprs.len() as i32;
         if let Some(last_expr) = exprs.last() {
             if last_expr.has_mult_ret() {
                 // TODO : process multi return value
@@ -65,21 +65,11 @@ impl Compiler {
             context.reverse_regs(extra as u32);
             context.proto.code_nil(from, extra as u32);
         }
-    }
-}
 
-impl AstVisitor for Compiler {
-    fn local_stat(&mut self, stat: &LocalStat) {
-        let proto = self.proto();
-        for name in stat.names.iter() {
-            proto.add_local_var(name);
-        }
-        ast_walker::walk_exprlist(&stat.exprs, self);
-        self.adjust_assign(&stat.names, &stat.exprs);
+        extra
     }
 
-    fn expr(&mut self, expr: &Expr) -> bool {
-        let reg = self.context().reverse_regs(1);
+    fn expr(&mut self, expr: &Expr, reg: u32) {
         let proto = self.proto();
         match expr {
             Expr::Int(i) => {
@@ -105,6 +95,50 @@ impl AstVisitor for Compiler {
             }
             _ => todo!(),
         }
-        true
+    }
+
+    fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
+        match assignable {
+            Assignable::Name(name) => self.proto().get_local_var(name).unwrap(),
+            Assignable::ParenExpr(expr) => todo!(),
+            Assignable::SuffixedExpr(expr) => todo!(),
+        }
+    }
+}
+
+impl AstVisitor for Compiler {
+    fn local_stat(&mut self, stat: &LocalStat) {
+        let proto = self.proto();
+        for name in stat.names.iter() {
+            proto.add_local_var(name);
+        }
+        for expr in stat.exprs.iter() {
+            let reg = self.context().reverse_regs(1);
+            self.expr(expr, reg);
+        }
+        self.adjust_assign(stat.names.len(), &stat.exprs);
+    }
+
+    fn assign_stat(&mut self, stat: &AssignStat) {
+        let last_use_temp_reg = stat.right.len() != stat.left.len();
+        let mut to_move: Vec<(u32, u32)> = Vec::new();
+        for (i, expr) in stat.right.iter().enumerate() {
+            if i != stat.right.len() - 1 || last_use_temp_reg {
+                let reg = self.context().reverse_regs(1);
+                self.expr(expr, reg);
+                if i < stat.left.len() {
+                    let target = self.get_assinable_reg(&stat.left[i]);
+                    to_move.push((target, reg));
+                }
+            } else {
+                let reg = self.get_assinable_reg(&stat.left[i]);
+                self.expr(expr, reg);
+            };
+        }
+        let reg = self.context().free_reg;
+        let extra = self.adjust_assign(stat.left.len(), &stat.right);
+        for (target, src) in to_move.iter().rev() {
+            self.proto().code_move(*target, *src);
+        }
     }
 }

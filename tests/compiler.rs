@@ -166,4 +166,20 @@ instructions :
 "#
         )
     }
+
+    #[test]
+    fn assign_simple() {
+        assert_eq!(
+            try_compile_and_print("local a, b, c, d, e, f, g = 1, 2, 3; d, e, f, g = a, b;"),
+            r#""#
+        )
+    }
+
+    #[test]
+    fn assign_swap() {
+        assert_eq!(
+            try_compile_and_print("local a, b = 1, 2; a, b = b, a"),
+            r#""#
+        )
+    }
 }
