@@ -139,9 +139,9 @@ instructions :
     #[test]
     fn local_stat_move() {
         assert_eq!(
-            try_compile_and_print("local a, b = 1, 2; local c, d, e = a, b, 3;"),
+            try_compile_and_print("local a, b = 1, 2; local c, d, e, f, g = a, b, 3;"),
             r#"
-stack size : 5
+stack size : 7
 consts :
 | 0     | 1          |
 | 1     | 2          |
@@ -152,6 +152,8 @@ locals :
 | 2     | c          |
 | 3     | d          |
 | 4     | e          |
+| 5     | f          |
+| 6     | g          |
 instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | LoadK      | 0     | 0     |       |
@@ -159,7 +161,8 @@ instructions :
 | 3     | Move       | 2     | 0     |       |
 | 4     | Move       | 3     | 1     |       |
 | 5     | LoadK      | 4     | 2     |       |
-| 6     | Return     | 0     | 1     |       |
+| 6     | LoadNil    | 5     | 1     |       |
+| 7     | Return     | 0     | 1     |       |
 "#
         )
     }
