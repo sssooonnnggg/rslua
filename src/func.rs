@@ -1,3 +1,7 @@
+use num_traits::Float;
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+
 use crate::ast::*;
 use crate::opcodes::{Instruction, OpCode};
 use crate::types::{FloatType, IntType};
@@ -7,6 +11,22 @@ pub enum Const {
     Float(FloatType),
     Str(String),
 }
+
+impl Hash for Const {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Const::Int(i) => i.hash(state),
+            Const::Float(f) => {
+                let (m, e, s) = Float::integer_decode(*f);
+                m.hash(state);
+                e.hash(state);
+                s.hash(state);
+            }
+            Const::Str(s) => s.hash(state),
+        }
+    }
+}
+
 pub struct LocalVal {
     name: String,
 }
@@ -18,6 +38,7 @@ pub struct Proto {
     pub param_count: u32,
     pub code: Vec<Instruction>,
     pub consts: Vec<Const>,
+    pub const_map: HashMap<Const, u32>,
     pub local_vars: Vec<LocalVal>,
     pub up_vars: Vec<UpVal>,
     pub protos: Vec<Proto>,
@@ -30,6 +51,7 @@ impl Proto {
             param_count: 0,
             code: Vec::new(),
             consts: Vec::new(),
+            const_map: HashMap::new(),
             local_vars: Vec::new(),
             up_vars: Vec::new(),
             protos: Vec::new(),
