@@ -79,9 +79,26 @@ impl AstVisitor for Compiler {
     }
 
     fn expr(&mut self, expr: &Expr) -> bool {
-        let context = self.context();
-        context.reverse_regs(1);
-        context.load_expr_to_reg(expr, context.free_reg - 1);
+        let reg = self.context().reverse_regs(1);
+        let proto = self.proto();
+        match expr {
+            Expr::Int(i) => {
+                let k = proto.add_const(Const::Int(*i));
+                proto.code_const(reg, k);
+            }
+            Expr::Float(f) => {
+                let k = proto.add_const(Const::Float(*f));
+                proto.code_const(reg, k);
+            }
+            Expr::String(s) => {
+                let k = proto.add_const(Const::Str(s.clone()));
+                proto.code_const(reg, k);
+            }
+            Expr::Nil => proto.code_nil(reg, 1),
+            Expr::True => proto.code_bool(reg, true),
+            Expr::False => proto.code_bool(reg, false),
+            _ => todo!(),
+        }
         true
     }
 }

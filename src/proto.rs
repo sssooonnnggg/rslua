@@ -178,30 +178,10 @@ impl ProtoContext {
         }
     }
 
-    pub fn reverse_regs(&mut self, n: u32) {
+    pub fn reverse_regs(&mut self, n: u32) -> u32 {
         self.check_stack(n);
+        let index = self.free_reg;
         self.free_reg += n;
-    }
-
-    pub fn load_expr_to_reg(&mut self, expr: &Expr, reg: u32) {
-        let proto = &mut self.proto;
-        match expr {
-            Expr::Int(i) => {
-                let k = proto.add_const(Const::Int(*i));
-                proto.code_const(reg, k);
-            }
-            Expr::Float(f) => {
-                let k = proto.add_const(Const::Float(*f));
-                proto.code_const(reg, k);
-            }
-            Expr::String(s) => {
-                let k = proto.add_const(Const::Str(s.clone()));
-                proto.code_const(reg, k);
-            }
-            Expr::Nil => proto.code_nil(reg, 1),
-            Expr::True => proto.code_bool(reg, true),
-            Expr::False => proto.code_bool(reg, false),
-            _ => todo!(),
-        }
+        index
     }
 }
