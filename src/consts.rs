@@ -25,18 +25,18 @@ impl Hash for Const {
     }
 }
 
-macro_rules! bin_op_normal {
-    ($name:ident, $op:tt) => {
+macro_rules! bin_op {
+    ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
         pub fn $name(self, other: Const) -> Option<Const> {
             match self {
                 Const::Int(a) => match other {
-                    Const::Int(b) => Some(Const::Int(a $op b)),
-                    Const::Float(b) => Some(Const::Float(a as f64 $op b)),
+                    Const::Int(b) => $int_int(a, b),
+                    Const::Float(b) => $int_float(a, b),
                     _ => unreachable!()
                 },
                 Const::Float(a) => match other {
-                    Const::Int(b) => Some(Const::Float(a $op b as f64)),
-                    Const::Float(b) => Some(Const::Float(a $op b)),
+                    Const::Int(b) => $float_int(a, b),
+                    Const::Float(b) => $float_float(a, b),
                     _ => unreachable!()
                 },
                 _ => unreachable!()
@@ -45,20 +45,27 @@ macro_rules! bin_op_normal {
     };
 }
 
+macro_rules! bin_op_normal {
+    ($name:ident, $op:tt) => {
+        bin_op! {
+            $name, 
+            |a, b| Some(Const::Int(a $op b)), 
+            |a, b| Some(Const::Float(a as FloatType $op b)), 
+            |a, b| Some(Const::Float(a $op b as FloatType)), 
+            |a, b| Some(Const::Float(a $op b))
+        } 
+    };
+}
+
 macro_rules! bin_op_int {
     ($name:ident, $op:tt) => {
-        pub fn $name(self, other: Const) -> Option<Const> {
-            match self {
-                Const::Int(a) => match other {
-                    Const::Int(b) => Some(Const::Int(a $op b)),
-                    _ => None
-                },
-                Const::Float(a) => match other {
-                    _ => None
-                },
-                _ => None
-            }
-        }    
+        bin_op! {
+            $name, 
+            |a, b| Some(Const::Int(a $op b)), 
+            |a, b| None, 
+            |a, b| None, 
+            |a, b| None
+        } 
     };
 }
 
@@ -66,69 +73,37 @@ impl Const {
     bin_op_normal! {add, +}
     bin_op_normal! {sub, -}
     bin_op_normal! {mul, *}
-
-    pub fn div(self, other: Const) -> Option<Const> {
-        match self {
-            Const::Int(a) => match other {
-                Const::Int(b) => Some(Const::Float(a as f64 / b as f64)),
-                Const::Float(b) => Some(Const::Float(a as f64 / b)),
-                _ => unreachable!()
-            },
-            Const::Float(a) => match other {
-                Const::Int(b) => Some(Const::Float(a / b as f64)),
-                Const::Float(b) => Some(Const::Float(a / b)),
-                _ => unreachable!()
-            },
-            _ => unreachable!()
-        }
-    }
     
-    pub fn idiv(self, other: Const) -> Option<Const> {
-        match self {
-            Const::Int(a) => match other {
-                Const::Int(b) => Some(Const::Int(a / b)),
-                Const::Float(b) => Some(Const::Float((a / b as i64) as f64)),
-                _ => unreachable!()
-            },
-            Const::Float(a) => match other {
-                Const::Int(b) => Some(Const::Float((a as i64 / b) as f64)),
-                Const::Float(b) => Some(Const::Float((a as i64 / b as i64) as f64)),
-                _ => unreachable!()
-            },
-            _ => unreachable!()
-        }
+    bin_op! {
+        div,
+        |a, b| Some(Const::Float(a as FloatType / b as FloatType)),
+        |a, b| Some(Const::Float(a as FloatType / b)),
+        |a, b| Some(Const::Float(a / b as FloatType)),
+        |a, b| Some(Const::Float(a / b as FloatType))
     }
 
-    pub fn mod_(self, other: Const) -> Option<Const> {
-        match self {
-            Const::Int(a) => match other {
-                Const::Int(b) => Some(Const::Int(a % b)),
-                Const::Float(b) => Some(Const::Float(a as f64 % b)),
-                _ => unreachable!()
-            },
-            Const::Float(a) => match other {
-                Const::Int(b) => Some(Const::Float(a % b as f64)),
-                Const::Float(b) => Some(Const::Float(a % b)),
-                _ => unreachable!()
-            },
-            _ => unreachable!()
-        }
+    bin_op! {
+        idiv,
+        |a, b| Some(Const::Int(a / b)),
+        |a, b| Some(Const::Float((a / b as IntType) as FloatType)),
+        |a, b| Some(Const::Float((a as IntType / b) as FloatType)),
+        |a, b| Some(Const::Float((a as IntType / b as IntType) as FloatType))
     }
 
-    pub fn pow(self, other: Const) -> Option<Const> {
-        match self {
-            Const::Int(a) => match other {
-                Const::Int(b) => Some(Const::Float((a as f64).powf(b as f64))),
-                Const::Float(b) => Some(Const::Float((a as f64).powf(b))),
-                _ => unreachable!()
-            },
-            Const::Float(a) => match other {
-                Const::Int(b) => Some(Const::Float(a.powf(b as f64))),
-                Const::Float(b) => Some(Const::Float(a.powf(b))),
-                _ => unreachable!()
-            },
-            _ => unreachable!()
-        }
+    bin_op! {
+        mod_,
+        |a, b| Some(Const::Int(a % b)),
+        |a, b| Some(Const::Float(a as FloatType % b)),
+        |a, b| Some(Const::Float(a % b as FloatType)),
+        |a, b| Some(Const::Float(a % b))
+    }
+
+    bin_op! {
+        pow,
+        |a, b| Some(Const::Float((a as FloatType).powf(b as FloatType))),
+        |a, b| Some(Const::Float((a as FloatType).powf(b))),
+        |a:FloatType, b| Some(Const::Float(a.powf(b as FloatType))),
+        |a:FloatType, b| Some(Const::Float(a.powf(b)))
     }
 
     bin_op_int! {band, &}
