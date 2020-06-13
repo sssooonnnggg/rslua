@@ -156,5 +156,10 @@ impl AstVisitor for Compiler {
             self.proto().code_move(*target, *src);
             self.context().free_reg(1);
         }
+
+        // free extra regs
+        if extra < 0 {
+            self.context().free_reg(-extra as u32);
+        }
     }
 }

@@ -234,4 +234,40 @@ instructions :
 "#
         )
     }
+
+    #[test]
+    fn assign_free_extra_reg() {
+        assert_eq!(
+            try_compile_and_print("local a, b, c; a, b, c = 1, 2, 3, 4, 5;local d, e, f"),
+            r#"
+stack size : 8
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 3          |
+| 3     | 4          |
+| 4     | 5          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 2     |       |
+| 2     | LoadK      | 3     | 0     |       |
+| 3     | LoadK      | 4     | 1     |       |
+| 4     | LoadK      | 5     | 2     |       |
+| 5     | LoadK      | 6     | 3     |       |
+| 6     | LoadK      | 7     | 4     |       |
+| 7     | Move       | 2     | 5     |       |
+| 8     | Move       | 1     | 4     |       |
+| 9     | Move       | 0     | 3     |       |
+| 10    | LoadNil    | 3     | 2     |       |
+| 11    | Return     | 0     | 1     |       |
+"#
+        )
+    }
 }
