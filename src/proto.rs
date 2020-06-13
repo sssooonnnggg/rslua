@@ -173,20 +173,20 @@ impl fmt::Debug for Proto {
 }
 
 pub struct ProtoContext {
-    pub free_reg: u32,
+    pub reg_top: u32,
     pub proto: Proto,
 }
 
 impl ProtoContext {
     pub fn new() -> Self {
         ProtoContext {
-            free_reg: 0,
+            reg_top: 0,
             proto: Proto::new(),
         }
     }
 
     pub fn check_stack(&mut self, n: u32) {
-        let new_stack = self.free_reg + n;
+        let new_stack = self.reg_top + n;
         if new_stack > self.proto.stack_size {
             self.proto.stack_size = new_stack;
         }
@@ -194,8 +194,16 @@ impl ProtoContext {
 
     pub fn reverse_regs(&mut self, n: u32) -> u32 {
         self.check_stack(n);
-        let index = self.free_reg;
-        self.free_reg += n;
+        let index = self.reg_top;
+        self.reg_top += n;
         index
+    }
+
+    pub fn get_reg_top(&self) -> u32 {
+        self.reg_top
+    }
+
+    pub fn free_reg(&mut self, n: u32) {
+        self.reg_top -= n;
     }
 }

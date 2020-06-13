@@ -61,7 +61,7 @@ impl Compiler {
 
         if extra > 0 {
             let context = self.context();
-            let from = context.free_reg;
+            let from = context.get_reg_top();
             context.reverse_regs(extra as u32);
             context.proto.code_nil(from, extra as u32);
         }
@@ -122,6 +122,9 @@ impl AstVisitor for Compiler {
     fn assign_stat(&mut self, stat: &AssignStat) {
         let last_use_temp_reg = stat.right.len() != stat.left.len();
         let mut to_move: Vec<(u32, u32)> = Vec::new();
+
+        // normal move
+        // the last right one direct move to left register
         for (i, expr) in stat.right.iter().enumerate() {
             if i != stat.right.len() - 1 || last_use_temp_reg {
                 let reg = self.context().reverse_regs(1);
@@ -135,10 +138,23 @@ impl AstVisitor for Compiler {
                 self.expr(expr, reg);
             };
         }
-        let reg = self.context().free_reg;
+
+        // nil move
+        let reg = self.context().get_reg_top();
         let extra = self.adjust_assign(stat.left.len(), &stat.right);
+        if extra > 0 {
+            let left_start = stat.left.len() as i32 - extra;
+            for i in 0..extra {
+                let target = self.get_assinable_reg(&stat.left[(left_start + i) as usize]);
+                let src = (reg as i32 + i) as u32;
+                to_move.push((target, src));
+            }
+        }
+
+        // apply moves
         for (target, src) in to_move.iter().rev() {
             self.proto().code_move(*target, *src);
+            self.context().free_reg(1);
         }
     }
 }

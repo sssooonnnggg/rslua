@@ -170,8 +170,44 @@ instructions :
     #[test]
     fn assign_simple() {
         assert_eq!(
-            try_compile_and_print("local a, b, c, d, e, f, g = 1, 2, 3; d, e, f, g = a, b;"),
-            r#""#
+            try_compile_and_print("local a, b, c, d, e, f, g = 1, 2, 3; d, e, f, g = a, b;a, b, c = 4, 5, 6;"),
+            r#"
+stack size : 11
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 3          |
+| 3     | 4          |
+| 4     | 5          |
+| 5     | 6          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+| 6     | g          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | LoadK      | 2     | 2     |       |
+| 4     | LoadNil    | 3     | 3     |       |
+| 5     | Move       | 7     | 0     |       |
+| 6     | Move       | 8     | 1     |       |
+| 7     | LoadNil    | 9     | 1     |       |
+| 8     | Move       | 6     | 10    |       |
+| 9     | Move       | 5     | 9     |       |
+| 10    | Move       | 4     | 8     |       |
+| 11    | Move       | 3     | 7     |       |
+| 12    | LoadK      | 7     | 3     |       |
+| 13    | LoadK      | 8     | 4     |       |
+| 14    | LoadK      | 2     | 5     |       |
+| 15    | Move       | 1     | 8     |       |
+| 16    | Move       | 0     | 7     |       |
+| 17    | Return     | 0     | 1     |       |
+"#
         )
     }
 
@@ -179,7 +215,23 @@ instructions :
     fn assign_swap() {
         assert_eq!(
             try_compile_and_print("local a, b = 1, 2; a, b = b, a"),
-            r#""#
+            r#"
+stack size : 3
+consts :
+| 0     | 1          |
+| 1     | 2          |
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | Move       | 2     | 1     |       |
+| 4     | Move       | 1     | 0     |       |
+| 5     | Move       | 0     | 2     |       |
+| 6     | Return     | 0     | 1     |       |
+"#
         )
     }
 }
