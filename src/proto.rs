@@ -1,34 +1,8 @@
-use num_traits::Float;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 
-use crate::ast::*;
 use crate::opcodes::{Instruction, OpCode};
 use crate::types::{FloatType, IntType};
-
-#[derive(Clone, PartialEq)]
-pub enum Const {
-    Int(IntType),
-    Float(FloatType),
-    Str(String),
-}
-
-impl Eq for Const {}
-
-impl Hash for Const {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Const::Int(i) => i.hash(state),
-            Const::Float(f) => {
-                let (m, e, s) = Float::integer_decode(*f);
-                m.hash(state);
-                e.hash(state);
-                s.hash(state);
-            }
-            Const::Str(s) => s.hash(state),
-        }
-    }
-}
+use crate::consts::Const;
 
 pub struct LocalVal {
     name: String,

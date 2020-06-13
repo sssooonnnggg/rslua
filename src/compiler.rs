@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::proto::{Const, Proto, ProtoContext};
-use crate::types::{FloatType, IntType};
+use crate::proto::{Proto, ProtoContext};
+use crate::consts::Const;
 
 pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
@@ -11,15 +11,6 @@ pub enum Index {
     ConstIndex(u32),
     RegIndex(u32),
     None,
-}
-
-impl Index {
-    pub fn is_const(&self) -> bool {
-        match self {
-            Index::ConstIndex(_) => true,
-            _ => false,
-        }
-    }
 }
 
 impl Compiler {
@@ -117,9 +108,6 @@ impl Compiler {
 
     // process binexpr
     fn bin_expr(&mut self, bin: &BinExpr) -> Index {
-        let left = self.expr(&bin.left);
-        let right = self.expr(&bin.right);
-
         match bin.op {
             BinOp::Add
             | BinOp::Minus
@@ -132,14 +120,39 @@ impl Compiler {
             | BinOp::BXor
             | BinOp::Shl
             | BinOp::Shr => {
-                if left.is_const() && right.is_const() {
-                    // try constant folding
+                // try constant folding
+                if let (Some(l), Some(r)) = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
+                    let k = self.apply_bin_op(bin.op, l, r);
+                    return Index::ConstIndex(self.proto().add_const(k));
                 }
             }
             _ => todo!(),
         }
 
         Index::None
+    }
+    
+    // try constant folding expr
+    fn try_const_folding(&self, expr:&Expr) -> Option<Const> {
+        None
+    }
+
+    fn apply_bin_op(&self, op:BinOp, l:Const, r:Const) -> Const {
+        match op {
+            BinOp::Add => l.add(r),
+            BinOp::Minus => l.sub(r),
+            BinOp::Mul => l.mul(r),
+            BinOp::Div => l.div(r),
+            BinOp::IDiv => l.idiv(r),
+            BinOp::Mod => l.mod_(r),
+            BinOp::Pow => l.pow(r),
+            // BinOp::BAnd => l.and(r),
+            // BinOp::BOr => l.or(r),
+            // BinOp::BXor => l.xor(r),
+            // BinOp::Shl => l.shl(r),
+            // BinOp::Shr => l.shr(r),
+            _ => unreachable!()
+        }
     }
 
     // process expr and save to register
