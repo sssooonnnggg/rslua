@@ -7,6 +7,12 @@ pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
 }
 
+pub enum Index {
+    ConstIndex(u32),
+    RegIndex(u32),
+    None,
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
@@ -69,31 +75,49 @@ impl Compiler {
         extra
     }
 
-    fn expr(&mut self, expr: &Expr, reg: u32) {
+    // process expr and return const index or register index
+    fn expr(&mut self, expr: &Expr) -> Index {
         let proto = self.proto();
         match expr {
             Expr::Int(i) => {
                 let k = proto.add_const(Const::Int(*i));
-                proto.code_const(reg, k);
+                Index::ConstIndex(k)
             }
             Expr::Float(f) => {
                 let k = proto.add_const(Const::Float(*f));
-                proto.code_const(reg, k);
+                Index::ConstIndex(k)
             }
             Expr::String(s) => {
                 let k = proto.add_const(Const::Str(s.clone()));
-                proto.code_const(reg, k);
+                Index::ConstIndex(k)
             }
-            Expr::Nil => proto.code_nil(reg, 1),
-            Expr::True => proto.code_bool(reg, true),
-            Expr::False => proto.code_bool(reg, false),
+            Expr::Nil => Index::None,
+            Expr::True => Index::None,
+            Expr::False => Index::None,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    proto.code_move(reg, src);
+                    return Index::RegIndex(src);
                 }
                 // TODO : process upval and globals
+                todo!()
             }
             _ => todo!(),
+        }
+    }
+
+    // process expr and save to register
+    fn expr_and_save(&mut self, expr: &Expr, reg: u32) {
+        let index = self.expr(expr);
+        let proto = self.proto();
+        match index {
+            Index::ConstIndex(k) => proto.code_const(reg, k),
+            Index::RegIndex(src) => proto.code_move(reg, src),
+            Index::None => match expr {
+                Expr::Nil => proto.code_nil(reg, 1),
+                Expr::True => proto.code_bool(reg, true),
+                Expr::False => proto.code_bool(reg, false),
+                _ => unreachable!(),
+            },
         }
     }
 
@@ -114,7 +138,7 @@ impl AstVisitor for Compiler {
         }
         for expr in stat.exprs.iter() {
             let reg = self.context().reverse_regs(1);
-            self.expr(expr, reg);
+            self.expr_and_save(expr, reg);
         }
         self.adjust_assign(stat.names.len(), &stat.exprs);
     }
@@ -128,14 +152,14 @@ impl AstVisitor for Compiler {
         for (i, expr) in stat.right.iter().enumerate() {
             if i != stat.right.len() - 1 || last_use_temp_reg {
                 let reg = self.context().reverse_regs(1);
-                self.expr(expr, reg);
+                self.expr_and_save(expr, reg);
                 if i < stat.left.len() {
                     let target = self.get_assinable_reg(&stat.left[i]);
                     to_move.push((target, reg));
                 }
             } else {
                 let reg = self.get_assinable_reg(&stat.left[i]);
-                self.expr(expr, reg);
+                self.expr_and_save(expr, reg);
             };
         }
 
