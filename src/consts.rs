@@ -62,9 +62,9 @@ macro_rules! bin_op_int {
         bin_op! {
             $name, 
             |a, b| Some(Const::Int(a $op b)), 
-            |a, b| None, 
-            |a, b| None, 
-            |a, b| None
+            |_, _| None, 
+            |_, _| None, 
+            |_, _| None
         } 
     };
 }
