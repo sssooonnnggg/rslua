@@ -121,9 +121,11 @@ impl Compiler {
             | BinOp::Shl
             | BinOp::Shr => {
                 // try constant folding
-                if let (Some(l), Some(r)) = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
-                    let k = self.apply_bin_op(bin.op, l, r);
-                    return Index::ConstIndex(self.proto().add_const(k));
+                if let (Some(l), Some(r)) 
+                    = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
+                    if let Some(k) = self.apply_bin_op(bin.op, l, r) {
+                        return Index::ConstIndex(self.proto().add_const(k));
+                    }
                 }
             }
             _ => todo!(),
@@ -137,7 +139,7 @@ impl Compiler {
         None
     }
 
-    fn apply_bin_op(&self, op:BinOp, l:Const, r:Const) -> Const {
+    fn apply_bin_op(&self, op:BinOp, l:Const, r:Const) -> Option<Const> {
         match op {
             BinOp::Add => l.add(r),
             BinOp::Minus => l.sub(r),
@@ -146,11 +148,11 @@ impl Compiler {
             BinOp::IDiv => l.idiv(r),
             BinOp::Mod => l.mod_(r),
             BinOp::Pow => l.pow(r),
-            // BinOp::BAnd => l.and(r),
-            // BinOp::BOr => l.or(r),
-            // BinOp::BXor => l.xor(r),
-            // BinOp::Shl => l.shl(r),
-            // BinOp::Shr => l.shr(r),
+            BinOp::BAnd => l.band(r),
+            BinOp::BOr => l.bor(r),
+            BinOp::BXor => l.bxor(r),
+            BinOp::Shl => l.shl(r),
+            BinOp::Shr => l.shr(r),
             _ => unreachable!()
         }
     }
