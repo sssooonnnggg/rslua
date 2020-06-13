@@ -13,6 +13,15 @@ pub enum Index {
     None,
 }
 
+impl Index {
+    pub fn is_const(&self) -> bool {
+        match self {
+            Index::ConstIndex(_) => true,
+            _ => false,
+        }
+    }
+}
+
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
@@ -101,8 +110,36 @@ impl Compiler {
                 // TODO : process upval and globals
                 todo!()
             }
+            Expr::BinExpr(bin) => self.bin_expr(bin),
             _ => todo!(),
         }
+    }
+
+    // process binexpr
+    fn bin_expr(&mut self, bin: &BinExpr) -> Index {
+        let left = self.expr(&bin.left);
+        let right = self.expr(&bin.right);
+
+        match bin.op {
+            BinOp::Add
+            | BinOp::Minus
+            | BinOp::Div
+            | BinOp::IDiv
+            | BinOp::Mod
+            | BinOp::Pow
+            | BinOp::BAnd
+            | BinOp::BOr
+            | BinOp::BXor
+            | BinOp::Shl
+            | BinOp::Shr => {
+                if left.is_const() && right.is_const() {
+                    // try constant folding
+                }
+            }
+            _ => todo!(),
+        }
+
+        Index::None
     }
 
     // process expr and save to register
