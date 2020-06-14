@@ -531,6 +531,8 @@ impl Parser {
             if !self.test_next(TokenType::Comma) && !self.test_next(TokenType::Semi) {
                 break;
             }
+            // TODO : reverse comment for table fields
+            self.skip_comment();
         }
         self.check_match(TokenType::Rb, TokenType::Lb, line)?;
         Ok(Table { fields })
@@ -668,6 +670,7 @@ impl Parser {
     }
 
     fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<()> {
+        self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {
                 error_expected!(self, end);
@@ -678,7 +681,7 @@ impl Parser {
                 )?;
             }
         }
-        self.next_and_skip_comment();
+        self.next();
         Ok(())
     }
 
@@ -687,8 +690,9 @@ impl Parser {
     }
 
     fn test_next(&mut self, expected: TokenType) -> bool {
+        self.skip_comment();
         if self.test(expected) {
-            self.next_and_skip_comment();
+            self.next();
             true
         } else {
             false
@@ -704,12 +708,14 @@ impl Parser {
     }
 
     fn check_next(&mut self, expected: TokenType) -> ParseResult<()> {
+        self.skip_comment();
         self.check(expected)?;
         self.next();
         Ok(())
     }
 
     fn check_name(&mut self) -> ParseResult<String> {
+        self.skip_comment();
         self.check(TokenType::Name)?;
         let token = self.current_token();
         let name = match &token.value {
