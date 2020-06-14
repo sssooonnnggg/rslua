@@ -84,7 +84,7 @@ impl Parser {
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
-                self.next();
+                self.next_and_skip_comment();
                 return Ok(None);
             }
             // stat -> if stat
@@ -93,7 +93,7 @@ impl Parser {
             TokenType::While => Stat::WhileStat(self.whilestat()?),
             // stat -> DO block END
             TokenType::Do => {
-                self.next();
+                self.next_and_skip_comment();
                 let block = self.block()?;
                 self.check_match(TokenType::End, TokenType::Do, line)?;
                 Stat::DoBlock(DoBlock { block })
@@ -106,7 +106,7 @@ impl Parser {
             TokenType::Function => Stat::FuncStat(self.funcstat()?),
             // stat -> localstat
             TokenType::Local => {
-                self.next();
+                self.next_and_skip_comment();
                 if self.test(TokenType::Function) {
                     Stat::FuncStat(self.localfunc()?)
                 } else {
@@ -115,12 +115,12 @@ impl Parser {
             }
             // stat -> label
             TokenType::DbColon => {
-                self.next();
+                self.next_and_skip_comment();
                 Stat::LabelStat(self.labelstat()?)
             }
             // stat -> retstat
             TokenType::Return => {
-                self.next();
+                self.next_and_skip_comment();
                 Stat::RetStat(self.retstat()?)
             }
             // stat -> breakstat
@@ -154,7 +154,7 @@ impl Parser {
 
     //  [IF | ELSEIF] cond THEN block
     fn test_then_block(&mut self) -> ParseResult<CondBlock> {
-        self.next();
+        self.next_and_skip_comment();
         let cond = self.cond()?;
         self.check_next(TokenType::Then)?;
         let block = self.block()?;
@@ -164,7 +164,7 @@ impl Parser {
     // whilestat -> WHILE cond DO block END
     fn whilestat(&mut self) -> ParseResult<WhileStat> {
         let line = self.current_line();
-        self.next();
+        self.next_and_skip_comment();
         let cond = self.cond()?;
         self.check_next(TokenType::Do)?;
         let block = self.block()?;
@@ -179,7 +179,7 @@ impl Parser {
     // forstat -> FOR (fornum | forlist) END
     fn forstat(&mut self) -> ParseResult<ForStat> {
         let line = self.current_line();
-        self.next();
+        self.next_and_skip_comment();
         let var_name = self.check_name()?;
         let forstat = match self.current_token_type() {
             TokenType::Assign => self.forenum(&var_name),
@@ -197,7 +197,7 @@ impl Parser {
 
     // fornum -> NAME = exp1,exp1[,exp1] forbody
     fn forenum(&mut self, var_name: &str) -> ParseResult<ForStat> {
-        self.next();
+        self.next_and_skip_comment();
         let init = self.expr()?;
         self.check_next(TokenType::Comma)?;
         let limit = self.expr()?;
@@ -233,7 +233,7 @@ impl Parser {
     // repeatstat -> REPEAT block UNTIL cond
     fn repeatstat(&mut self) -> ParseResult<RepeatStat> {
         let line = self.current_line();
-        self.next();
+        self.next_and_skip_comment();
         let block = self.block()?;
         self.check_match(TokenType::Until, TokenType::Repeat, line)?;
         let cond = self.cond()?;
@@ -242,7 +242,7 @@ impl Parser {
 
     // funcstat -> FUNCTION funcname body
     fn funcstat(&mut self) -> ParseResult<FuncStat> {
-        self.next();
+        self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
         Ok(FuncStat {
@@ -278,7 +278,7 @@ impl Parser {
             match self.current_token_type() {
                 TokenType::Dots => {
                     params.push(Param::VarArg);
-                    self.next()
+                    self.next_and_skip_comment()
                 }
                 TokenType::Name => params.push(Param::Name(self.check_name()?)),
                 _ => syntax_error!(self, "<name> or '...' expected")?,
@@ -295,7 +295,7 @@ impl Parser {
 
     // funcstat -> local FUNCTION funcname body
     fn localfunc(&mut self) -> ParseResult<FuncStat> {
-        self.next();
+        self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
         Ok(FuncStat {
@@ -339,12 +339,12 @@ impl Parser {
     }
 
     fn breakstat(&mut self) -> ParseResult<BreakStat> {
-        self.next();
+        self.next_and_skip_comment();
         Ok(BreakStat {})
     }
 
     fn gotostat(&mut self) -> ParseResult<GotoStat> {
-        self.next();
+        self.next_and_skip_comment();
         let label = self.check_name()?;
         Ok(GotoStat { label })
     }
@@ -402,7 +402,7 @@ impl Parser {
         let mut left;
         let unop = self.get_unop();
         if unop != UnOp::None {
-            self.next();
+            self.next_and_skip_comment();
             let expr = Box::new(self.subexpr(unop.priority())?);
             left = Expr::UnExpr(UnExpr { op: unop, expr });
         } else {
@@ -410,7 +410,7 @@ impl Parser {
         }
         let mut binop = self.get_binop();
         while binop != BinOp::None && binop.priority().left > limit {
-            self.next();
+            self.next_and_skip_comment();
             let right = self.subexpr(binop.priority().right)?;
             left = Expr::BinExpr(BinExpr {
                 left: Box::new(left),
@@ -435,12 +435,12 @@ impl Parser {
             TokenType::Dots => Expr::VarArg,
             TokenType::Lb => return Ok(Expr::Table(self.table()?)),
             TokenType::Function => {
-                self.next();
+                self.next_and_skip_comment();
                 return Ok(Expr::FuncBody(self.funcbody()?));
             }
             _ => return Ok(self.suffixedexpr()?),
         };
-        self.next();
+        self.next_and_skip_comment();
         Ok(expr)
     }
 
@@ -451,17 +451,17 @@ impl Parser {
         loop {
             match self.current_token_type() {
                 TokenType::Attr => {
-                    self.next();
+                    self.next_and_skip_comment();
                     suffixes.push(Suffix::Attr(self.check_name()?));
                 }
                 TokenType::Ls => {
                     let line = self.current_line();
-                    self.next();
+                    self.next_and_skip_comment();
                     suffixes.push(Suffix::Index(self.expr()?));
                     self.check_match(TokenType::Rs, TokenType::Ls, line)?;
                 }
                 TokenType::Colon => {
-                    self.next();
+                    self.next_and_skip_comment();
                     let name = self.check_name()?;
                     suffixes.push(Suffix::Method(name));
                 }
@@ -488,7 +488,7 @@ impl Parser {
             TokenType::Name => Expr::Name(self.check_name()?),
             TokenType::Lp => {
                 let line = self.current_line();
-                self.next();
+                self.next_and_skip_comment();
                 let expr = self.expr()?;
                 self.check_match(TokenType::Rp, TokenType::Lp, line)?;
                 Expr::ParenExpr(Box::new(expr))
@@ -545,7 +545,7 @@ impl Parser {
             TokenType::Name => key = FieldKey::Name(self.check_name()?),
             TokenType::Ls => {
                 let line = self.current_line();
-                self.next();
+                self.next_and_skip_comment();
                 key = FieldKey::Expr(self.expr()?);
                 self.check_match(TokenType::Rs, TokenType::Ls, line)?;
             }
@@ -566,7 +566,7 @@ impl Parser {
         let func_args = match self.current_token_type() {
             TokenType::Lp => {
                 let line = self.current_line();
-                self.next();
+                self.next_and_skip_comment();
 
                 // empty arg list
                 if self.test_next(TokenType::Rp) {
@@ -580,7 +580,7 @@ impl Parser {
             TokenType::Lb => FuncArgs::Table(self.table()?),
             TokenType::String => {
                 let arg = FuncArgs::String(self.current_token().get_string());
-                self.next();
+                self.next_and_skip_comment();
                 arg
             }
             _ => return syntax_error!(self, "function arguments expected"),
@@ -624,7 +624,7 @@ impl Parser {
         token.t
     }
 
-    fn next(&mut self) {
+    fn next_and_skip_comment(&mut self) {
         self.current += 1;
         self.skip_comment();
     }
@@ -659,7 +659,7 @@ impl Parser {
                 )?;
             }
         }
-        self.next();
+        self.next_and_skip_comment();
         Ok(())
     }
 
@@ -669,7 +669,7 @@ impl Parser {
 
     fn test_next(&mut self, expected: TokenType) -> bool {
         if self.test(expected) {
-            self.next();
+            self.next_and_skip_comment();
             true
         } else {
             false
@@ -686,7 +686,7 @@ impl Parser {
 
     fn check_next(&mut self, expected: TokenType) -> ParseResult<()> {
         self.check(expected)?;
-        self.next();
+        self.next_and_skip_comment();
         Ok(())
     }
 
@@ -697,7 +697,7 @@ impl Parser {
             TokenValue::Str(name) => name.clone(),
             _ => unreachable!(),
         };
-        self.next();
+        self.next_and_skip_comment();
         Ok(name)
     }
 

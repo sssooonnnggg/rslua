@@ -134,6 +134,8 @@ pub trait AstVisitor {
     fn suffix(&mut self, _suf: &Suffix) -> bool {
         false
     }
+
+    fn comment(&mut self, _comment: &CommentStat) {}
 }
 
 pub mod ast_walker {
@@ -166,6 +168,7 @@ pub mod ast_walker {
             Stat::GotoStat(gotostat) => walk_gotostat(gotostat, visitor),
             Stat::AssignStat(assignstat) => walk_assignstat(assignstat, visitor),
             Stat::CallStat(callstat) => walk_callstat(callstat, visitor),
+            Stat::CommentStat(comment) => walk_comment(comment, visitor),
         };
     }
 
@@ -287,6 +290,10 @@ pub mod ast_walker {
 
     pub fn walk_callstat<T: AstVisitor>(stat: &CallStat, visitor: &mut T) {
         visitor.call_stat(stat);
+    }
+
+    pub fn walk_comment<T: AstVisitor>(stat: &CommentStat, visitor: &mut T) {
+        visitor.comment(stat);
     }
 
     pub fn walk_expr<T: AstVisitor>(expr: &Expr, visitor: &mut T) {

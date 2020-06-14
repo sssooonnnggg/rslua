@@ -341,6 +341,12 @@ pub struct CallStat {
 }
 
 #[derive(PartialEq, Debug)]
+pub struct CommentStat {
+    pub is_single_line: bool,
+    pub comment: String,
+}
+
+#[derive(PartialEq, Debug)]
 pub enum Stat {
     IfStat(IfStat),
     WhileStat(WhileStat),
@@ -355,6 +361,7 @@ pub enum Stat {
     GotoStat(GotoStat),
     AssignStat(AssignStat),
     CallStat(CallStat),
+    CommentStat(CommentStat),
 }
 
 impl Stat {

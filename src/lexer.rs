@@ -511,8 +511,7 @@ impl<'a> Lexer {
         if !self.use_origin_string {
             start = ctx.current;
         }
-
-        let col = ctx.col;
+        
         while let Some(c) = ctx.get() {
             match c {
                 b']' => {
