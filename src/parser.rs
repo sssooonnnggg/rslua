@@ -726,7 +726,7 @@ impl Parser {
             TokenValue::Str(name) => name.clone(),
             _ => unreachable!(),
         };
-        self.next_and_skip_comment();
+        self.next();
         Ok(name)
     }
 
