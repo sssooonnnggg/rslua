@@ -49,7 +49,7 @@ pub enum TokenType {
     Flt,
     // int number
     Int,
-    // var name
+    // name
     Name,
     // string literal
     String,
@@ -83,6 +83,10 @@ pub enum TokenType {
     Semi,
     // .
     Attr,
+    // single line coment
+    SComment,
+    // multi-line comment
+    MComment,
 }
 
 impl TokenType {
@@ -149,5 +153,8 @@ impl Token {
             TokenValue::Str(s) => s.clone(),
             _ => unreachable!(),
         }
+    }
+    pub fn is_comment(&self) -> bool {
+        self.t == TokenType::SComment || self.t == TokenType::MComment
     }
 }

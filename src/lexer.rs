@@ -172,19 +172,48 @@ impl<'a> Lexer {
         ctx.skip(2);
         let sep_count = self.try_read_long_string_boundary(ctx, b'[');
         if sep_count >= 0 {
-            self.skip_long_string(ctx, sep_count as usize, "comment")?;
+            let Source {
+                pos,
+                length,
+                col: _,
+                line: _,
+            } = self.skip_long_string(ctx, sep_count as usize, "comment")?;
+            println!("pos {}, sep_count {}", pos, sep_count);
+            let start = if self.use_origin_string {
+                pos - 2
+            } else {
+                pos - sep_count as usize - 4
+            };
+            let end = if self.use_origin_string {
+                pos + length
+            } else {
+                pos + length + sep_count as usize + 2
+            };
+            if let Some(slice) = ctx.buffer.get(start..end) {
+                let comment = String::from(slice);
+                success!((TokenType::MComment, TokenValue::Str(comment)))
+            } else {
+                lex_error!(self, ctx, "invalid multi-line comment")
+            }
         } else {
-            self.read_short_comment(ctx);
+            self.read_short_comment(ctx)
         }
-        Ok(None)
     }
 
-    fn read_short_comment(&mut self, ctx: &mut Context) {
+    fn read_short_comment(&mut self, ctx: &mut Context) -> LexResult {
+        let mut bytes = Vec::<u8>::new();
+        bytes.push(b'-');
+        bytes.push(b'-');
         while let Some(c) = ctx.get() {
             if Lexer::is_line_break(c) {
                 break;
             }
-            ctx.next();
+            ctx.skip_into(1, &mut bytes);
+        }
+        if let Ok(comment) = str::from_utf8(&bytes) {
+            success!((TokenType::SComment, TokenValue::Str(comment.to_string())))
+        } else {
+            lex_error!(self, ctx, "invalid single line comment")
         }
     }
 

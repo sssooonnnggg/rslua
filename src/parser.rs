@@ -55,6 +55,7 @@ impl Parser {
     pub fn run(&mut self, tokens: Vec<Token>) -> ParseResult<Block> {
         self.reset();
         self.tokens = tokens;
+        self.skip_comment();
         self.block()
     }
 
@@ -596,7 +597,11 @@ impl Parser {
     }
 
     fn next_token(&self) -> &Token {
-        &self.tokens[self.current + 1]
+        let mut current = self.current + 1;
+        while self.tokens[current].is_comment() {
+            current += 1;
+        }
+        &self.tokens[current]
     }
 
     fn current_token_type(&self) -> TokenType {
@@ -621,6 +626,13 @@ impl Parser {
 
     fn next(&mut self) {
         self.current += 1;
+        self.skip_comment();
+    }
+
+    fn skip_comment(&mut self) {
+        while self.current_token().is_comment() {
+            self.current += 1;
+        }
     }
 
     // if reach a block end
