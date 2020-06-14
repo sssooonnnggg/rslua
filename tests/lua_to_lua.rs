@@ -434,6 +434,10 @@ impl AstVisitor for LuaWritter {
     fn end_paren_expr(&mut self) {
         self.append(")");
     }
+
+    fn comment(&mut self, comment: &CommentStat) {
+        self.append(&format!("--{}", comment.comment));
+    }
 }
 
 fn try_convert(input: &str) -> String {
