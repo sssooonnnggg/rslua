@@ -172,38 +172,15 @@ impl<'a> Lexer {
         ctx.skip(2);
         let sep_count = self.try_read_long_string_boundary(ctx, b'[');
         if sep_count >= 0 {
-            let Source {
-                pos,
-                length,
-                col: _,
-                line: _,
-            } = self.skip_long_string(ctx, sep_count as usize, "comment")?;
-            println!("pos {}, sep_count {}", pos, sep_count);
-            let start = if self.use_origin_string {
-                pos - 2
-            } else {
-                pos - sep_count as usize - 4
-            };
-            let end = if self.use_origin_string {
-                pos + length
-            } else {
-                pos + length + sep_count as usize + 2
-            };
-            if let Some(slice) = ctx.buffer.get(start..end) {
-                let comment = String::from(slice);
-                success!((TokenType::MComment, TokenValue::Str(comment)))
-            } else {
-                lex_error!(self, ctx, "invalid multi-line comment")
-            }
+            let comment = self.read_long_string_impl(ctx, sep_count as usize, "comment")?;
+            success!((TokenType::MComment, TokenValue::Str(comment)))
         } else {
             self.read_short_comment(ctx)
         }
     }
 
     fn read_short_comment(&mut self, ctx: &mut Context) -> LexResult {
-        let mut bytes = Vec::<u8>::new();
-        bytes.push(b'-');
-        bytes.push(b'-');
+        let mut bytes: Vec<u8> = Vec::new();
         while let Some(c) = ctx.get() {
             if Lexer::is_line_break(c) {
                 break;
@@ -512,13 +489,13 @@ impl<'a> Lexer {
         -1
     }
 
-    // skip long string, return long string source info
-    fn skip_long_string(
+    // read long string
+    fn read_long_string_impl(
         &mut self,
         ctx: &mut Context,
         sep_count: usize,
         sem: &str,
-    ) -> Result<Source, LexError> {
+    ) -> Result<String, LexError> {
         let line = ctx.line;
         let mut start = 0;
 
@@ -546,12 +523,9 @@ impl<'a> Lexer {
                         } else {
                             length = ctx.current - 2 - sep_count - start;
                         }
-                        return Ok(Source {
-                            line,
-                            pos: start,
-                            length,
-                            col,
-                        });
+                        if let Some(slice) = ctx.buffer.get(start..(start + length)) {
+                            return Ok(slice.to_string());
+                        }
                     } else {
                         ctx.next();
                     }
@@ -572,22 +546,8 @@ impl<'a> Lexer {
     fn read_long_string(&mut self, ctx: &mut Context) -> LexResult {
         let sep_count = self.try_read_long_string_boundary(ctx, b'[');
         if sep_count >= 0 {
-            let Source {
-                pos,
-                length,
-                col: _,
-                line: _,
-            } = self.skip_long_string(ctx, sep_count as usize, "string")?;
-            if let Some(slice) = ctx.buffer.get(pos..(pos + length)) {
-                let string = String::from(slice);
-                return success!((TokenType::String, TokenValue::Str(string)));
-            } else {
-                return lex_error!(
-                    self,
-                    ctx,
-                    &format!("invalid string slice ({}, {})", pos, length)
-                );
-            }
+            let string = self.read_long_string_impl(ctx, sep_count as usize, "string")?;
+            return success!((TokenType::String, TokenValue::Str(string)));
         }
         unreachable!()
     }
