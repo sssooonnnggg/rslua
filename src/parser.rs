@@ -530,9 +530,10 @@ impl Parser {
             fields.push(self.field()?);
             if !self.test_next(TokenType::Comma) && !self.test_next(TokenType::Semi) {
                 break;
+            } else {
+                // TODO : reverse comment for table fields
+                self.skip_comment();
             }
-            // TODO : reverse comment for table fields
-            self.skip_comment();
         }
         self.check_match(TokenType::Rb, TokenType::Lb, line)?;
         Ok(Table { fields })
@@ -650,10 +651,12 @@ impl Parser {
         self.current += 1;
     }
 
-    fn skip_comment(&mut self) {
+    fn skip_comment(&mut self) -> usize {
+        let old = self.current;
         while self.current_token().is_comment() {
             self.current += 1;
         }
+        old
     }
 
     // if reach a block end
@@ -690,11 +693,12 @@ impl Parser {
     }
 
     fn test_next(&mut self, expected: TokenType) -> bool {
-        self.skip_comment();
+        let origin = self.skip_comment();
         if self.test(expected) {
             self.next();
             true
         } else {
+            self.current = origin;
             false
         }
     }
