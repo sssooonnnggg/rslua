@@ -55,7 +55,6 @@ impl Parser {
     pub fn run(&mut self, tokens: Vec<Token>) -> ParseResult<Block> {
         self.reset();
         self.tokens = tokens;
-        self.skip_comment();
         self.block()
     }
 
@@ -84,8 +83,17 @@ impl Parser {
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
-                self.next_and_skip_comment();
+                self.next();
                 return Ok(None);
+            }
+            // stat -> comment
+            TokenType::SComment | TokenType::MComment => {
+                let stat = Stat::CommentStat(CommentStat {
+                    is_single_line: self.current_token_type() == TokenType::SComment,
+                    comment: self.current_token().get_string(),
+                });
+                self.next();
+                stat
             }
             // stat -> if stat
             TokenType::If => Stat::IfStat(self.ifstat()?),
@@ -93,7 +101,7 @@ impl Parser {
             TokenType::While => Stat::WhileStat(self.whilestat()?),
             // stat -> DO block END
             TokenType::Do => {
-                self.next_and_skip_comment();
+                self.next();
                 let block = self.block()?;
                 self.check_match(TokenType::End, TokenType::Do, line)?;
                 Stat::DoBlock(DoBlock { block })
@@ -200,6 +208,7 @@ impl Parser {
         self.next_and_skip_comment();
         let init = self.expr()?;
         self.check_next(TokenType::Comma)?;
+        self.skip_comment();
         let limit = self.expr()?;
         let mut step = None;
         if self.test_next(TokenType::Comma) {
@@ -224,6 +233,7 @@ impl Parser {
             vars.push(self.check_name()?);
         }
         self.check_next(TokenType::In)?;
+        self.skip_comment();
         let exprs = self.exprlist()?;
         self.check_next(TokenType::Do)?;
         let body = self.block()?;
@@ -233,7 +243,7 @@ impl Parser {
     // repeatstat -> REPEAT block UNTIL cond
     fn repeatstat(&mut self) -> ParseResult<RepeatStat> {
         let line = self.current_line();
-        self.next_and_skip_comment();
+        self.next();
         let block = self.block()?;
         self.check_match(TokenType::Until, TokenType::Repeat, line)?;
         let cond = self.cond()?;
@@ -270,6 +280,7 @@ impl Parser {
     fn funcbody(&mut self) -> ParseResult<FuncBody> {
         let line = self.current_line();
         self.check_next(TokenType::Lp)?;
+        self.skip_comment();
         let mut params: Vec<Param> = Vec::new();
         loop {
             if self.test(TokenType::Rp) {
@@ -325,6 +336,7 @@ impl Parser {
     fn labelstat(&mut self) -> ParseResult<LabelStat> {
         let label = self.check_name()?;
         self.check_next(TokenType::DbColon)?;
+        self.skip_comment();
         Ok(LabelStat { label })
     }
 
@@ -370,6 +382,7 @@ impl Parser {
             left.push(self.suffixedexpr()?.to_assignable())
         }
         self.check_next(TokenType::Assign)?;
+        self.skip_comment();
         let right = self.exprlist()?;
         Ok(AssignStat { left, right })
     }
@@ -508,6 +521,7 @@ impl Parser {
     fn table(&mut self) -> ParseResult<Table> {
         let line = self.current_line();
         self.check_next(TokenType::Lb)?;
+        self.skip_comment();
         let mut fields: Vec<Field> = Vec::new();
         loop {
             if self.test(TokenType::Rb) {
@@ -552,6 +566,7 @@ impl Parser {
             _ => unreachable!(),
         };
         self.check_next(TokenType::Assign)?;
+        self.skip_comment();
         let value = self.expr()?;
         Ok(Field::RecFileld(RecField { key, value }))
     }
@@ -629,6 +644,10 @@ impl Parser {
         self.skip_comment();
     }
 
+    fn next(&mut self) {
+        self.current += 1;
+    }
+
     fn skip_comment(&mut self) {
         while self.current_token().is_comment() {
             self.current += 1;
@@ -686,7 +705,7 @@ impl Parser {
 
     fn check_next(&mut self, expected: TokenType) -> ParseResult<()> {
         self.check(expected)?;
-        self.next_and_skip_comment();
+        self.next();
         Ok(())
     }
 
