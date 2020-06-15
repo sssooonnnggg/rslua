@@ -86,9 +86,25 @@ impl<'a> Context<'a> {
     }
 }
 
+pub struct LexerConfig {
+    // if use origin string, lexer won't escape special chars and keep the quotes or string boundaries.
+    pub use_origin_string: bool,
+    // reserve comments or not
+    pub reserve_comments: bool
+}
+
+impl LexerConfig {
+    pub fn default() -> Self {
+        LexerConfig {
+            use_origin_string: false,
+            reserve_comments: false
+        }
+    }
+}
+
 pub struct Lexer {
     debug: bool,
-    use_origin_string: bool,
+    config: LexerConfig,
     tokens: Vec<Token>,
 }
 
@@ -111,14 +127,13 @@ impl<'a> Lexer {
     pub fn new() -> Self {
         Lexer {
             debug: false,
-            use_origin_string: false,
             tokens: Vec::<Token>::new(),
+            config: LexerConfig::default()
         }
     }
 
-    // if use origin string, lexer won't escape special chars and keep the quotes or string boundaries.
-    pub fn set_use_origin_string(&mut self, use_origin_string: bool) {
-        self.use_origin_string = use_origin_string;
+    pub fn set_config(&mut self, config: LexerConfig) {
+        self.config = config;
     }
 
     pub fn run(&mut self, input: &'a str) -> Result<Vec<Token>, LexError> {
@@ -173,7 +188,11 @@ impl<'a> Lexer {
         let sep_count = self.try_read_long_string_boundary(ctx, b'[');
         if sep_count >= 0 {
             let comment = self.read_long_string_impl(ctx, sep_count as usize, "comment")?;
-            success!((TokenType::MComment, TokenValue::Str(comment)))
+            if self.config.reserve_comments {
+                success!((TokenType::MComment, TokenValue::Str(comment)))
+            } else {
+                Ok(None)
+            }
         } else {
             self.read_short_comment(ctx)
         }
@@ -188,7 +207,11 @@ impl<'a> Lexer {
             ctx.skip_into(1, &mut bytes);
         }
         if let Ok(comment) = str::from_utf8(&bytes) {
-            success!((TokenType::SComment, TokenValue::Str(comment.to_string())))
+            if self.config.reserve_comments {
+                success!((TokenType::SComment, TokenValue::Str(comment.to_string())))
+            } else {
+                Ok(None)
+            }
         } else {
             lex_error!(self, ctx, "invalid single line comment")
         }
@@ -438,14 +461,14 @@ impl<'a> Lexer {
     fn read_short_string(&mut self, ctx: &mut Context) -> LexResult {
         let mut bytes: Vec<u8> = Vec::new();
         let start = ctx.get();
-        if self.use_origin_string {
+        if self.config.use_origin_string {
             bytes.push(start.unwrap());
         }
         ctx.next();
         let unfinished_error: &'static str = "unfinished string";
         while ctx.get() != start {
             match ctx.get() {
-                Some(b'\\') if self.use_origin_string => ctx.skip_into(2, &mut bytes),
+                Some(b'\\') if self.config.use_origin_string => ctx.skip_into(2, &mut bytes),
                 Some(b'\\') => self.try_read_esc(ctx, &mut bytes)?,
                 Some(c) => {
                     if Lexer::is_line_break(c) {
@@ -458,7 +481,7 @@ impl<'a> Lexer {
                 None => return lex_error!(self, ctx, unfinished_error),
             }
         }
-        if self.use_origin_string {
+        if self.config.use_origin_string {
             bytes.push(ctx.get().unwrap());
         }
         if let Ok(string) = String::from_utf8(bytes) {
@@ -499,7 +522,7 @@ impl<'a> Lexer {
         let line = ctx.line;
         let mut start = 0;
 
-        if self.use_origin_string {
+        if self.config.use_origin_string {
             start = ctx.current - 2 - sep_count;
         }
 
@@ -508,7 +531,7 @@ impl<'a> Lexer {
             self.read_line_break(ctx)?;
         }
 
-        if !self.use_origin_string {
+        if !self.config.use_origin_string {
             start = ctx.current;
         }
         
@@ -517,7 +540,7 @@ impl<'a> Lexer {
                 b']' => {
                     if self.try_read_long_string_boundary(ctx, b']') == sep_count as i8 {
                         let length;
-                        if self.use_origin_string {
+                        if self.config.use_origin_string {
                             length = ctx.current - start;
                         } else {
                             length = ctx.current - 2 - sep_count - start;

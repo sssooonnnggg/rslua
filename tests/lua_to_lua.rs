@@ -1,6 +1,6 @@
 use rslua::ast::*;
 use rslua::ast_walker::*;
-use rslua::lexer::Lexer;
+use rslua::lexer::{Lexer, LexerConfig};
 use rslua::parser::Parser;
 use rslua::types::*;
 use std::fs::File;
@@ -443,7 +443,10 @@ impl AstVisitor for LuaWritter {
 fn try_convert(input: &str) -> String {
     let mut lexer = Lexer::new();
     lexer.set_debug(true);
-    lexer.set_use_origin_string(true);
+    lexer.set_config(LexerConfig {
+        use_origin_string: true,
+        reserve_comments: true
+    });
     if let Ok(tokens) = lexer.run(&input) {
         let mut parser = Parser::new();
         parser.set_debug(true);
