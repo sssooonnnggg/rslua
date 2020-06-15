@@ -1,6 +1,6 @@
 # rslua 
 
-<img src="https://img.shields.io/crates/v/rslua" />
+[![Crates.io](https://img.shields.io/crates/v/rslua)](https://crates.io/crates/rslua)
 
 Yet another Lua lexer and Lua parser for Lua 5.3 written in pure Rust.
 
