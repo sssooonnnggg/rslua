@@ -101,41 +101,47 @@ impl Compiler {
                 // TODO : process upval and globals
                 todo!()
             }
-            Expr::BinExpr(bin) => self.bin_expr(bin),
+            Expr::BinExpr(bin) => self.compile_expr(expr),
             _ => todo!(),
         }
     }
 
-    // process binexpr
-    fn bin_expr(&mut self, bin: &BinExpr) -> Index {
-        match bin.op {
-            BinOp::Add
-            | BinOp::Minus
-            | BinOp::Div
-            | BinOp::IDiv
-            | BinOp::Mod
-            | BinOp::Pow
-            | BinOp::BAnd
-            | BinOp::BOr
-            | BinOp::BXor
-            | BinOp::Shl
-            | BinOp::Shr => {
-                // try constant folding
-                if let (Some(l), Some(r)) 
-                    = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
-                    if let Some(k) = self.apply_bin_op(bin.op, l, r) {
-                        return Index::ConstIndex(self.proto().add_const(k));
-                    }
-                }
-            }
-            _ => todo!(),
+    fn compile_expr(&mut self, expr: &Expr) -> Index {
+        if let Some(k) = self.try_const_folding(expr) {
+            Index::ConstIndex(self.proto().add_const(k))
+        } else {
+            // TODO : generate code
+            Index::None
         }
-
-        Index::None
     }
     
     // try constant folding expr
     fn try_const_folding(&self, expr:&Expr) -> Option<Const> {
+        match expr {
+            Expr::Int(i) => return Some(Const::Int(*i)),
+            Expr::Float(f) => return Some(Const::Float(*f)),
+            Expr::BinExpr(bin) => match bin.op {
+                BinOp::Add
+                | BinOp::Minus
+                | BinOp::Div
+                | BinOp::IDiv
+                | BinOp::Mod
+                | BinOp::Pow
+                | BinOp::BAnd
+                | BinOp::BOr
+                | BinOp::BXor
+                | BinOp::Shl
+                | BinOp::Shr => {
+                    if let (Some(l), Some(r)) = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
+                        if let Some(k) = self.apply_bin_op(bin.op, l, r) {
+                            return Some(k);
+                        }
+                    }
+                },
+                _ => todo!()
+            }
+            _ => todo!()
+        }
         None
     }
 
