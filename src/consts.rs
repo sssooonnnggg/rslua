@@ -1,3 +1,5 @@
+use crate::compiler::CompileError;
+use crate::success;
 use crate::types::{FloatType, IntType};
 use num_traits::Float;
 use std::hash::{Hash, Hasher};
@@ -35,7 +37,7 @@ fn float_to_int(f: FloatType) -> Option<IntType> {
 
 macro_rules! bin_op {
     ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
-        pub fn $name(self, other: Const) -> Option<Const> {
+        pub fn $name(self, other: Const) -> Result<Option<Const>, CompileError> {
             match self {
                 Const::Int(a) => match other {
                     Const::Int(b) => $int_int(a, b),
@@ -57,10 +59,10 @@ macro_rules! bin_op_normal {
     ($name:ident, $op:tt) => {
         bin_op! {
             $name,
-            |a, b| Some(Const::Int(a $op b)),
-            |a, b| Some(Const::Float(a as FloatType $op b)),
-            |a, b| Some(Const::Float(a $op b as FloatType)),
-            |a, b| Some(Const::Float(a $op b))
+            |a, b| success!(Const::Int(a $op b)),
+            |a, b| success!(Const::Float(a as FloatType $op b)),
+            |a, b| success!(Const::Float(a $op b as FloatType)),
+            |a, b| success!(Const::Float(a $op b))
         }
     };
 }
@@ -69,10 +71,10 @@ macro_rules! bin_op_int {
     ($name:ident, $op:tt) => {
         bin_op! {
             $name,
-            |a, b| Some(Const::Int(a $op b)),
-            |a, b| float_to_int(b).map(|b| Const::Int(a $op b)),
-            |a, b| float_to_int(a).map(|a| Const::Int(a $op b)),
-            |a, b| float_to_int(a).and_then(|a| float_to_int(b).and_then(|b| Some(Const::Int(a $op b))))
+            |a, b| success!(Const::Int(a $op b)),
+            |a, b| Ok(float_to_int(b).map(|b| Const::Int(a $op b))),
+            |a, b| Ok(float_to_int(a).map(|a| Const::Int(a $op b))),
+            |a, b| Ok(float_to_int(a).and_then(|a| float_to_int(b).and_then(|b| Some(Const::Int(a $op b)))))
         }
     };
 }
@@ -84,34 +86,34 @@ impl Const {
 
     bin_op! {
         div,
-        |a, b| Some(Const::Float(a as FloatType / b as FloatType)),
-        |a, b| Some(Const::Float(a as FloatType / b)),
-        |a, b| Some(Const::Float(a / b as FloatType)),
-        |a, b| Some(Const::Float(a / b as FloatType))
+        |a, b| success!(Const::Float(a as FloatType / b as FloatType)),
+        |a, b| success!(Const::Float(a as FloatType / b)),
+        |a, b| success!(Const::Float(a / b as FloatType)),
+        |a, b| success!(Const::Float(a / b))
     }
 
     bin_op! {
         idiv,
-        |a, b| Some(Const::Int(a / b)),
-        |_, _| None,
-        |_, _| None,
-        |_, _| None
+        |a, b| success!(Const::Int(a / b)),
+        |_, _| Ok(None),
+        |_, _| Ok(None),
+        |_, _| Ok(None)
     }
 
     bin_op! {
         mod_,
-        |a, b| Some(Const::Int(a % b)),
-        |a, b| Some(Const::Float(a as FloatType % b)),
-        |a, b| Some(Const::Float(a % b as FloatType)),
-        |a, b| Some(Const::Float(a % b))
+        |a, b| success!(Const::Int(a % b)),
+        |a, b| success!(Const::Float(a as FloatType % b)),
+        |a, b| success!(Const::Float(a % b as FloatType)),
+        |a, b| success!(Const::Float(a % b))
     }
 
     bin_op! {
         pow,
-        |a, b| Some(Const::Float((a as FloatType).powf(b as FloatType))),
-        |a, b| Some(Const::Float((a as FloatType).powf(b))),
-        |a:FloatType, b| Some(Const::Float(a.powf(b as FloatType))),
-        |a:FloatType, b| Some(Const::Float(a.powf(b)))
+        |a, b| success!(Const::Float((a as FloatType).powf(b as FloatType))),
+        |a, b| success!(Const::Float((a as FloatType).powf(b))),
+        |a:FloatType, b| success!(Const::Float(a.powf(b as FloatType))),
+        |a:FloatType, b| success!(Const::Float(a.powf(b)))
     }
 
     bin_op_int! {band, &}

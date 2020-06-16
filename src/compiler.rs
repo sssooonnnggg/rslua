@@ -2,7 +2,7 @@ use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
 use crate::proto::{Proto, ProtoContext};
-use crate::{debuggable, error};
+use crate::{debuggable, error, success};
 
 pub struct Compiler {
     debug: bool,
@@ -90,9 +90,9 @@ impl Compiler {
     }
 
     // process expr and return const index or register index
-    fn expr(&mut self, expr: &Expr) -> Index {
+    fn expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
         let proto = self.proto();
-        match expr {
+        let index = match expr {
             Expr::Int(i) => {
                 let k = proto.add_const(Const::Int(*i));
                 Index::ConstIndex(k)
@@ -110,30 +110,31 @@ impl Compiler {
             Expr::False => Index::None,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    return Index::RegIndex(src);
+                    return Ok(Index::RegIndex(src));
                 }
                 // TODO : process upval and globals
                 todo!()
             }
-            Expr::BinExpr(bin) => self.compile_expr(expr),
+            Expr::BinExpr(_) => self.compile_expr(expr)?,
             _ => todo!(),
-        }
+        };
+        Ok(index)
     }
 
-    fn compile_expr(&mut self, expr: &Expr) -> Index {
-        if let Some(k) = self.try_const_folding(expr) {
-            Index::ConstIndex(self.proto().add_const(k))
+    fn compile_expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+        if let Some(k) = self.try_const_folding(expr)? {
+            Ok(Index::ConstIndex(self.proto().add_const(k)))
         } else {
             // TODO : generate code
-            Index::None
+            Ok(Index::None)
         }
     }
 
     // try constant folding expr
-    fn try_const_folding(&self, expr: &Expr) -> Option<Const> {
+    fn try_const_folding(&self, expr: &Expr) -> Result<Option<Const>, CompileError> {
         match expr {
-            Expr::Int(i) => return Some(Const::Int(*i)),
-            Expr::Float(f) => return Some(Const::Float(*f)),
+            Expr::Int(i) => return success!(Const::Int(*i)),
+            Expr::Float(f) => return success!(Const::Float(*f)),
             Expr::BinExpr(bin) => match bin.op {
                 BinOp::Add
                 | BinOp::Minus
@@ -148,11 +149,11 @@ impl Compiler {
                 | BinOp::Shl
                 | BinOp::Shr => {
                     if let (Some(l), Some(r)) = (
-                        self.try_const_folding(&bin.left),
-                        self.try_const_folding(&bin.right),
+                        self.try_const_folding(&bin.left)?,
+                        self.try_const_folding(&bin.right)?,
                     ) {
-                        if let Some(k) = self.apply_bin_op(bin.op, l, r) {
-                            return Some(k);
+                        if let Some(k) = self.apply_bin_op(bin.op, l, r)? {
+                            return success!(k);
                         }
                     }
                 }
@@ -161,30 +162,31 @@ impl Compiler {
             Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
             _ => todo!(),
         }
-        None
+        Ok(None)
     }
 
-    fn apply_bin_op(&self, op: BinOp, l: Const, r: Const) -> Option<Const> {
-        match op {
-            BinOp::Add => l.add(r),
-            BinOp::Minus => l.sub(r),
-            BinOp::Mul => l.mul(r),
-            BinOp::Div => l.div(r),
-            BinOp::IDiv => l.idiv(r),
-            BinOp::Mod => l.mod_(r),
-            BinOp::Pow => l.pow(r),
-            BinOp::BAnd => l.band(r),
-            BinOp::BOr => l.bor(r),
-            BinOp::BXor => l.bxor(r),
-            BinOp::Shl => l.shl(r),
-            BinOp::Shr => l.shr(r),
+    fn apply_bin_op(&self, op: BinOp, l: Const, r: Const) -> Result<Option<Const>, CompileError> {
+        let result = match op {
+            BinOp::Add => l.add(r)?,
+            BinOp::Minus => l.sub(r)?,
+            BinOp::Mul => l.mul(r)?,
+            BinOp::Div => l.div(r)?,
+            BinOp::IDiv => l.idiv(r)?,
+            BinOp::Mod => l.mod_(r)?,
+            BinOp::Pow => l.pow(r)?,
+            BinOp::BAnd => l.band(r)?,
+            BinOp::BOr => l.bor(r)?,
+            BinOp::BXor => l.bxor(r)?,
+            BinOp::Shl => l.shl(r)?,
+            BinOp::Shr => l.shr(r)?,
             _ => unreachable!(),
-        }
+        };
+        Ok(result)
     }
 
     // process expr and save to register
-    fn expr_and_save(&mut self, expr: &Expr, reg: u32) {
-        let index = self.expr(expr);
+    fn expr_and_save(&mut self, expr: &Expr, reg: u32) -> Result<(), CompileError> {
+        let index = self.expr(expr)?;
         let proto = self.proto();
         match index {
             Index::ConstIndex(k) => proto.code_const(reg, k),
@@ -196,6 +198,7 @@ impl Compiler {
                 _ => unreachable!(),
             },
         }
+        Ok(())
     }
 
     fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
@@ -218,7 +221,7 @@ impl AstVisitor<CompileError> for Compiler {
         }
         for expr in stat.exprs.iter() {
             let reg = self.context().reverse_regs(1);
-            self.expr_and_save(expr, reg);
+            self.expr_and_save(expr, reg)?;
         }
         self.adjust_assign(stat.names.len(), &stat.exprs);
         Ok(())
