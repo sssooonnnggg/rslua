@@ -81,75 +81,78 @@ impl LuaWritter {
     }
 }
 
+type WriteResult<T> = Result<T, ()>;
+type WriteSuccess = WriteResult<()>;
+
 impl AstVisitor for LuaWritter {
     fn stat_sep(&mut self) {
         self.incline();
     }
 
-    fn begin_if(&mut self, _cond: &Expr) -> bool {
+    fn begin_if(&mut self, _cond: &Expr) -> WriteResult<bool> {
         self.append_space("if");
-        false
+        Ok(false)
     }
 
-    fn then(&mut self, _block: &Block) -> bool {
+    fn then(&mut self, _block: &Block) -> WriteResult<bool> {
         self.space();
         self.enter_scope();
         self.append_inc("then");
-        false
+        Ok(false)
     }
 
-    fn begin_else_if(&mut self, _cond: &Expr) -> bool {
+    fn begin_else_if(&mut self, _cond: &Expr) -> WriteResult<bool> {
         self.leave_scope();
         self.append_space("elseif");
-        false
+        Ok(false)
     }
 
-    fn begin_else(&mut self, _block: &Block) -> bool {
+    fn begin_else(&mut self, _block: &Block) -> WriteResult<bool> {
         self.leave_scope();
         self.append("else");
         self.enter_scope();
         self.incline();
-        false
+        Ok(false)
     }
 
     fn end_if(&mut self) {
         self.end();
     }
 
-    fn begin_while(&mut self, _cond: &Expr) -> bool {
+    fn begin_while(&mut self, _cond: &Expr) -> WriteResult<bool> {
         self.append_space("while");
-        false
+        Ok(false)
     }
 
-    fn begin_while_block(&mut self, _block: &Block) -> bool {
+    fn begin_while_block(&mut self, _block: &Block) -> WriteResult<bool> {
         self.enter_scope();
         self.space();
         self.append_inc("do");
-        false
+        Ok(false)
     }
 
     fn end_while(&mut self) {
         self.end();
     }
 
-    fn begin_do_block(&mut self, _block: &Block) -> bool {
+    fn begin_do_block(&mut self, _block: &Block) -> WriteResult<bool> {
         self.enter_scope();
         self.space();
         self.append_inc("do");
-        false
+        Ok(false)
     }
 
     fn end_do_block(&mut self) {
         self.end();
     }
 
-    fn for_num(&mut self, fornum: &ForNum) -> bool {
+    fn for_num(&mut self, fornum: &ForNum) -> WriteResult<bool> {
         self.append_space("for");
         self.append(&format!("{} = ", fornum.var));
-        false
+        Ok(false)
     }
 
-    fn for_list(&mut self, forlist: &ForList) -> bool {
+    fn for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
         self.append_space("for");
         for (n, var) in forlist.vars.iter().enumerate() {
             self.append(var);
@@ -158,24 +161,24 @@ impl AstVisitor for LuaWritter {
             }
         }
         self.space_append_space("in");
-        false
+        Ok(false)
     }
 
-    fn begin_for_block(&mut self, _block: &Block) -> bool {
+    fn begin_for_block(&mut self, _block: &Block) -> WriteResult<bool> {
         self.enter_scope();
         self.space();
         self.append_inc("do");
-        false
+        Ok(false)
     }
 
     fn end_for(&mut self) {
         self.end();
     }
 
-    fn begin_repeat(&mut self, _block: &Block) -> bool {
+    fn begin_repeat(&mut self, _block: &Block) -> WriteResult<bool> {
         self.enter_scope();
         self.append_inc("repeat");
-        false
+        Ok(false)
     }
 
     fn until(&mut self) {
@@ -208,7 +211,7 @@ impl AstVisitor for LuaWritter {
         }
     }
 
-    fn local_stat(&mut self, stat: &LocalStat) {
+    fn local_stat(&mut self, stat: &LocalStat) -> WriteSuccess {
         self.append_space("local");
         for (n, name) in stat.names.iter().enumerate() {
             self.append(name);
@@ -221,26 +224,31 @@ impl AstVisitor for LuaWritter {
             self.append_space("=");
             ast_walker::walk_exprlist(&stat.exprs, self);
         }
+        Ok(())
     }
 
-    fn label_stat(&mut self, stat: &LabelStat) {
+    fn label_stat(&mut self, stat: &LabelStat) -> WriteSuccess {
         self.append(&format!("::{}::", stat.label));
+        Ok(())
     }
 
-    fn ret_stat(&mut self, stat: &RetStat) {
+    fn ret_stat(&mut self, stat: &RetStat) -> WriteSuccess {
         self.append_space("return");
         ast_walker::walk_exprlist(&stat.exprs, self);
+        Ok(())
     }
 
-    fn break_stat(&mut self, _stat: &BreakStat) {
+    fn break_stat(&mut self, _stat: &BreakStat) -> WriteSuccess {
         self.append("break");
+        Ok(())
     }
 
-    fn goto_stat(&mut self, stat: &GotoStat) {
+    fn goto_stat(&mut self, stat: &GotoStat) -> WriteSuccess {
         self.append(&format!("goto {}", stat.label));
+        Ok(())
     }
 
-    fn assign_stat(&mut self, stat: &AssignStat) {
+    fn assign_stat(&mut self, stat: &AssignStat) -> WriteSuccess {
         for (n, suffix) in stat.left.iter().enumerate() {
             ast_walker::walk_assinable(suffix, self);
             if n < stat.left.len() - 1 {
@@ -249,10 +257,12 @@ impl AstVisitor for LuaWritter {
         }
         self.space_append_space("=");
         ast_walker::walk_exprlist(&stat.right, self);
+        Ok(())
     }
 
-    fn call_stat(&mut self, stat: &CallStat) {
+    fn call_stat(&mut self, stat: &CallStat) -> WriteSuccess {
         ast_walker::walk_assinable(&stat.call, self);
+        Ok(())
     }
 
     fn expr_sep(&mut self) {
@@ -296,7 +306,7 @@ impl AstVisitor for LuaWritter {
         self.append_space("function");
     }
 
-    fn begin_func_body(&mut self, body: &FuncBody) -> bool {
+    fn begin_func_body(&mut self, body: &FuncBody) -> WriteResult<bool> {
         self.append("(");
         for (n, param) in body.params.iter().enumerate() {
             match param {
@@ -309,21 +319,21 @@ impl AstVisitor for LuaWritter {
         }
         self.enter_scope();
         self.append_inc(")");
-        false
+        Ok(false)
     }
 
     fn end_func_body(&mut self) {
         self.end();
     }
 
-    fn begin_table(&mut self, t: &Table) -> bool {
+    fn begin_table(&mut self, t: &Table) -> WriteResult<bool> {
         if t.fields.len() > 0 {
             self.enter_scope();
             self.append_inc("{");
         } else {
             self.append("{}");
         }
-        false
+        Ok(false)
     }
 
     fn end_table(&mut self, t: &Table) {
@@ -341,12 +351,12 @@ impl AstVisitor for LuaWritter {
         self.space_append_space("=");
     }
 
-    fn begin_field_key(&mut self, key: &FieldKey) -> bool {
+    fn begin_field_key(&mut self, key: &FieldKey) -> WriteResult<bool> {
         match key {
             FieldKey::Expr(_) => self.append_space("["),
             _ => (),
         }
-        false
+        Ok(false)
     }
 
     fn end_field_key(&mut self, key: &FieldKey) {
@@ -408,27 +418,27 @@ impl AstVisitor for LuaWritter {
         self.append(method);
     }
 
-    fn begin_index(&mut self, _expr: &Expr) -> bool {
+    fn begin_index(&mut self, _expr: &Expr) -> WriteResult<bool> {
         self.append("[");
-        false
+        Ok(false)
     }
 
     fn end_index(&mut self) {
         self.append("]");
     }
 
-    fn begin_func_args(&mut self, _args: &FuncArgs) -> bool {
+    fn begin_func_args(&mut self, _args: &FuncArgs) -> WriteResult<bool> {
         self.append("(");
-        false
+        Ok(false)
     }
 
     fn end_func_args(&mut self) {
         self.append(")");
     }
 
-    fn begin_paren_expr(&mut self, _expr: &Expr) -> bool {
+    fn begin_paren_expr(&mut self, _expr: &Expr) -> WriteResult<bool> {
         self.append("(");
-        false
+        Ok(false)
     }
 
     fn end_paren_expr(&mut self) {
@@ -445,7 +455,7 @@ fn try_convert(input: &str) -> String {
     lexer.set_debug(true);
     lexer.set_config(LexerConfig {
         use_origin_string: true,
-        reserve_comments: true
+        reserve_comments: true,
     });
     if let Ok(tokens) = lexer.run(&input) {
         let mut parser = Parser::new();
@@ -517,7 +527,6 @@ fn lua_to_lua() -> std::io::Result<()> {
     }
 
     if let Some(bin) = exists_lua_bin() {
-
         // execute lua sources from origin paths and temp paths, then compare their outputs
         assert_eq!(
             execute_lua_tests(&bin, "lua"),

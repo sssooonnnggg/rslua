@@ -26,7 +26,7 @@ let tokens = lexer.run(input_lua_code)?;
 ## Parser
 
 - **input** Vec\<Token>
-- **output** Result<Block, ParseError>
+- **output** Result<Block, SyntaxError>
 
 ```rust
 let mut parser = Parser::new();

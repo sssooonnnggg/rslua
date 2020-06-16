@@ -11,9 +11,10 @@ fn try_compile(input: &str) -> Proto {
         parser.set_debug(true);
         if let Ok(block) = parser.run(tokens) {
             let mut compiler = Compiler::new();
-            let proto = compiler.run(&block);
-            println!("{:?}", proto);
-            return proto;
+            if let Ok(proto) = compiler.run(&block) {
+                println!("{:?}", proto);
+                return proto;
+            }
         }
     }
     unreachable!()

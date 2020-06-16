@@ -2,9 +2,22 @@ use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
 use crate::proto::{Proto, ProtoContext};
+use crate::{debuggable, error};
 
 pub struct Compiler {
+    debug: bool,
     proto_contexts: Vec<ProtoContext>,
+}
+
+pub struct CompileError(String);
+type CompileResult = Result<Proto, CompileError>;
+
+macro_rules! compile_error {
+    ($self:ident, $msg:expr) => {{
+        let stat = self.current_stat();
+        let error_msg = format!("[compile error] %s at line [%d].", msg, stat.source.line);
+        error!($self, CompileError, error_msg)
+    }};
 }
 
 pub enum Index {
@@ -16,20 +29,21 @@ pub enum Index {
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
+            debug: false,
             proto_contexts: Vec::new(),
         }
     }
 
-    pub fn run(&mut self, block: &Block) -> Proto {
+    pub fn run(&mut self, block: &Block) -> CompileResult {
         self.main_func(block)
     }
 
-    fn main_func(&mut self, block: &Block) -> Proto {
+    fn main_func(&mut self, block: &Block) -> CompileResult {
         self.push_proto();
         self.proto().open();
-        ast_walker::walk_block(block, self);
+        ast_walker::walk_block(block, self)?;
         self.proto().close();
-        self.pop_proto()
+        Ok(self.pop_proto())
     }
 
     fn push_proto(&mut self) {
@@ -191,10 +205,13 @@ impl Compiler {
             Assignable::SuffixedExpr(expr) => todo!(),
         }
     }
+
+    debuggable!();
 }
 
-impl AstVisitor for Compiler {
-    fn local_stat(&mut self, stat: &LocalStat) {
+impl AstVisitor<CompileError> for Compiler {
+    // compile local stat
+    fn local_stat(&mut self, stat: &LocalStat) -> Result<(), CompileError> {
         let proto = self.proto();
         for name in stat.names.iter() {
             proto.add_local_var(name);
@@ -204,9 +221,11 @@ impl AstVisitor for Compiler {
             self.expr_and_save(expr, reg);
         }
         self.adjust_assign(stat.names.len(), &stat.exprs);
+        Ok(())
     }
 
-    fn assign_stat(&mut self, stat: &AssignStat) {
+    // compile assign stat
+    fn assign_stat(&mut self, stat: &AssignStat) -> Result<(), CompileError> {
         let last_use_temp_reg = stat.right.len() != stat.left.len();
         let mut to_move: Vec<(u32, u32)> = Vec::new();
 
@@ -248,5 +267,7 @@ impl AstVisitor for Compiler {
         if extra < 0 {
             self.context().free_reg(-extra as u32);
         }
+
+        Ok(())
     }
 }
