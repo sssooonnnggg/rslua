@@ -496,10 +496,13 @@ fn execute_lua_tests(bin: &str, dir: &str) -> String {
         .arg("test_all.lua")
         .output();
 
-    str::from_utf8(&output.ok().unwrap().stdout)
+    let s = str::from_utf8(&output.ok().unwrap().stdout)
         .ok()
         .unwrap()
-        .to_string()
+        .to_string();
+
+    println!("{}", s);
+    s
 }
 
 #[test]
