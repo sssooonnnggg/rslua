@@ -38,7 +38,7 @@ fn float_to_int(f: FloatType) -> Option<IntType> {
 macro_rules! bin_op {
     ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
         pub fn $name(self, other: Const) -> Result<Option<Const>, CompileError> {
-            match self {
+            let result = match self {
                 Const::Int(a) => match other {
                     Const::Int(b) => $int_int(a, b),
                     Const::Float(b) => $int_float(a, b),
@@ -50,6 +50,19 @@ macro_rules! bin_op {
                     _ => unreachable!(),
                 },
                 _ => unreachable!(),
+            };
+
+            // compitibale with lua
+            // not constant folding Nan/inf/0.0
+            match &result {
+                Ok(k) => match k {
+                    Some(k) => match k {
+                        Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => Ok(None),
+                        _ => result,
+                    },
+                    _ => result,
+                },
+                _ => result,
             }
         }
     };

@@ -204,8 +204,8 @@ impl Compiler {
     fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
         match assignable {
             Assignable::Name(name) => self.proto().get_local_var(name).unwrap(),
-            Assignable::ParenExpr(expr) => todo!(),
-            Assignable::SuffixedExpr(expr) => todo!(),
+            Assignable::ParenExpr(_) => todo!(),
+            Assignable::SuffixedExpr(_) => todo!(),
         }
     }
 
@@ -237,14 +237,14 @@ impl AstVisitor<CompileError> for Compiler {
         for (i, expr) in stat.right.iter().enumerate() {
             if i != stat.right.len() - 1 || last_use_temp_reg {
                 let reg = self.context().reverse_regs(1);
-                self.expr_and_save(expr, reg);
+                self.expr_and_save(expr, reg)?;
                 if i < stat.left.len() {
                     let target = self.get_assinable_reg(&stat.left[i]);
                     to_move.push((target, reg));
                 }
             } else {
                 let reg = self.get_assinable_reg(&stat.left[i]);
-                self.expr_and_save(expr, reg);
+                self.expr_and_save(expr, reg)?;
             };
         }
 
