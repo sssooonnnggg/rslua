@@ -3,7 +3,7 @@ use rslua::lexer::*;
 use rslua::parser::*;
 use rslua::proto::Proto;
 
-fn try_compile(input: &str) -> Proto {
+fn try_compile(input: &str) -> Result<Proto, CompileError> {
     let mut lexer = Lexer::new();
     lexer.set_debug(true);
     if let Ok(tokens) = lexer.run(input) {
@@ -11,9 +11,14 @@ fn try_compile(input: &str) -> Proto {
         parser.set_debug(true);
         if let Ok(block) = parser.run(tokens) {
             let mut compiler = Compiler::new();
-            if let Ok(proto) = compiler.run(&block) {
-                println!("{:?}", proto);
-                return proto;
+            match compiler.run(&block) {
+                Ok(proto) => {
+                    println!("{:?}", proto);
+                    return Ok(proto);
+                }
+                Err(e) => {
+                    return Err(e);
+                }
             }
         }
     }
@@ -21,7 +26,10 @@ fn try_compile(input: &str) -> Proto {
 }
 
 fn try_compile_and_print(input: &str) -> String {
-    format!("{:?}", try_compile(input))
+    match try_compile(input) {
+        Ok(proto) => format!("{:?}", proto),
+        Err(e) => format!("{}", e.0),
+    }
 }
 
 mod compiler_tests {
@@ -298,5 +306,17 @@ instructions :
 | 3     | Return     | 0     | 1     |       |
 "#
         )
+    }
+
+    #[test]
+    fn divide_by_zero() {
+        let result = try_compile_and_print(
+            r#"
+--
+-- test devide by zero
+--
+local a = 1 // 0"#,
+        );
+        assert_eq!(result, r#"[compile error] divide by zero at line [5]."#)
     }
 }

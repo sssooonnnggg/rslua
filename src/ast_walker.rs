@@ -152,6 +152,8 @@ pub trait AstVisitor<E = ()> {
     }
 
     fn comment(&mut self, _comment: &CommentStat) {}
+
+    fn error(&mut self, e: E, _source: &Source) -> Result<(), E> { Err(e) }
 }
 
 pub mod ast_walker {
@@ -159,12 +161,11 @@ pub mod ast_walker {
     use crate::ast::*;
 
     pub fn walk_block<T: AstVisitor<E>, E>(block: &Block, visitor: &mut T) -> Result<(), E> {
-        for StatInfo {
-            source: _source,
-            stat,
-        } in block.stats.iter()
-        {
-            walk_stat(stat, visitor)?;
+        for StatInfo { source, stat } in block.stats.iter() {
+            match walk_stat(stat, visitor) {
+                Err(e) => return visitor.error(e, source),
+                _ => (),
+            };
             visitor.stat_sep();
         }
         Ok(())

@@ -57,7 +57,9 @@ macro_rules! bin_op {
             match &result {
                 Ok(k) => match k {
                     Some(k) => match k {
-                        Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => Ok(None),
+                        Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => {
+                            Ok(None)
+                        }
                         _ => result,
                     },
                     _ => result,
@@ -107,7 +109,7 @@ impl Const {
 
     bin_op! {
         idiv,
-        |a, b| success!(Const::Int(a / b)),
+        |a, b| if b == 0 { Err(CompileError::new("divide by zero")) } else { success!(Const::Int(a / b)) },
         |_, _| Ok(None),
         |_, _| Ok(None),
         |_, _| Ok(None)

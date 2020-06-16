@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
 use crate::proto::{Proto, ProtoContext};
+use crate::types::Source;
 use crate::{debuggable, error, success};
 
 pub struct Compiler {
@@ -9,13 +10,19 @@ pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
 }
 
-pub struct CompileError(String);
+pub struct CompileError(pub String);
+
+impl CompileError {
+    pub fn new(str: &str) -> Self {
+        CompileError(str.to_string())
+    }
+}
+
 type CompileResult = Result<Proto, CompileError>;
 
 macro_rules! compile_error {
-    ($self:ident, $msg:expr) => {{
-        let stat = self.current_stat();
-        let error_msg = format!("[compile error] %s at line [%d].", msg, stat.source.line);
+    ($self:ident, $error:ident, $source:ident) => {{
+        let error_msg = format!("[compile error] {} at line [{}].", $error.0, $source.line);
         error!($self, CompileError, error_msg)
     }};
 }
@@ -213,6 +220,11 @@ impl Compiler {
 }
 
 impl AstVisitor<CompileError> for Compiler {
+    // error handler
+    fn error(&mut self, e: CompileError, source: &Source) -> Result<(), CompileError> {
+        compile_error!(self, e, source)
+    }
+
     // compile local stat
     fn local_stat(&mut self, stat: &LocalStat) -> Result<(), CompileError> {
         let proto = self.proto();
