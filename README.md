@@ -1,6 +1,7 @@
 # rslua 
 
 [![Crates.io](https://img.shields.io/crates/v/rslua)](https://crates.io/crates/rslua)
+![Rust](https://github.com/sssooonnnggg/rslua/workflows/Rust/badge.svg)
 
 Yet another Lua lexer and Lua parser for Lua 5.3 written in pure Rust.
 
