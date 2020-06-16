@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
-use crate::proto::{Proto, ProtoContext};
 use crate::consts::Const;
+use crate::proto::{Proto, ProtoContext};
 
 pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
@@ -114,15 +114,16 @@ impl Compiler {
             Index::None
         }
     }
-    
+
     // try constant folding expr
-    fn try_const_folding(&self, expr:&Expr) -> Option<Const> {
+    fn try_const_folding(&self, expr: &Expr) -> Option<Const> {
         match expr {
             Expr::Int(i) => return Some(Const::Int(*i)),
             Expr::Float(f) => return Some(Const::Float(*f)),
             Expr::BinExpr(bin) => match bin.op {
                 BinOp::Add
                 | BinOp::Minus
+                | BinOp::Mul
                 | BinOp::Div
                 | BinOp::IDiv
                 | BinOp::Mod
@@ -132,20 +133,24 @@ impl Compiler {
                 | BinOp::BXor
                 | BinOp::Shl
                 | BinOp::Shr => {
-                    if let (Some(l), Some(r)) = (self.try_const_folding(&bin.left), self.try_const_folding(&bin.right)) {
+                    if let (Some(l), Some(r)) = (
+                        self.try_const_folding(&bin.left),
+                        self.try_const_folding(&bin.right),
+                    ) {
                         if let Some(k) = self.apply_bin_op(bin.op, l, r) {
                             return Some(k);
                         }
                     }
-                },
-                _ => todo!()
-            }
-            _ => todo!()
+                }
+                _ => todo!(),
+            },
+            Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
+            _ => todo!(),
         }
         None
     }
 
-    fn apply_bin_op(&self, op:BinOp, l:Const, r:Const) -> Option<Const> {
+    fn apply_bin_op(&self, op: BinOp, l: Const, r: Const) -> Option<Const> {
         match op {
             BinOp::Add => l.add(r),
             BinOp::Minus => l.sub(r),
@@ -159,7 +164,7 @@ impl Compiler {
             BinOp::BXor => l.bxor(r),
             BinOp::Shl => l.shl(r),
             BinOp::Shr => l.shr(r),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 

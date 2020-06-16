@@ -170,7 +170,9 @@ instructions :
     #[test]
     fn assign_simple() {
         assert_eq!(
-            try_compile_and_print("local a, b, c, d, e, f, g = 1, 2, 3; d, e, f, g = a, b;a, b, c = 4, 5, 6;"),
+            try_compile_and_print(
+                "local a, b, c, d, e, f, g = 1, 2, 3; d, e, f, g = a, b;a, b, c = 4, 5, 6;"
+            ),
             r#"
 stack size : 11
 consts :
@@ -267,6 +269,32 @@ instructions :
 | 9     | Move       | 0     | 3     |       |
 | 10    | LoadNil    | 3     | 2     |       |
 | 11    | Return     | 0     | 1     |       |
+"#
+        )
+    }
+
+    #[test]
+    fn const_folding() {
+        assert_eq!(
+            try_compile_and_print(
+                r#"
+local a, b = 1 + 2 - 3 * 4 / 6 % 7 ^ 8 & 9 | 10 ~ 11 << 1 >> 2,
+(1.2 + 3.4) * 5.6 / 7.8 ^ 9.0
+"#
+            ),
+            r#"
+stack size : 2
+consts :
+| 0     | 15         |
+| 1     | 0.00000024104295037190596 |
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | Return     | 0     | 1     |       |
 "#
         )
     }

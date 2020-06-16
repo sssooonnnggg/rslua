@@ -1,6 +1,6 @@
+use crate::types::{FloatType, IntType};
 use num_traits::Float;
 use std::hash::{Hash, Hasher};
-use crate::types::{FloatType, IntType};
 #[derive(Clone, PartialEq)]
 pub enum Const {
     Int(IntType),
@@ -25,6 +25,14 @@ impl Hash for Const {
     }
 }
 
+fn float_to_int(f: FloatType) -> Option<IntType> {
+    if f.floor() == f {
+        Some(f as IntType)
+    } else {
+        None
+    }
+}
+
 macro_rules! bin_op {
     ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
         pub fn $name(self, other: Const) -> Option<Const> {
@@ -32,40 +40,40 @@ macro_rules! bin_op {
                 Const::Int(a) => match other {
                     Const::Int(b) => $int_int(a, b),
                     Const::Float(b) => $int_float(a, b),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 },
                 Const::Float(a) => match other {
                     Const::Int(b) => $float_int(a, b),
                     Const::Float(b) => $float_float(a, b),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 },
-                _ => unreachable!()
+                _ => unreachable!(),
             }
-        }    
+        }
     };
 }
 
 macro_rules! bin_op_normal {
     ($name:ident, $op:tt) => {
         bin_op! {
-            $name, 
-            |a, b| Some(Const::Int(a $op b)), 
-            |a, b| Some(Const::Float(a as FloatType $op b)), 
-            |a, b| Some(Const::Float(a $op b as FloatType)), 
+            $name,
+            |a, b| Some(Const::Int(a $op b)),
+            |a, b| Some(Const::Float(a as FloatType $op b)),
+            |a, b| Some(Const::Float(a $op b as FloatType)),
             |a, b| Some(Const::Float(a $op b))
-        } 
+        }
     };
 }
 
 macro_rules! bin_op_int {
     ($name:ident, $op:tt) => {
         bin_op! {
-            $name, 
-            |a, b| Some(Const::Int(a $op b)), 
-            |_, _| None, 
-            |_, _| None, 
-            |_, _| None
-        } 
+            $name,
+            |a, b| Some(Const::Int(a $op b)),
+            |a, b| float_to_int(b).map(|b| Const::Int(a $op b)),
+            |a, b| float_to_int(a).map(|a| Const::Int(a $op b)),
+            |a, b| float_to_int(a).and_then(|a| float_to_int(b).and_then(|b| Some(Const::Int(a $op b))))
+        }
     };
 }
 
@@ -73,7 +81,7 @@ impl Const {
     bin_op_normal! {add, +}
     bin_op_normal! {sub, -}
     bin_op_normal! {mul, *}
-    
+
     bin_op! {
         div,
         |a, b| Some(Const::Float(a as FloatType / b as FloatType)),
@@ -85,9 +93,9 @@ impl Const {
     bin_op! {
         idiv,
         |a, b| Some(Const::Int(a / b)),
-        |a, b| Some(Const::Float((a / b as IntType) as FloatType)),
-        |a, b| Some(Const::Float((a as IntType / b) as FloatType)),
-        |a, b| Some(Const::Float((a as IntType / b as IntType) as FloatType))
+        |_, _| None,
+        |_, _| None,
+        |_, _| None
     }
 
     bin_op! {
