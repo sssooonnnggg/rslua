@@ -26,7 +26,7 @@ impl LuaWritter {
 
     pub fn run(&mut self, block: &Block) -> &str {
         self.output.clear();
-        ast_walker::walk_block(block, self);
+        ast_walker::walk_block(block, self).unwrap();
         &self.output
     }
 
@@ -222,7 +222,7 @@ impl AstVisitor for LuaWritter {
         self.space();
         if stat.exprs.len() > 0 {
             self.append_space("=");
-            ast_walker::walk_exprlist(&stat.exprs, self);
+            ast_walker::walk_exprlist(&stat.exprs, self)?;
         }
         Ok(())
     }
@@ -234,7 +234,7 @@ impl AstVisitor for LuaWritter {
 
     fn ret_stat(&mut self, stat: &RetStat) -> WriteSuccess {
         self.append_space("return");
-        ast_walker::walk_exprlist(&stat.exprs, self);
+        ast_walker::walk_exprlist(&stat.exprs, self)?;
         Ok(())
     }
 
@@ -250,18 +250,18 @@ impl AstVisitor for LuaWritter {
 
     fn assign_stat(&mut self, stat: &AssignStat) -> WriteSuccess {
         for (n, suffix) in stat.left.iter().enumerate() {
-            ast_walker::walk_assinable(suffix, self);
+            ast_walker::walk_assinable(suffix, self)?;
             if n < stat.left.len() - 1 {
                 self.append_space(",");
             }
         }
         self.space_append_space("=");
-        ast_walker::walk_exprlist(&stat.right, self);
+        ast_walker::walk_exprlist(&stat.right, self)?;
         Ok(())
     }
 
     fn call_stat(&mut self, stat: &CallStat) -> WriteSuccess {
-        ast_walker::walk_assinable(&stat.call, self);
+        ast_walker::walk_assinable(&stat.call, self)?;
         Ok(())
     }
 
