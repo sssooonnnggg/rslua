@@ -3,6 +3,7 @@ use crate::success;
 use crate::types::{FloatType, IntType};
 use num_traits::Float;
 use std::hash::{Hash, Hasher};
+
 #[derive(Clone, PartialEq)]
 pub enum Const {
     Int(IntType),
@@ -53,7 +54,7 @@ macro_rules! bin_op {
             };
 
             // compitibale with lua
-            // not constant folding Nan/inf/0.0
+            // won't constant folding Nan/Inf/0.0
             match &result {
                 Ok(k) => match k {
                     Some(k) => match k {

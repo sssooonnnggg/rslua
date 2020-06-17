@@ -52,15 +52,13 @@ impl<'a> Context<'a> {
         self.col += n;
     }
 
-    // skip n chars, and write these chars to output
-    pub fn skip_into(&mut self, n: usize, output: &mut Vec<u8>) {
-        for _i in 0..n {
-            if let Some(c) = self.get() {
-                output.push(c);
-                self.skip(1);
-            } else {
-                break;
-            }
+    // eat n chars, and write these chars to output
+    pub fn write_into(&mut self, n: usize, output: &mut Vec<u8>) {
+        if let Some(slice) = self.buffer.as_bytes().get(self.current..(self.current + n)) {
+            output.extend_from_slice(slice);
+            self.skip(n);
+        } else {
+            unreachable!()
         }
     }
 
@@ -204,7 +202,7 @@ impl<'a> Lexer {
             if Lexer::is_line_break(c) {
                 break;
             }
-            ctx.skip_into(1, &mut bytes);
+            ctx.write_into(1, &mut bytes);
         }
         if let Ok(comment) = str::from_utf8(&bytes) {
             if self.config.reserve_comments {
@@ -306,7 +304,7 @@ impl<'a> Lexer {
         let mut hex = false;
         if self.check_current(ctx, '0') && self.check_next2(ctx, 'x', 'X') {
             expo = ('P', 'p');
-            ctx.skip_into(2, &mut num_str);
+            ctx.write_into(2, &mut num_str);
             hex = true;
         }
         let is_digit = |c| {
@@ -314,11 +312,11 @@ impl<'a> Lexer {
         };
         loop {
             if self.check_current_if(ctx, is_digit) {
-                ctx.skip_into(1, &mut num_str)
+                ctx.write_into(1, &mut num_str)
             } else if self.check_current2(ctx, expo.0, expo.1) {
-                ctx.skip_into(1, &mut num_str);
+                ctx.write_into(1, &mut num_str);
                 if self.check_current2(ctx, '-', '+') {
-                    ctx.skip_into(1, &mut num_str)
+                    ctx.write_into(1, &mut num_str)
                 }
             } else {
                 break;
@@ -468,7 +466,7 @@ impl<'a> Lexer {
         let unfinished_error: &'static str = "unfinished string";
         while ctx.get() != start {
             match ctx.get() {
-                Some(b'\\') if self.config.use_origin_string => ctx.skip_into(2, &mut bytes),
+                Some(b'\\') if self.config.use_origin_string => ctx.write_into(2, &mut bytes),
                 Some(b'\\') => self.try_read_esc(ctx, &mut bytes)?,
                 Some(c) => {
                     if Lexer::is_line_break(c) {
@@ -602,9 +600,9 @@ impl<'a> Lexer {
                 return success!((t, TokenValue::None));
             } else if self.check_current_if(ctx, |c| Lexer::is_valid_name_start(c)) {
                 let mut word: Vec<u8> = Vec::new();
-                ctx.skip_into(1, &mut word);
+                ctx.write_into(1, &mut word);
                 while self.check_current_if(ctx, |c| Lexer::is_valid_name(c)) {
-                    ctx.skip_into(1, &mut word);
+                    ctx.write_into(1, &mut word);
                 }
                 if let Ok(s) = str::from_utf8(&word) {
                     if let Some(t) = TokenType::from_keyword(s) {

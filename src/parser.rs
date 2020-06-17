@@ -18,21 +18,14 @@ type ParseResult<T> = Result<T, SyntaxError>;
 macro_rules! syntax_error {
     ($self:ident, $msg:expr) => {{
         let token = &$self.tokens[$self.current];
-        let error_msg;
-        match token.value {
-            TokenValue::None => {
-                error_msg = format!(
-                    "[syntax error] {} at line [{}:{}] near [{:?}]",
-                    $msg, token.source.line, token.source.col, token.t
-                )
-            }
-            _ => {
-                error_msg = format!(
-                    "[syntax error] {} at line [{}:{}] near [{:?}]",
-                    $msg, token.source.line, token.source.col, token.value
-                )
-            }
-        }
+        let ident = match token.value {
+            TokenValue::None => format!("{:?}", token.t),
+            _ => format!("{:?}", token.value)
+        };
+        let error_msg = format!(
+            "[syntax error] {} at line [{}:{}] near [{}]",
+            $msg, token.source.line, token.source.col, ident
+        );
         error!($self, SyntaxError, error_msg)
     }};
 }
