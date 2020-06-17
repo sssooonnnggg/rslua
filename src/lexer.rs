@@ -57,8 +57,6 @@ impl<'a> Context<'a> {
         if let Some(slice) = self.buffer.as_bytes().get(self.current..(self.current + n)) {
             output.extend_from_slice(slice);
             self.skip(n);
-        } else {
-            unreachable!()
         }
     }
 
@@ -76,11 +74,7 @@ impl<'a> Context<'a> {
     }
 
     pub fn get_ahead(&self, index: usize) -> Option<u8> {
-        if index + self.current >= self.buffer.len() {
-            None
-        } else {
-            Some(self.buffer.as_bytes()[self.current + index])
-        }
+        self.buffer.as_bytes().get(self.current + index).copied()
     }
 }
 
@@ -169,9 +163,12 @@ impl<'a> Lexer {
     fn read_line_break(&self, ctx: &mut Context) -> LexResult {
         let old = ctx.get();
         ctx.next();
+
+        // skip \r\n or \n\r
         if old != ctx.get() && self.check_current_if(ctx, |c| Lexer::is_line_break(c)) {
             ctx.next();
         }
+
         ctx.inc_line();
         Ok(None)
     }
@@ -356,7 +353,7 @@ impl<'a> Lexer {
         bytes: &mut Vec<u8>,
     ) -> Result<(), LexError> {
         if let Some(c) = ctx.get() {
-            if c as char != '{' {
+            if c != b'{' {
                 return lex_error!(self, ctx, "missing '{'");
             }
             ctx.next();
