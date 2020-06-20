@@ -241,13 +241,19 @@ impl AstVisitor<CompileError> for Compiler {
 
     // compile assign stat
     fn assign_stat(&mut self, stat: &AssignStat) -> Result<(), CompileError> {
-        let last_use_temp_reg = stat.right.len() != stat.left.len();
+        let use_temp_reg = stat.right.len() != stat.left.len();
         let mut to_move: Vec<(u32, u32)> = Vec::new();
 
-        // normal move
-        // the last right one direct move to left register
+        // move rules:
+        // if num of left != num of right:
+        //      MOVE temp[1..n] right[1..n]
+        //      MOVE left[1..n] temp[1..n]
+        // if num of left == num of right:
+        //      MOVE temp[1..(n-1)] right[1..(n-1)]
+        //      MOVE left[n] right[n]
+        //      MOVE left[1..(n-1)] temp[1..(n-1)]
         for (i, expr) in stat.right.iter().enumerate() {
-            if i != stat.right.len() - 1 || last_use_temp_reg {
+            if i != stat.right.len() - 1 || use_temp_reg {
                 let reg = self.context().reverse_regs(1);
                 self.expr_and_save(expr, reg)?;
                 if i < stat.left.len() {
