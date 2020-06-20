@@ -28,9 +28,14 @@ macro_rules! compile_error {
     }};
 }
 
+pub struct Reg {
+    pub reg: u32,
+    pub freeable: bool,
+}
+
 pub enum Index {
     ConstIndex(u32),
-    RegIndex(u32),
+    RegIndex(Reg),
     None,
 }
 
@@ -38,8 +43,15 @@ impl Index {
     pub fn to_reg(&self) -> Option<u32> {
         match self {
             Index::ConstIndex(k) => Some(MASK_K | *k),
-            Index::RegIndex(reg) => Some(*reg),
+            Index::RegIndex(i) => Some(i.reg),
             Index::None => None,
+        }
+    }
+
+    pub fn is_freeable(&self) -> bool {
+        match self {
+            Index::RegIndex(i) => i.freeable,
+            _ => false,
         }
     }
 }
@@ -129,7 +141,10 @@ impl Compiler {
             Expr::False => Index::None,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    return Ok(Index::RegIndex(src));
+                    return Ok(Index::RegIndex(Reg {
+                        reg: src,
+                        freeable: false,
+                    }));
                 }
                 // TODO : process upval and globals
                 todo!()
@@ -226,14 +241,30 @@ impl Compiler {
         left: Index,
         right: Index,
     ) -> Result<Index, CompileError> {
-        let left = left.to_reg().unwrap_or_else(|| target.unwrap());
-        let right = right.to_reg().unwrap();
+        // if left return None, represent that left expr is already in target reg
+        let left_reg = left.to_reg().unwrap_or_else(|| target.unwrap());
+        let right_reg = right.to_reg().unwrap();
+
+        // try use target reg otherwise alloc one
         let context = self.context();
         let reg = target.unwrap_or_else(|| context.reserve_regs(1));
+
+        // free register
+        if left.is_freeable() {
+            context.free_reg(1);
+        }
+        if right.is_freeable() {
+            context.free_reg(1);
+        }
+
+        // gennerate opcode of binop
         let proto = self.proto();
-        proto.code_bin_op(op, reg, left, right);
+        proto.code_bin_op(op, reg, left_reg, right_reg);
         if target == None {
-            Ok(Index::RegIndex(reg))
+            Ok(Index::RegIndex(Reg {
+                reg,
+                freeable: true,
+            }))
         } else {
             Ok(Index::None)
         }
@@ -245,7 +276,7 @@ impl Compiler {
         let proto = self.proto();
         match index {
             Index::ConstIndex(k) => proto.code_const(reg, k),
-            Index::RegIndex(src) => proto.code_move(reg, src),
+            Index::RegIndex(src) => proto.code_move(reg, src.reg),
             Index::None => match expr {
                 Expr::Nil => proto.code_nil(reg, 1),
                 Expr::True => proto.code_bool(reg, true),

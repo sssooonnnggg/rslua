@@ -49,6 +49,14 @@ pub const MAXARG_SBX: i32 = (MAXARG_BX as i32) >> 1;
 
 pub const MASK_K: u32 = 1 << (SIZE_B - 1);
 
+pub fn is_const(index: u32) -> bool {
+    index & MASK_K != 0
+}
+
+pub fn is_var(index: u32) -> bool {
+    !is_const(index)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     // A B

@@ -322,7 +322,7 @@ local a = 1 // 0"#,
 
     #[test]
     fn code_bin_op() {
-        let output = try_compile_and_print("local a, b, c; local d = 1 + a - b * c");
+        let output = try_compile_and_print("local a, b, c; local d = 1 + a - b * c; local e = d + 1");
         let expected = r#"
 stack size : 5
 consts :
