@@ -47,6 +47,8 @@ pub const MAXARG_AX: u32 = (1 << SIZE_AX) - 1;
 pub const MAXARG_BX: u32 = (1 << SIZE_BX) - 1;
 pub const MAXARG_SBX: i32 = (MAXARG_BX as i32) >> 1;
 
+pub const MASK_K: u32 = 1 << (SIZE_B - 1);
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OpCode {
     // A B

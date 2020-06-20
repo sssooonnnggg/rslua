@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
+use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
 use crate::{debuggable, error, success};
@@ -31,6 +32,16 @@ pub enum Index {
     ConstIndex(u32),
     RegIndex(u32),
     None,
+}
+
+impl Index {
+    pub fn to_reg(&self) -> u32 {
+        match self {
+            Index::ConstIndex(k) => MASK_K | *k,
+            Index::RegIndex(reg) => *reg,
+            Index::None => unreachable!(),
+        }
+    }
 }
 
 impl Compiler {
@@ -89,7 +100,7 @@ impl Compiler {
         if extra > 0 {
             let context = self.context();
             let from = context.get_reg_top();
-            context.reverse_regs(extra as u32);
+            context.reserve_regs(extra as u32);
             context.proto.code_nil(from, extra as u32);
         }
 
@@ -122,18 +133,18 @@ impl Compiler {
                 // TODO : process upval and globals
                 todo!()
             }
-            Expr::BinExpr(_) => self.compile_expr(expr)?,
+            Expr::BinExpr(_) => self.folding_or_code(expr)?,
             _ => todo!(),
         };
         Ok(index)
     }
 
-    fn compile_expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+    // try constant foding first, if failed then generate code
+    fn folding_or_code(&mut self, expr: &Expr) -> Result<Index, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
             Ok(Index::ConstIndex(self.proto().add_const(k)))
         } else {
-            // TODO : generate code
-            Ok(Index::None)
+            self.code_expr(expr)
         }
     }
 
@@ -159,7 +170,7 @@ impl Compiler {
                         self.try_const_folding(&bin.left)?,
                         self.try_const_folding(&bin.right)?,
                     ) {
-                        if let Some(k) = self.apply_bin_op(bin.op, l, r)? {
+                        if let Some(k) = self.const_folding_bin_op(bin.op, l, r)? {
                             return success!(k);
                         }
                     }
@@ -167,12 +178,28 @@ impl Compiler {
                 _ => todo!(),
             },
             Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
-            _ => todo!(),
+            _ => ()
         }
         Ok(None)
     }
 
-    fn apply_bin_op(&self, op: BinOp, l: Const, r: Const) -> Result<Option<Const>, CompileError> {
+    fn code_expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+        match expr {
+            Expr::BinExpr(bin) => {
+                let left = self.expr(&bin.left)?;
+                let right = self.expr(&bin.right)?;
+                self.code_bin_op(bin.op, left, right)
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn const_folding_bin_op(
+        &self,
+        op: BinOp,
+        l: Const,
+        r: Const,
+    ) -> Result<Option<Const>, CompileError> {
         let result = match op {
             BinOp::Add => l.add(r)?,
             BinOp::Minus => l.sub(r)?,
@@ -189,6 +216,16 @@ impl Compiler {
             _ => unreachable!(),
         };
         Ok(result)
+    }
+
+    fn code_bin_op(&mut self, op: BinOp, left: Index, right: Index) -> Result<Index, CompileError> {
+        let left = left.to_reg();
+        let right = right.to_reg();
+        let context = self.context();
+        let target = context.reserve_regs(1);
+        let proto = self.proto();
+        proto.code_bin_op(op, target, left, right);
+        Ok(Index::RegIndex(target))
     }
 
     // process expr and save to register
@@ -232,7 +269,7 @@ impl AstVisitor<CompileError> for Compiler {
             proto.add_local_var(name);
         }
         for expr in stat.exprs.iter() {
-            let reg = self.context().reverse_regs(1);
+            let reg = self.context().reserve_regs(1);
             self.expr_and_save(expr, reg)?;
         }
         self.adjust_assign(stat.names.len(), &stat.exprs);
@@ -254,7 +291,7 @@ impl AstVisitor<CompileError> for Compiler {
         //      MOVE left[1..(n-1)] temp[1..(n-1)]
         for (i, expr) in stat.right.iter().enumerate() {
             if i != stat.right.len() - 1 || use_temp_reg {
-                let reg = self.context().reverse_regs(1);
+                let reg = self.context().reserve_regs(1);
                 self.expr_and_save(expr, reg)?;
                 if i < stat.left.len() {
                     let target = self.get_assinable_reg(&stat.left[i]);

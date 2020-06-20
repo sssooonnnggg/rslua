@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::opcodes::{Instruction, OpCode};
-use crate::types::{FloatType, IntType};
+use crate::ast::{BinOp, UnOp};
 use crate::consts::Const;
+use crate::opcodes::{Instruction, OpCode};
 
 pub struct LocalVal {
     name: String,
@@ -76,6 +76,35 @@ impl Proto {
     pub fn code_move(&mut self, reg: u32, src: u32) {
         self.code
             .push(Instruction::create_ABC(OpCode::Move, reg, src, 0));
+    }
+
+    pub fn code_bin_op(&mut self, op: BinOp, target: u32, left: u32, right: u32) {
+        let op_code = match op {
+            BinOp::Add => OpCode::Add,
+            BinOp::Minus => OpCode::Sub,
+            BinOp::Mul => OpCode::Mul,
+            BinOp::Mod => OpCode::Mod,
+            BinOp::Pow => OpCode::Pow,
+            BinOp::Div => OpCode::Div,
+            BinOp::IDiv => OpCode::IDiv,
+            BinOp::BAnd => OpCode::BAdd,
+            BinOp::BOr => OpCode::BOr,
+            BinOp::BXor => OpCode::BXor,
+            BinOp::Shl => OpCode::Shl,
+            BinOp::Shr => OpCode::Shr,
+            BinOp::Concat => OpCode::Concat,
+            BinOp::Ne => todo!(),
+            BinOp::Eq => todo!(),
+            BinOp::Lt => todo!(),
+            BinOp::Le => todo!(),
+            BinOp::Gt => todo!(),
+            BinOp::Ge => todo!(),
+            BinOp::And => todo!(),
+            BinOp::Or => todo!(),
+            BinOp::None => unreachable!(),
+        };
+        self.code
+            .push(Instruction::create_ABC(op_code, target, left, right));
     }
 
     pub fn add_local_var(&mut self, name: &str) {
@@ -166,7 +195,7 @@ impl ProtoContext {
         }
     }
 
-    pub fn reverse_regs(&mut self, n: u32) -> u32 {
+    pub fn reserve_regs(&mut self, n: u32) -> u32 {
         self.check_stack(n);
         let index = self.reg_top;
         self.reg_top += n;
