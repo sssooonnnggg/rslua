@@ -332,13 +332,15 @@ locals :
 | 1     | b          |
 | 2     | c          |
 | 3     | d          |
+| 4     | e          |
 instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | LoadNil    | 0     | 2     |       |
 | 2     | Add        | 3     | 256   | 0     |
 | 3     | Mul        | 4     | 1     | 2     |
 | 4     | Sub        | 3     | 3     | 4     |
-| 5     | Return     | 0     | 1     |       |
+| 5     | Add        | 4     | 3     | 256   |
+| 6     | Return     | 0     | 1     |       |
 "#;
         assert_eq!(output, expected);
     }
