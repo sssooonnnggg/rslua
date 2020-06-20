@@ -324,7 +324,7 @@ local a = 1 // 0"#,
     fn code_bin_op() {
         let output = try_compile_and_print("local a, b, c; local d = 1 + a - b * c");
         let expected = r#"
-stack size : 7
+stack size : 5
 consts :
 | 0     | 1          |
 locals :
@@ -335,11 +335,10 @@ locals :
 instructions :
 | line  | OP         | A     | B     | C     |
 | 1     | LoadNil    | 0     | 2     |       |
-| 2     | Add        | 4     | 256   | 0     |
-| 3     | Mul        | 5     | 1     | 2     |
-| 4     | Sub        | 6     | 4     | 5     |
-| 5     | Move       | 3     | 6     |       |
-| 6     | Return     | 0     | 1     |       |
+| 2     | Add        | 3     | 256   | 0     |
+| 3     | Mul        | 4     | 1     | 2     |
+| 4     | Sub        | 3     | 3     | 4     |
+| 5     | Return     | 0     | 1     |       |
 "#;
         assert_eq!(output, expected);
     }

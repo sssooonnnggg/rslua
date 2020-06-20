@@ -35,11 +35,11 @@ pub enum Index {
 }
 
 impl Index {
-    pub fn to_reg(&self) -> u32 {
+    pub fn to_reg(&self) -> Option<u32> {
         match self {
-            Index::ConstIndex(k) => MASK_K | *k,
-            Index::RegIndex(reg) => *reg,
-            Index::None => unreachable!(),
+            Index::ConstIndex(k) => Some(MASK_K | *k),
+            Index::RegIndex(reg) => Some(*reg),
+            Index::None => None,
         }
     }
 }
@@ -108,7 +108,8 @@ impl Compiler {
     }
 
     // process expr and return const index or register index
-    fn expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+    // if return None, the result of expr is already in reg
+    fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
         let proto = self.proto();
         let index = match expr {
             Expr::Int(i) => {
@@ -133,18 +134,18 @@ impl Compiler {
                 // TODO : process upval and globals
                 todo!()
             }
-            Expr::BinExpr(_) => self.folding_or_code(expr)?,
+            Expr::BinExpr(_) => self.folding_or_code(expr, reg)?,
             _ => todo!(),
         };
         Ok(index)
     }
 
     // try constant foding first, if failed then generate code
-    fn folding_or_code(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+    fn folding_or_code(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
             Ok(Index::ConstIndex(self.proto().add_const(k)))
         } else {
-            self.code_expr(expr)
+            self.code_expr(expr, reg)
         }
     }
 
@@ -178,17 +179,17 @@ impl Compiler {
                 _ => todo!(),
             },
             Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
-            _ => ()
+            _ => (),
         }
         Ok(None)
     }
 
-    fn code_expr(&mut self, expr: &Expr) -> Result<Index, CompileError> {
+    fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
         match expr {
             Expr::BinExpr(bin) => {
-                let left = self.expr(&bin.left)?;
-                let right = self.expr(&bin.right)?;
-                self.code_bin_op(bin.op, left, right)
+                let left = self.expr(&bin.left, reg)?;
+                let right = self.expr(&bin.right, None)?;
+                self.code_bin_op(bin.op, reg, left, right)
             }
             _ => unreachable!(),
         }
@@ -218,19 +219,29 @@ impl Compiler {
         Ok(result)
     }
 
-    fn code_bin_op(&mut self, op: BinOp, left: Index, right: Index) -> Result<Index, CompileError> {
-        let left = left.to_reg();
-        let right = right.to_reg();
+    fn code_bin_op(
+        &mut self,
+        op: BinOp,
+        target: Option<u32>,
+        left: Index,
+        right: Index,
+    ) -> Result<Index, CompileError> {
+        let left = left.to_reg().unwrap_or_else(|| target.unwrap());
+        let right = right.to_reg().unwrap();
         let context = self.context();
-        let target = context.reserve_regs(1);
+        let reg = target.unwrap_or_else(|| context.reserve_regs(1));
         let proto = self.proto();
-        proto.code_bin_op(op, target, left, right);
-        Ok(Index::RegIndex(target))
+        proto.code_bin_op(op, reg, left, right);
+        if target == None {
+            Ok(Index::RegIndex(reg))
+        } else {
+            Ok(Index::None)
+        }
     }
 
     // process expr and save to register
     fn expr_and_save(&mut self, expr: &Expr, reg: u32) -> Result<(), CompileError> {
-        let index = self.expr(expr)?;
+        let index = self.expr(expr, Some(reg))?;
         let proto = self.proto();
         match index {
             Index::ConstIndex(k) => proto.code_const(reg, k),
@@ -239,7 +250,7 @@ impl Compiler {
                 Expr::Nil => proto.code_nil(reg, 1),
                 Expr::True => proto.code_bool(reg, true),
                 Expr::False => proto.code_bool(reg, false),
-                _ => unreachable!(),
+                _ => (),
             },
         }
         Ok(())
