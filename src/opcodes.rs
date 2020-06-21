@@ -364,6 +364,11 @@ impl Instruction {
         Instruction(((op as u32) << POS_OP) | (a << POS_AX))
     }
 
+    pub fn save(&mut self, a:u32) {
+        let mask = !(((1 << SIZE_A) - 1) << POS_A);
+        self.0 = (self.0 & mask) | (a << POS_A);
+    }
+
     fn get_arg(&self, pos: u32, size: u32) -> u32 {
         (self.0 >> pos) & Instruction::mask1(size, 0)
     }

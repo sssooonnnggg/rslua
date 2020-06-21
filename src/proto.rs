@@ -133,6 +133,14 @@ impl Proto {
             }
         }
     }
+
+    // save result to target reg
+    pub fn save(&mut self, target: u32) {
+        let last = self.code.last_mut();
+        if let Some(code) = last {
+            code.save(target);
+        }
+    }
 }
 
 use std::fmt;

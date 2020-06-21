@@ -271,8 +271,17 @@ impl Compiler {
     }
 
     // process expr and save to register
-    fn expr_and_save(&mut self, expr: &Expr, reg: u32) -> Result<(), CompileError> {
-        let index = self.expr(expr, Some(reg))?;
+    fn expr_and_save(&mut self, expr: &Expr, save_reg: Option<u32>) -> Result<u32, CompileError> {
+        let reg = save_reg.unwrap_or_else(|| self.context().reserve_regs(1));
+        
+        // use a register to store temp result
+        let temp_reg = if Some(reg) != save_reg {
+            reg
+        } else {
+            self.context().reserve_regs(1)
+        };
+
+        let index = self.expr(expr, Some(temp_reg))?;
         let proto = self.proto();
         match index {
             Index::ConstIndex(k) => proto.code_const(reg, k),
@@ -281,10 +290,15 @@ impl Compiler {
                 Expr::Nil => proto.code_nil(reg, 1),
                 Expr::True => proto.code_bool(reg, true),
                 Expr::False => proto.code_bool(reg, false),
-                _ => (),
+                _ => proto.save(reg),
             },
         }
-        Ok(())
+
+        if temp_reg != reg {
+            self.context().free_reg(1);
+        }
+
+        Ok(reg)
     }
 
     fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
@@ -311,8 +325,7 @@ impl AstVisitor<CompileError> for Compiler {
             proto.add_local_var(name);
         }
         for expr in stat.exprs.iter() {
-            let reg = self.context().reserve_regs(1);
-            self.expr_and_save(expr, reg)?;
+            self.expr_and_save(expr, None)?;
         }
         self.adjust_assign(stat.names.len(), &stat.exprs);
         Ok(())
@@ -333,15 +346,14 @@ impl AstVisitor<CompileError> for Compiler {
         //      MOVE left[1..(n-1)] temp[1..(n-1)]
         for (i, expr) in stat.right.iter().enumerate() {
             if i != stat.right.len() - 1 || use_temp_reg {
-                let reg = self.context().reserve_regs(1);
-                self.expr_and_save(expr, reg)?;
+                let reg = self.expr_and_save(expr, None)?;
                 if i < stat.left.len() {
                     let target = self.get_assinable_reg(&stat.left[i]);
                     to_move.push((target, reg));
                 }
             } else {
                 let reg = self.get_assinable_reg(&stat.left[i]);
-                self.expr_and_save(expr, reg)?;
+                self.expr_and_save(expr, Some(reg))?;
             };
         }
 

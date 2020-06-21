@@ -227,7 +227,7 @@ instructions :
         assert_eq!(
             try_compile_and_print("local a, b = 1, 2; a, b = b, a"),
             r#"
-stack size : 3
+stack size : 4
 consts :
 | 0     | 1          |
 | 1     | 2          |
@@ -369,6 +369,36 @@ instructions :
 | 6     | Add        | 5     | 1     | 0     |
 | 7     | Add        | 5     | 5     | 2     |
 | 8     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_bin_op_3() {
+        let output = try_compile_and_print("local a, b, c, d, e, f; d, e, f = a * 3 - b, a / b / c, b + a + c");
+        let expected = r#"
+stack size : 9
+consts :
+| 0     | 3          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 5     |       |
+| 2     | Mul        | 6     | 0     | 256   |
+| 3     | Sub        | 6     | 6     | 1     |
+| 4     | Div        | 7     | 0     | 1     |
+| 5     | Div        | 7     | 7     | 2     |
+| 6     | Add        | 8     | 1     | 0     |
+| 7     | Add        | 5     | 8     | 2     |
+| 8     | Move       | 4     | 7     |       |
+| 9     | Move       | 3     | 6     |       |
+| 10    | Return     | 0     | 1     |       |
 "#;
         assert_eq!(output, expected);
     }
