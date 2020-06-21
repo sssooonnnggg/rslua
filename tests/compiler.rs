@@ -402,4 +402,26 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn bin_op_4() {
+        let output = try_compile_and_print("local a, b, c; local d = (a - b) * (b - c)");
+        let expected = r#"
+stack size : 5
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 2     |       |
+| 2     | Sub        | 3     | 0     | 1     |
+| 3     | Sub        | 4     | 1     | 2     |
+| 4     | Mul        | 3     | 3     | 4     |
+| 5     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
 }

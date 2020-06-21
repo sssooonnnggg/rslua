@@ -150,6 +150,7 @@ impl Compiler {
                 todo!()
             }
             Expr::BinExpr(_) => self.folding_or_code(expr, reg)?,
+            Expr::ParenExpr(expr) => self.folding_or_code(&expr, reg)?,
             _ => todo!(),
         };
         Ok(index)
