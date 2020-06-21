@@ -33,24 +33,27 @@ pub struct Reg {
     pub freeable: bool,
 }
 
-pub enum Index {
+pub enum ExprResult {
     ConstIndex(u32),
     RegIndex(Reg),
+    Nil,
+    True,
+    False,
     None,
 }
 
-impl Index {
+impl ExprResult {
     pub fn to_reg(&self) -> Option<u32> {
         match self {
-            Index::ConstIndex(k) => Some(MASK_K | *k),
-            Index::RegIndex(i) => Some(i.reg),
-            Index::None => None,
+            ExprResult::ConstIndex(k) => Some(MASK_K | *k),
+            ExprResult::RegIndex(i) => Some(i.reg),
+            _ => None,
         }
     }
 
     pub fn is_freeable(&self) -> bool {
         match self {
-            Index::RegIndex(i) => i.freeable,
+            ExprResult::RegIndex(i) => i.freeable,
             _ => false,
         }
     }
@@ -121,27 +124,27 @@ impl Compiler {
 
     // process expr and return const index or register index
     // if return None, the result of expr is already in reg
-    fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
+    fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         let proto = self.proto();
-        let index = match expr {
+        let result = match expr {
             Expr::Int(i) => {
                 let k = proto.add_const(Const::Int(*i));
-                Index::ConstIndex(k)
+                ExprResult::ConstIndex(k)
             }
             Expr::Float(f) => {
                 let k = proto.add_const(Const::Float(*f));
-                Index::ConstIndex(k)
+                ExprResult::ConstIndex(k)
             }
             Expr::String(s) => {
                 let k = proto.add_const(Const::Str(s.clone()));
-                Index::ConstIndex(k)
+                ExprResult::ConstIndex(k)
             }
-            Expr::Nil => Index::None,
-            Expr::True => Index::None,
-            Expr::False => Index::None,
+            Expr::Nil => ExprResult::Nil,
+            Expr::True => ExprResult::True,
+            Expr::False => ExprResult::False,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    return Ok(Index::RegIndex(Reg {
+                    return Ok(ExprResult::RegIndex(Reg {
                         reg: src,
                         freeable: false,
                     }));
@@ -153,13 +156,13 @@ impl Compiler {
             Expr::ParenExpr(expr) => self.folding_or_code(&expr, reg)?,
             _ => todo!(),
         };
-        Ok(index)
+        Ok(result)
     }
 
     // try constant foding first, if failed then generate code
-    fn folding_or_code(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
+    fn folding_or_code(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
-            Ok(Index::ConstIndex(self.proto().add_const(k)))
+            Ok(ExprResult::ConstIndex(self.proto().add_const(k)))
         } else {
             self.code_expr(expr, reg)
         }
@@ -210,7 +213,7 @@ impl Compiler {
         Ok(None)
     }
 
-    fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<Index, CompileError> {
+    fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         match expr {
             Expr::BinExpr(bin) => {
                 let left = self.expr(&bin.left, reg)?;
@@ -259,9 +262,9 @@ impl Compiler {
         &mut self,
         op: BinOp,
         target: Option<u32>,
-        left: Index,
-        right: Index,
-    ) -> Result<Index, CompileError> {
+        left: ExprResult,
+        right: ExprResult,
+    ) -> Result<ExprResult, CompileError> {
         // if left return None, represent that left expr is already in target reg
         let left_reg = left.to_reg().unwrap_or_else(|| target.unwrap());
         let right_reg = right.to_reg().unwrap();
@@ -282,12 +285,12 @@ impl Compiler {
         let proto = self.proto();
         proto.code_bin_op(op, reg, left_reg, right_reg);
         if target == None {
-            Ok(Index::RegIndex(Reg {
+            Ok(ExprResult::RegIndex(Reg {
                 reg,
                 freeable: true,
             }))
         } else {
-            Ok(Index::None)
+            Ok(ExprResult::None)
         }
     }
 
@@ -302,17 +305,15 @@ impl Compiler {
             self.context().reserve_regs(1)
         };
 
-        let index = self.expr(expr, Some(temp_reg))?;
+        let result = self.expr(expr, Some(temp_reg))?;
         let proto = self.proto();
-        match index {
-            Index::ConstIndex(k) => proto.code_const(reg, k),
-            Index::RegIndex(src) => proto.code_move(reg, src.reg),
-            Index::None => match expr {
-                Expr::Nil => proto.code_nil(reg, 1),
-                Expr::True => proto.code_bool(reg, true),
-                Expr::False => proto.code_bool(reg, false),
-                _ => proto.save(reg),
-            },
+        match result {
+            ExprResult::ConstIndex(k) => proto.code_const(reg, k),
+            ExprResult::RegIndex(src) => proto.code_move(reg, src.reg),
+            ExprResult::True => proto.code_bool(reg, true),
+            ExprResult::False => proto.code_bool(reg, false),
+            ExprResult::Nil => proto.code_nil(reg, 1),
+            ExprResult::None => proto.save(reg),
         }
 
         if temp_reg != reg {
