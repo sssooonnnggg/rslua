@@ -471,4 +471,53 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_not() {
+        let output = try_compile_and_print(
+            "local a, b, c, d, e, f = not nil, not false, not true, not 0, not 0.1");
+        let expected = r#"
+stack size : 6
+consts :
+| 0     | 0          |
+| 1     | 0.1        |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadBool   | 0     | 1     | 0     |
+| 2     | LoadBool   | 1     | 1     | 0     |
+| 3     | LoadBool   | 2     | 0     | 0     |
+| 4     | LoadBool   | 3     | 0     | 0     |
+| 5     | LoadBool   | 4     | 0     | 0     |
+| 6     | LoadNil    | 5     | 0     |       |
+| 7     | Return     | 0     | 1     |       |
+"#;
+            assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_not_2() {
+        let output = try_compile_and_print("local a, b = not (1 + 2); b = not a + 1");
+        let expected = r#"
+stack size : 3
+consts :
+| 0     | 1          |
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadBool   | 0     | 0     | 0     |
+| 2     | LoadNil    | 1     | 0     |       |
+| 3     | Not        | 2     | 0     |       |
+| 4     | Add        | 1     | 2     | 256   |
+| 5     | Return     | 0     | 1     |       |
+"#;
+    }
 }

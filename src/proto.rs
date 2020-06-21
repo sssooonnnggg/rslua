@@ -111,6 +111,7 @@ impl Proto {
         let op_code = match op {
             UnOp::Minus => OpCode::Unm,
             UnOp::BNot => OpCode::BNot,
+            UnOp::Not => OpCode::Not,
             _ => unimplemented!(),
         };
         self.code

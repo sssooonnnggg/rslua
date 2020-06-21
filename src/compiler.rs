@@ -58,8 +58,8 @@ impl ExprResult {
         }
     }
 
-    pub fn temp(reg:u32) -> Self {
-        ExprResult::RegIndex(Reg {reg, temp:true})
+    pub fn temp(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg { reg, temp: true })
     }
 }
 
@@ -181,6 +181,7 @@ impl Compiler {
         match expr {
             Expr::Int(i) => return success!(Const::Int(*i)),
             Expr::Float(f) => return success!(Const::Float(*f)),
+            Expr::String(s) => return success!(Const::Str(s.clone())),
             Expr::BinExpr(bin) => match bin.op {
                 BinOp::Add
                 | BinOp::Minus
@@ -227,11 +228,15 @@ impl Compiler {
                 let left = self.expr(&bin.left, reg)?;
                 let right = self.expr(&bin.right, None)?;
                 self.code_bin_op(bin.op, reg, left, right)
-            },
+            }
             Expr::UnExpr(un) => {
-                let result = self.expr(&un.expr, reg)?;
-                self.code_un_op(un.op, reg, result)
-            },
+                if un.op == UnOp::Not {
+                    self.code_not(reg, &un.expr)
+                } else {
+                    let result = self.expr(&un.expr, reg)?;
+                    self.code_un_op(un.op, reg, result)
+                }
+            }
             _ => unreachable!(),
         }
     }
@@ -303,10 +308,11 @@ impl Compiler {
         }
     }
 
-    fn code_un_op(&mut self,
+    fn code_un_op(
+        &mut self,
         op: UnOp,
         input: Option<u32>,
-        expr: ExprResult
+        expr: ExprResult,
     ) -> Result<ExprResult, CompileError> {
         let src = expr.to_reg().unwrap_or_else(|| input.unwrap());
         let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
@@ -324,6 +330,23 @@ impl Compiler {
             Ok(ExprResult::temp(target))
         } else {
             Ok(ExprResult::None)
+        }
+    }
+
+    fn code_not(
+        &mut self,
+        input: Option<u32>,
+        expr: &Expr,
+    ) -> Result<ExprResult, CompileError> {
+        if let Some(_) = self.try_const_folding(expr)? {
+            Ok(ExprResult::False)
+        } else {
+            let result = self.expr(expr, input)?;
+            match result {
+                ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
+                ExprResult::ConstIndex(_) | ExprResult::True => Ok(ExprResult::False),
+                _ => self.code_un_op(UnOp::Not, input, result),
+            }
         }
     }
 
