@@ -444,4 +444,31 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn un_op() {
+        let output = try_compile_and_print("local a, b, c; local d = -((-a + ~b + (-c)) * 4)");
+        let expected = r#"
+stack size : 5
+consts :
+| 0     | 4          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 2     |       |
+| 2     | Unm        | 3     | 0     |       |
+| 3     | BNot       | 4     | 1     |       |
+| 4     | Add        | 3     | 3     | 4     |
+| 5     | Unm        | 4     | 2     |       |
+| 6     | Add        | 3     | 3     | 4     |
+| 7     | Mul        | 3     | 3     | 256   |
+| 8     | Unm        | 3     | 3     |       |
+| 9     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
 }

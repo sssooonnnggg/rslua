@@ -30,7 +30,7 @@ macro_rules! compile_error {
 
 pub struct Reg {
     pub reg: u32,
-    pub freeable: bool,
+    pub temp: bool,
 }
 
 pub enum ExprResult {
@@ -51,11 +51,15 @@ impl ExprResult {
         }
     }
 
-    pub fn is_freeable(&self) -> bool {
+    pub fn is_temp(&self) -> bool {
         match self {
-            ExprResult::RegIndex(i) => i.freeable,
+            ExprResult::RegIndex(i) => i.temp,
             _ => false,
         }
+    }
+
+    pub fn temp(reg:u32) -> Self {
+        ExprResult::RegIndex(Reg {reg, temp:true})
     }
 }
 
@@ -146,7 +150,7 @@ impl Compiler {
                 if let Some(src) = proto.get_local_var(name) {
                     return Ok(ExprResult::RegIndex(Reg {
                         reg: src,
-                        freeable: false,
+                        temp: false,
                     }));
                 }
                 // TODO : process upval and globals
@@ -160,7 +164,11 @@ impl Compiler {
     }
 
     // try constant foding first, if failed then generate code
-    fn folding_or_code(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
+    fn folding_or_code(
+        &mut self,
+        expr: &Expr,
+        reg: Option<u32>,
+    ) -> Result<ExprResult, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
             Ok(ExprResult::ConstIndex(self.proto().add_const(k)))
         } else {
@@ -198,7 +206,7 @@ impl Compiler {
                 _ => todo!(),
             },
             Expr::UnExpr(un) => match un.op {
-                UnOp::Not | UnOp::BNot | UnOp::Minus => {
+                UnOp::BNot | UnOp::Minus => {
                     if let Some(k) = self.try_const_folding(&un.expr)? {
                         if let Some(k) = self.const_folding_un_op(un.op, k)? {
                             return success!(k);
@@ -219,7 +227,11 @@ impl Compiler {
                 let left = self.expr(&bin.left, reg)?;
                 let right = self.expr(&bin.right, None)?;
                 self.code_bin_op(bin.op, reg, left, right)
-            }
+            },
+            Expr::UnExpr(un) => {
+                let result = self.expr(&un.expr, reg)?;
+                self.code_un_op(un.op, reg, result)
+            },
             _ => unreachable!(),
         }
     }
@@ -252,8 +264,7 @@ impl Compiler {
         let result = match op {
             UnOp::Minus => k.minus()?,
             UnOp::BNot => k.bnot()?,
-            UnOp::Not => todo!(),
-            _ => None
+            _ => None,
         };
         Ok(result)
     }
@@ -261,34 +272,56 @@ impl Compiler {
     fn code_bin_op(
         &mut self,
         op: BinOp,
-        target: Option<u32>,
+        input: Option<u32>,
         left: ExprResult,
         right: ExprResult,
     ) -> Result<ExprResult, CompileError> {
-        // if left return None, represent that left expr is already in target reg
-        let left_reg = left.to_reg().unwrap_or_else(|| target.unwrap());
+        // if left return None, represent that left expr is already in input reg
+        let left_reg = left.to_reg().unwrap_or_else(|| input.unwrap());
         let right_reg = right.to_reg().unwrap();
 
-        // try use target reg otherwise alloc one
+        // try use input reg otherwise alloc one
         let context = self.context();
-        let reg = target.unwrap_or_else(|| context.reserve_regs(1));
+        let reg = input.unwrap_or_else(|| context.reserve_regs(1));
 
         // free register
-        if left.is_freeable() {
+        if left.is_temp() {
             context.free_reg(1);
         }
-        if right.is_freeable() {
+        if right.is_temp() {
             context.free_reg(1);
         }
 
         // gennerate opcode of binop
         let proto = self.proto();
         proto.code_bin_op(op, reg, left_reg, right_reg);
-        if target == None {
-            Ok(ExprResult::RegIndex(Reg {
-                reg,
-                freeable: true,
-            }))
+
+        if input == None {
+            Ok(ExprResult::temp(reg))
+        } else {
+            Ok(ExprResult::None)
+        }
+    }
+
+    fn code_un_op(&mut self,
+        op: UnOp,
+        input: Option<u32>,
+        expr: ExprResult
+    ) -> Result<ExprResult, CompileError> {
+        let src = expr.to_reg().unwrap_or_else(|| input.unwrap());
+        let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
+
+        // free temp register
+        if expr.is_temp() {
+            self.context().free_reg(1);
+        }
+
+        // gennerate opcode of unop
+        let proto = self.proto();
+        proto.code_un_op(op, target, src);
+
+        if input == None {
+            Ok(ExprResult::temp(target))
         } else {
             Ok(ExprResult::None)
         }

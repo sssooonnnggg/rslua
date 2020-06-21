@@ -107,6 +107,16 @@ impl Proto {
             .push(Instruction::create_ABC(op_code, target, left, right));
     }
 
+    pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) {
+        let op_code = match op {
+            UnOp::Minus => OpCode::Unm,
+            UnOp::BNot => OpCode::BNot,
+            _ => unimplemented!(),
+        };
+        self.code
+            .push(Instruction::create_ABC(op_code, target, src, 0));
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),
