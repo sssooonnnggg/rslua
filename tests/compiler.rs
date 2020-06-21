@@ -479,8 +479,6 @@ instructions :
         let expected = r#"
 stack size : 6
 consts :
-| 0     | 0          |
-| 1     | 0.1        |
 locals :
 | 0     | a          |
 | 1     | b          |
