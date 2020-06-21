@@ -149,7 +149,7 @@ impl Compiler {
                 // TODO : process upval and globals
                 todo!()
             }
-            Expr::BinExpr(_) => self.folding_or_code(expr, reg)?,
+            Expr::BinExpr(_) | Expr::UnExpr(_) => self.folding_or_code(expr, reg)?,
             Expr::ParenExpr(expr) => self.folding_or_code(&expr, reg)?,
             _ => todo!(),
         };
@@ -194,6 +194,16 @@ impl Compiler {
                 }
                 _ => todo!(),
             },
+            Expr::UnExpr(un) => match un.op {
+                UnOp::Not | UnOp::BNot | UnOp::Minus => {
+                    if let Some(k) = self.try_const_folding(&un.expr)? {
+                        if let Some(k) = self.const_folding_un_op(un.op, k)? {
+                            return success!(k);
+                        }
+                    }
+                }
+                _ => (),
+            },
             Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
             _ => (),
         }
@@ -230,7 +240,17 @@ impl Compiler {
             BinOp::BXor => l.bxor(r)?,
             BinOp::Shl => l.shl(r)?,
             BinOp::Shr => l.shr(r)?,
-            _ => unreachable!(),
+            _ => None,
+        };
+        Ok(result)
+    }
+
+    fn const_folding_un_op(&self, op: UnOp, k: Const) -> Result<Option<Const>, CompileError> {
+        let result = match op {
+            UnOp::Minus => k.minus()?,
+            UnOp::BNot => k.bnot()?,
+            UnOp::Not => todo!(),
+            _ => None
         };
         Ok(result)
     }
@@ -274,7 +294,7 @@ impl Compiler {
     // process expr and save to register
     fn expr_and_save(&mut self, expr: &Expr, save_reg: Option<u32>) -> Result<u32, CompileError> {
         let reg = save_reg.unwrap_or_else(|| self.context().reserve_regs(1));
-        
+
         // use a register to store temp result
         let temp_reg = if Some(reg) != save_reg {
             reg

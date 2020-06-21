@@ -36,6 +36,23 @@ fn float_to_int(f: FloatType) -> Option<IntType> {
     }
 }
 
+fn ignore_unhashable_float(
+    input: Result<Option<Const>, CompileError>,
+) -> Result<Option<Const>, CompileError> {
+    // compitibale with lua
+    // won't constant folding Nan/Inf/0.0
+    match &input {
+        Ok(k) => match k {
+            Some(k) => match k {
+                Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => Ok(None),
+                _ => input,
+            },
+            _ => input,
+        },
+        _ => input,
+    }
+}
+
 macro_rules! bin_op {
     ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
         pub fn $name(self, other: Const) -> Result<Option<Const>, CompileError> {
@@ -53,20 +70,7 @@ macro_rules! bin_op {
                 _ => unreachable!(),
             };
 
-            // compitibale with lua
-            // won't constant folding Nan/Inf/0.0
-            match &result {
-                Ok(k) => match k {
-                    Some(k) => match k {
-                        Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => {
-                            Ok(None)
-                        }
-                        _ => result,
-                    },
-                    _ => result,
-                },
-                _ => result,
-            }
+            ignore_unhashable_float(result)
         }
     };
 }
@@ -137,4 +141,20 @@ impl Const {
     bin_op_int! {bxor, ^}
     bin_op_int! {shl, <<}
     bin_op_int! {shr, >>}
+
+    pub fn minus(&self) -> Result<Option<Const>, CompileError> {
+        let result = match self {
+            Const::Int(i) => success!(Const::Int(-i)),
+            Const::Float(f) => success!(Const::Float(-f)),
+            _ => return Ok(None),
+        };
+        ignore_unhashable_float(result)
+    }
+
+    pub fn bnot(&self)-> Result<Option<Const>, CompileError> {
+        match self {
+            Const::Int(i) => success!(Const::Int(!i)),
+            _ => return Ok(None)
+        }
+    }
 }

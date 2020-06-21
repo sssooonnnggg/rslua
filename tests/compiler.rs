@@ -309,6 +309,26 @@ instructions :
     }
 
     #[test]
+    fn const_folding_un_op() {
+        let output = try_compile_and_print("local a, b = -1 * 2.0, ~(~(234 * 456))");
+        let expected = r#"
+stack size : 2
+consts :
+| 0     | -2         |
+| 1     | 106704     |
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | LoadK      | 1     | 1     |       |
+| 3     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
     fn divide_by_zero() {
         let result = try_compile_and_print(
             r#"
