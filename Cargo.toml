@@ -1,12 +1,13 @@
 [package]
 name = "rslua"
-version = "0.2.5"
+version = "0.2.6"
 description = "Yet another Lua lexer and Lua parser for Lua 5.3"
 authors = ["sssooonnnggg <sssooonnnggg111@gmail.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/sssooonnnggg/rslua.git"
 readme = "README.md"
+keywords = ["lua", "lua5.3", "parser", "lexer"]
 
 [dependencies]
 num-traits = "0.2.12"
