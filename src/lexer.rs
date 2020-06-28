@@ -578,7 +578,7 @@ impl<'a> Lexer {
                 b'/' => Some(TokenType::Div),
                 b'%' => Some(TokenType::Mod),
                 b'^' => Some(TokenType::Pow),
-                b'#' => Some(TokenType::TLen),
+                b'#' => Some(TokenType::Len),
                 b'&' => Some(TokenType::BAnd),
                 b'|' => Some(TokenType::BOr),
                 b'(' => Some(TokenType::Lp),

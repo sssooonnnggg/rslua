@@ -112,6 +112,7 @@ impl Proto {
             UnOp::Minus => OpCode::Unm,
             UnOp::BNot => OpCode::BNot,
             UnOp::Not => OpCode::Not,
+            UnOp::Len => OpCode::Len,
             _ => unimplemented!(),
         };
         self.code

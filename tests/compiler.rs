@@ -517,5 +517,27 @@ instructions :
 | 4     | Add        | 1     | 2     | 256   |
 | 5     | Return     | 0     | 1     |       |
 "#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_len() {
+        let output = try_compile_and_print("local a; local b = #a");
+        let expected = r#"
+stack size : 2
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 0     |       |
+| 2     | Len        | 1     | 0     |       |
+| 3     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(
+            output,
+            expected
+        )
     }
 }

@@ -6,7 +6,7 @@ pub enum UnOp {
     Minus,
     BNot,
     Not,
-    TLen,
+    Len,
     None,
 }
 
@@ -16,7 +16,7 @@ impl UnOp {
             TokenType::Minus => UnOp::Minus,
             TokenType::BXor => UnOp::BNot,
             TokenType::Not => UnOp::Not,
-            TokenType::TLen => UnOp::TLen,
+            TokenType::Len => UnOp::Len,
             _ => UnOp::None,
         }
     }

@@ -67,7 +67,7 @@ pub enum TokenType {
     Div,
     Mod,
     Pow,
-    TLen,
+    Len,
     // =
     Assign,
     // < >

@@ -399,7 +399,7 @@ impl AstVisitor for LuaWritter {
             UnOp::Minus => self.append("-"),
             UnOp::BNot => self.append("~"),
             UnOp::Not => self.append_space("not"),
-            UnOp::TLen => self.append("#"),
+            UnOp::Len => self.append("#"),
             _ => unreachable!(),
         }
     }
