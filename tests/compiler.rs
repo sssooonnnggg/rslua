@@ -639,5 +639,47 @@ instructions :
         let output = try_compile_and_print(
             "local a, b, c, d; local e = a < (b <= (c > (d >= 1))) == (2 ~= 3)",
         );
+        let expected = r#"
+stack size : 6
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 3          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 3     |       |
+| 2     | Le         | 1     | 256   | 3     |
+| 3     | Jmp        | 0     | 1     |       |
+| 4     | LoadBool   | 4     | 0     | 1     |
+| 5     | LoadBool   | 4     | 1     | 0     |
+| 6     | Lt         | 1     | 4     | 2     |
+| 7     | Jmp        | 0     | 1     |       |
+| 8     | LoadBool   | 4     | 0     | 1     |
+| 9     | LoadBool   | 4     | 1     | 0     |
+| 10    | Le         | 1     | 1     | 4     |
+| 11    | Jmp        | 0     | 1     |       |
+| 12    | LoadBool   | 4     | 0     | 1     |
+| 13    | LoadBool   | 4     | 1     | 0     |
+| 14    | Lt         | 1     | 0     | 4     |
+| 15    | Jmp        | 0     | 1     |       |
+| 16    | LoadBool   | 4     | 0     | 1     |
+| 17    | LoadBool   | 4     | 1     | 0     |
+| 18    | Eq         | 0     | 257   | 258   |
+| 19    | Jmp        | 0     | 1     |       |
+| 20    | LoadBool   | 5     | 0     | 1     |
+| 21    | LoadBool   | 5     | 1     | 0     |
+| 22    | Eq         | 1     | 4     | 5     |
+| 23    | Jmp        | 0     | 1     |       |
+| 24    | LoadBool   | 4     | 0     | 1     |
+| 25    | LoadBool   | 4     | 1     | 0     |
+| 26    | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
     }
 }
