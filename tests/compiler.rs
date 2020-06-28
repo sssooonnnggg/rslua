@@ -540,4 +540,31 @@ instructions :
             expected
         )
     }
+
+    #[test]
+    pub fn code_comp() {
+        let output = try_compile_and_print("local a, b; local c = a < b;");
+        let expected = r#"
+stack size : 3
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 1     |       |
+| 2     | Lt         | 1     | 0     | 1     |
+| 3     | Jmp        | 0     | 1     |       |
+| 4     | LoadBool   | 2     | 0     | 1     |
+| 5     | LoadBool   | 2     | 1     | 0     |
+| 6     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    pub fn code_comp_2() {
+        let output = try_compile_and_print("local a, b, c, d; local e = a < b <= c > d >= 1 == 2 ~= 3");
+    }
 }

@@ -204,7 +204,7 @@ impl Compiler {
                         }
                     }
                 }
-                _ => todo!(),
+                _ => (),
             },
             Expr::UnExpr(un) => match un.op {
                 UnOp::BNot | UnOp::Minus => {
@@ -299,13 +299,29 @@ impl Compiler {
 
         // gennerate opcode of binop
         let proto = self.proto();
-        proto.code_bin_op(op, reg, left_reg, right_reg);
+        match op {
+            _ if op.is_comp() => self.code_comp(op, reg, left_reg, right_reg),
+            _ => proto.code_bin_op(op, reg, left_reg, right_reg),
+        };
 
         if input == None {
             Ok(ExprResult::temp(reg))
         } else {
             Ok(ExprResult::None)
         }
+    }
+
+    fn code_comp(&mut self, op: BinOp, target: u32, left: u32, right: u32) {
+        let (left, right) = match op {
+            BinOp::Ge | BinOp::Gt => (right, left),
+            _ => (left, right)
+        };
+
+        let proto = self.proto();
+        proto.code_comp(op, left, right);
+        proto.code_jmp(1, 0);
+        proto.code_bool(target, false, 1);
+        proto.code_bool(target, true, 0);
     }
 
     fn code_un_op(
@@ -333,11 +349,7 @@ impl Compiler {
         }
     }
 
-    fn code_not(
-        &mut self,
-        input: Option<u32>,
-        expr: &Expr,
-    ) -> Result<ExprResult, CompileError> {
+    fn code_not(&mut self, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
             Ok(ExprResult::False)
         } else {
@@ -366,8 +378,8 @@ impl Compiler {
         match result {
             ExprResult::ConstIndex(k) => proto.code_const(reg, k),
             ExprResult::RegIndex(src) => proto.code_move(reg, src.reg),
-            ExprResult::True => proto.code_bool(reg, true),
-            ExprResult::False => proto.code_bool(reg, false),
+            ExprResult::True => proto.code_bool(reg, true, 0),
+            ExprResult::False => proto.code_bool(reg, false, 0),
             ExprResult::Nil => proto.code_nil(reg, 1),
             ExprResult::None => proto.save(reg),
         }

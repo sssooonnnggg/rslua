@@ -56,12 +56,12 @@ impl Proto {
         ));
     }
 
-    pub fn code_bool(&mut self, reg: u32, v: bool) {
+    pub fn code_bool(&mut self, reg: u32, v: bool, pc: u32) {
         self.code.push(Instruction::create_ABC(
             OpCode::LoadBool,
             reg,
             if v { 1 } else { 0 },
-            0,
+            pc,
         ));
     }
 
@@ -93,18 +93,24 @@ impl Proto {
             BinOp::Shl => OpCode::Shl,
             BinOp::Shr => OpCode::Shr,
             BinOp::Concat => OpCode::Concat,
-            BinOp::Ne => todo!(),
-            BinOp::Eq => todo!(),
-            BinOp::Lt => todo!(),
-            BinOp::Le => todo!(),
-            BinOp::Gt => todo!(),
-            BinOp::Ge => todo!(),
             BinOp::And => todo!(),
             BinOp::Or => todo!(),
-            BinOp::None => unreachable!(),
+            _ => unreachable!(),
         };
         self.code
             .push(Instruction::create_ABC(op_code, target, left, right));
+    }
+
+    pub fn code_comp(&mut self, op: BinOp, left: u32, right: u32) {
+        let op_code = match op {
+            BinOp::Lt | BinOp::Gt => OpCode::Lt,
+            BinOp::Ne | BinOp::Eq => OpCode::Eq,
+            BinOp::Le | BinOp::Ge => OpCode::Le,
+            _ => unreachable!(),
+        };
+        let cond = if op == BinOp::Ne { 0 } else { 1 };
+        self.code
+            .push(Instruction::create_ABC(op_code, cond, left, right));
     }
 
     pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) {
@@ -117,6 +123,11 @@ impl Proto {
         };
         self.code
             .push(Instruction::create_ABC(op_code, target, src, 0));
+    }
+
+    pub fn code_jmp(&mut self, offset: i32, upvars: u32) {
+        self.code
+            .push(Instruction::create_AsBx(OpCode::Jmp, upvars, offset));
     }
 
     pub fn add_local_var(&mut self, name: &str) {

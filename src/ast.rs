@@ -85,6 +85,7 @@ impl BinOp {
             _ => BinOp::None,
         }
     }
+
     pub fn priority(self) -> BinOpPriority {
         match self {
             BinOp::Or => BinOpPriority { left: 1, right: 1 },
@@ -110,6 +111,13 @@ impl BinOp {
                 right: 13,
             },
             _ => unreachable!(),
+        }
+    }
+
+    pub fn is_comp(&self) -> bool {
+        match self {
+            BinOp::Le | BinOp::Ge | BinOp::Ne | BinOp::Eq | BinOp::Lt | BinOp::Gt => true,
+            _ => false,
         }
     }
 }
