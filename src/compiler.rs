@@ -224,11 +224,7 @@ impl Compiler {
 
     fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         match expr {
-            Expr::BinExpr(bin) => {
-                let left = self.expr(&bin.left, reg)?;
-                let right = self.expr(&bin.right, None)?;
-                self.code_bin_op(bin.op, reg, left, right)
-            }
+            Expr::BinExpr(bin) => self.code_bin_op(bin.op, reg, &bin.left, &bin.right),
             Expr::UnExpr(un) => {
                 if un.op == UnOp::Not {
                     self.code_not(reg, &un.expr)
@@ -278,12 +274,27 @@ impl Compiler {
         &mut self,
         op: BinOp,
         input: Option<u32>,
-        left: ExprResult,
-        right: ExprResult,
+        left_expr: &Expr,
+        right_expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
-        // if left return None, represent that left expr is already in input reg
+        // left expr and right expr try use input reg
+        let left = self.expr(left_expr, input)?;
+
+        // if input is not used, apply it to right expr
+        let mut right_input = None;
+        if let Some(input_reg) = input {
+            right_input = match &left {
+                ExprResult::None => None,
+                ExprResult::RegIndex(r) =>  if r.reg < input_reg { input } else { None },
+                _ => input,
+            };
+        };
+
+        let right = self.expr(right_expr, right_input)?;
+
+        // if left or right return None, represent that expr is already in input reg
         let left_reg = left.to_reg().unwrap_or_else(|| input.unwrap());
-        let right_reg = right.to_reg().unwrap();
+        let right_reg = right.to_reg().unwrap_or_else(|| input.unwrap());
 
         // try use input reg otherwise alloc one
         let context = self.context();
@@ -314,7 +325,7 @@ impl Compiler {
     fn code_comp(&mut self, op: BinOp, target: u32, left: u32, right: u32) {
         let (left, right) = match op {
             BinOp::Ge | BinOp::Gt => (right, left),
-            _ => (left, right)
+            _ => (left, right),
         };
 
         let proto = self.proto();

@@ -342,7 +342,8 @@ local a = 1 // 0"#,
 
     #[test]
     fn code_bin_op() {
-        let output = try_compile_and_print("local a, b, c; local d = 1 + a - b * c; local e = d + 1");
+        let output =
+            try_compile_and_print("local a, b, c; local d = 1 + a - b * c; local e = d + 1");
         let expected = r#"
 stack size : 5
 consts :
@@ -367,7 +368,8 @@ instructions :
 
     #[test]
     fn code_bin_op_2() {
-        let output = try_compile_and_print("local a, b, c; local d, e, f = a * 3 - b, a / b / c, b + a + c");
+        let output =
+            try_compile_and_print("local a, b, c; local d, e, f = a * 3 - b, a / b / c, b + a + c");
         let expected = r#"
 stack size : 6
 consts :
@@ -395,7 +397,9 @@ instructions :
 
     #[test]
     fn code_bin_op_3() {
-        let output = try_compile_and_print("local a, b, c, d, e, f; d, e, f = a * 3 - b, a / b / c, b + a + c");
+        let output = try_compile_and_print(
+            "local a, b, c, d, e, f; d, e, f = a * 3 - b, a / b / c, b + a + c",
+        );
         let expected = r#"
 stack size : 9
 consts :
@@ -446,6 +450,27 @@ instructions :
     }
 
     #[test]
+    fn bin_op_5() {
+        let output = try_compile_and_print("local a, b, c; local d = a + (b + c)");
+        let expected = r#"
+stack size : 4
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 2     |       |
+| 2     | Add        | 3     | 1     | 2     |
+| 3     | Add        | 3     | 0     | 3     |
+| 4     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
     fn un_op() {
         let output = try_compile_and_print("local a, b, c; local d = -((-a + ~b + (-c)) * 4)");
         let expected = r#"
@@ -475,7 +500,8 @@ instructions :
     #[test]
     fn code_not() {
         let output = try_compile_and_print(
-            "local a, b, c, d, e, f = not nil, not false, not true, not 0, not 0.1");
+            "local a, b, c, d, e, f = not nil, not false, not true, not 0, not 0.1",
+        );
         let expected = r#"
 stack size : 6
 consts :
@@ -496,7 +522,7 @@ instructions :
 | 6     | LoadNil    | 5     | 0     |       |
 | 7     | Return     | 0     | 1     |       |
 "#;
-            assert_eq!(output, expected);
+        assert_eq!(output, expected);
     }
 
     #[test]
@@ -535,14 +561,11 @@ instructions :
 | 2     | Len        | 1     | 0     |       |
 | 3     | Return     | 0     | 1     |       |
 "#;
-        assert_eq!(
-            output,
-            expected
-        )
+        assert_eq!(output, expected)
     }
 
     #[test]
-    pub fn code_comp() {
+    fn code_comp() {
         let output = try_compile_and_print("local a, b; local c = a < b;");
         let expected = r#"
 stack size : 3
@@ -564,7 +587,57 @@ instructions :
     }
 
     #[test]
-    pub fn code_comp_2() {
-        let output = try_compile_and_print("local a, b, c, d; local e = a < b <= c > d >= 1 == 2 ~= 3");
+    fn code_comp_2() {
+        let output =
+            try_compile_and_print("local a, b, c, d; local e = a < b <= c > d >= 1 == 2 ~= 3");
+        let expected = r#"
+stack size : 5
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 3          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 3     |       |
+| 2     | Lt         | 1     | 0     | 1     |
+| 3     | Jmp        | 0     | 1     |       |
+| 4     | LoadBool   | 4     | 0     | 1     |
+| 5     | LoadBool   | 4     | 1     | 0     |
+| 6     | Le         | 1     | 4     | 2     |
+| 7     | Jmp        | 0     | 1     |       |
+| 8     | LoadBool   | 4     | 0     | 1     |
+| 9     | LoadBool   | 4     | 1     | 0     |
+| 10    | Lt         | 1     | 3     | 4     |
+| 11    | Jmp        | 0     | 1     |       |
+| 12    | LoadBool   | 4     | 0     | 1     |
+| 13    | LoadBool   | 4     | 1     | 0     |
+| 14    | Le         | 1     | 256   | 4     |
+| 15    | Jmp        | 0     | 1     |       |
+| 16    | LoadBool   | 4     | 0     | 1     |
+| 17    | LoadBool   | 4     | 1     | 0     |
+| 18    | Eq         | 1     | 4     | 257   |
+| 19    | Jmp        | 0     | 1     |       |
+| 20    | LoadBool   | 4     | 0     | 1     |
+| 21    | LoadBool   | 4     | 1     | 0     |
+| 22    | Eq         | 0     | 4     | 258   |
+| 23    | Jmp        | 0     | 1     |       |
+| 24    | LoadBool   | 4     | 0     | 1     |
+| 25    | LoadBool   | 4     | 1     | 0     |
+| 26    | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_comp_3() {
+        let output = try_compile_and_print(
+            "local a, b, c, d; local e = a < (b <= (c > (d >= 1))) == (2 ~= 3)",
+        );
     }
 }
