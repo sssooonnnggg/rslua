@@ -374,7 +374,7 @@ impl Instruction {
     }
 
     fn set_arg(&mut self, value: u32, pos: u32, size: u32) {
-        self.0 = Instruction::mask0(size, pos) | (value << POS_OP) & Instruction::mask1(size, pos)
+        self.0 = (Instruction::mask1(size, pos) & (value << pos)) | (self.0 & Instruction::mask0(size, pos))
     }
 
     fn mask1(n: u32, p: u32) -> u32 {

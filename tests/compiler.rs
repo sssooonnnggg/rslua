@@ -686,5 +686,22 @@ instructions :
     #[test]
     fn code_comp_4() {
         let output = try_compile_and_print("local a, b; local c = not (a > b)");
+        let expected = r#"
+stack size : 3
+consts :
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 1     |       |
+| 2     | Lt         | 0     | 1     | 0     |
+| 3     | Jmp        | 0     | 1     |       |
+| 4     | LoadBool   | 2     | 0     | 1     |
+| 5     | LoadBool   | 2     | 1     | 0     |
+| 6     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
     }
 }

@@ -36,6 +36,7 @@ pub struct Reg {
 
 pub struct ExprResult {
     pub data: ExprData,
+    pub cond: Option<usize>,
 }
 
 pub enum ExprData {
@@ -48,12 +49,13 @@ pub enum ExprData {
 
 impl ExprResult {
     pub fn new(data: ExprData) -> Self {
-        ExprResult { data }
+        ExprResult { data, cond: None }
     }
 
     pub fn new_const(k: u32) -> Self {
         ExprResult {
             data: ExprData::ConstIndex(k),
+            cond: None,
         }
     }
 
@@ -104,6 +106,14 @@ impl ExprResult {
             ExprData::RegIndex(reg) => !reg.mutable,
             _ => false,
         }
+    }
+
+    pub fn set_cond(&mut self, cond: usize) {
+        self.cond = Some(cond);
+    }
+
+    pub fn get_cond(&self) -> Option<usize> {
+        self.cond
     }
 }
 
@@ -354,31 +364,42 @@ impl Compiler {
             context.free_reg(1);
         }
 
+        // register to save
+        let mut result = if let Some(input_reg) = input {
+            ExprResult::reg(input_reg)
+        } else {
+            ExprResult::temp_reg(reg)
+        };
+
         // gennerate opcode of binop
         let proto = self.proto();
         match op {
-            _ if op.is_comp() => self.code_comp(op, reg, left_rk, right_rk),
-            _ => proto.code_bin_op(op, reg, left_rk, right_rk),
+            _ if op.is_comp() => {
+                let cond = self.code_comp(op, reg, left_rk, right_rk);
+
+                // set cond
+                result.set_cond(cond);
+            }
+            _ => {
+                proto.code_bin_op(op, reg, left_rk, right_rk);
+            }
         };
 
-        if let Some(input_reg) = input {
-            Ok(ExprResult::reg(input_reg))
-        } else {
-            Ok(ExprResult::temp_reg(reg))
-        }
+        Ok(result)
     }
 
-    fn code_comp(&mut self, op: BinOp, target: u32, left: u32, right: u32) {
+    fn code_comp(&mut self, op: BinOp, target: u32, left: u32, right: u32) -> usize {
         let (left, right) = match op {
             BinOp::Ge | BinOp::Gt => (right, left),
             _ => (left, right),
         };
 
         let proto = self.proto();
-        proto.code_comp(op, left, right);
+        let cond = proto.code_comp(op, left, right);
         proto.code_jmp(1, 0);
         proto.code_bool(target, false, 1);
         proto.code_bool(target, true, 0);
+        cond
     }
 
     fn code_un_op(
@@ -411,10 +432,19 @@ impl Compiler {
             Ok(ExprResult::new(ExprData::False))
         } else {
             let result = self.expr(expr, input)?;
-            match result.data {
-                ExprData::Nil | ExprData::False => Ok(ExprResult::new(ExprData::True)),
-                ExprData::ConstIndex(_) | ExprData::True => Ok(ExprResult::new(ExprData::False)),
-                _ => self.code_un_op(UnOp::Not, input, result),
+
+            // if expr has cond, just inverse it
+            if let Some(cond) = result.get_cond() {
+                let proto = self.proto();
+                let instruction = proto.get_instruction(cond);
+                instruction.set_arg_A(1 - instruction.get_arg_A());
+                Ok(result)
+            } else {
+                match result.data {
+                    ExprData::Nil | ExprData::False => Ok(ExprResult::new(ExprData::True)),
+                    ExprData::ConstIndex(_) | ExprData::True => Ok(ExprResult::new(ExprData::False)),
+                    _ => self.code_un_op(UnOp::Not, input, result),
+                }
             }
         }
     }
@@ -439,7 +469,7 @@ impl Compiler {
             ExprData::True => proto.code_bool(reg, true, 0),
             ExprData::False => proto.code_bool(reg, false, 0),
             ExprData::Nil => proto.code_nil(reg, 1),
-        }
+        };
 
         if temp_reg != reg {
             self.context().free_reg(1);

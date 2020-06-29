@@ -41,12 +41,13 @@ impl Proto {
         self.code_return(0, 0);
     }
 
-    pub fn code_return(&mut self, first: u32, nret: u32) {
+    pub fn code_return(&mut self, first: u32, nret: u32) -> usize {
         self.code
             .push(Instruction::create_ABC(OpCode::Return, first, nret + 1, 0));
+        self.code.len() - 1
     }
 
-    pub fn code_nil(&mut self, start_reg: u32, n: u32) {
+    pub fn code_nil(&mut self, start_reg: u32, n: u32) -> usize {
         // TODO : optimize for duplicate LoadNil
         self.code.push(Instruction::create_ABC(
             OpCode::LoadNil,
@@ -54,31 +55,35 @@ impl Proto {
             n - 1,
             0,
         ));
+        self.code.len() - 1
     }
 
-    pub fn code_bool(&mut self, reg: u32, v: bool, pc: u32) {
+    pub fn code_bool(&mut self, reg: u32, v: bool, pc: u32) -> usize {
         self.code.push(Instruction::create_ABC(
             OpCode::LoadBool,
             reg,
             if v { 1 } else { 0 },
             pc,
         ));
+        self.code.len() - 1
     }
 
-    pub fn code_const(&mut self, reg_index: u32, const_index: u32) {
+    pub fn code_const(&mut self, reg_index: u32, const_index: u32) -> usize {
         self.code.push(Instruction::create_ABx(
             OpCode::LoadK,
             reg_index,
             const_index,
         ));
+        self.code.len() - 1
     }
 
-    pub fn code_move(&mut self, reg: u32, src: u32) {
+    pub fn code_move(&mut self, reg: u32, src: u32) -> usize {
         self.code
             .push(Instruction::create_ABC(OpCode::Move, reg, src, 0));
+        self.code.len() - 1
     }
 
-    pub fn code_bin_op(&mut self, op: BinOp, target: u32, left: u32, right: u32) {
+    pub fn code_bin_op(&mut self, op: BinOp, target: u32, left: u32, right: u32) -> usize {
         let op_code = match op {
             BinOp::Add => OpCode::Add,
             BinOp::Minus => OpCode::Sub,
@@ -99,9 +104,10 @@ impl Proto {
         };
         self.code
             .push(Instruction::create_ABC(op_code, target, left, right));
+        self.code.len() - 1
     }
 
-    pub fn code_comp(&mut self, op: BinOp, left: u32, right: u32) {
+    pub fn code_comp(&mut self, op: BinOp, left: u32, right: u32) -> usize {
         let op_code = match op {
             BinOp::Lt | BinOp::Gt => OpCode::Lt,
             BinOp::Ne | BinOp::Eq => OpCode::Eq,
@@ -111,9 +117,10 @@ impl Proto {
         let cond = if op == BinOp::Ne { 0 } else { 1 };
         self.code
             .push(Instruction::create_ABC(op_code, cond, left, right));
+        self.code.len() - 1
     }
 
-    pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) {
+    pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) -> usize {
         let op_code = match op {
             UnOp::Minus => OpCode::Unm,
             UnOp::BNot => OpCode::BNot,
@@ -123,11 +130,13 @@ impl Proto {
         };
         self.code
             .push(Instruction::create_ABC(op_code, target, src, 0));
+        self.code.len() - 1
     }
 
-    pub fn code_jmp(&mut self, offset: i32, upvars: u32) {
+    pub fn code_jmp(&mut self, offset: i32, upvars: u32) -> usize {
         self.code
             .push(Instruction::create_AsBx(OpCode::Jmp, upvars, offset));
+        self.code.len() - 1
     }
 
     pub fn add_local_var(&mut self, name: &str) {
@@ -158,11 +167,16 @@ impl Proto {
     }
 
     // save result to target reg
-    pub fn save(&mut self, target: u32) {
+    pub fn save(&mut self, target: u32) -> usize {
         let last = self.code.last_mut();
         if let Some(code) = last {
             code.save(target);
         }
+        self.code.len() - 1
+    }
+
+    pub fn get_instruction(&mut self, index: usize) -> &mut Instruction {
+        &mut self.code[index]
     }
 }
 
