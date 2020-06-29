@@ -43,11 +43,11 @@ pub enum ExprResult {
 }
 
 impl ExprResult {
-    pub fn to_reg(&self) -> Option<u32> {
+    pub fn get_rk(&self) -> u32 {
         match self {
-            ExprResult::ConstIndex(k) => Some(MASK_K | *k),
-            ExprResult::RegIndex(i) => Some(i.reg),
-            _ => None,
+            ExprResult::ConstIndex(k) => MASK_K | *k,
+            ExprResult::RegIndex(i) => i.reg,
+            _ => unreachable!(),
         }
     }
 
@@ -154,7 +154,6 @@ impl Compiler {
     }
 
     // process expr and return const index or register index
-    // if return None, the result of expr is already in reg
     fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         let proto = self.proto();
         let result = match expr {
@@ -321,9 +320,9 @@ impl Compiler {
 
         let right = self.expr(right_expr, right_input)?;
 
-        // if left or right return None, represent that expr is already in input reg
-        let left_reg = left.to_reg().unwrap_or_else(|| input.unwrap());
-        let right_reg = right.to_reg().unwrap_or_else(|| input.unwrap());
+        // get rk of left and right expr
+        let left_rk = left.get_rk();
+        let right_rk = right.get_rk();
 
         // try use input reg otherwise alloc one
         let context = self.context();
@@ -340,8 +339,8 @@ impl Compiler {
         // gennerate opcode of binop
         let proto = self.proto();
         match op {
-            _ if op.is_comp() => self.code_comp(op, reg, left_reg, right_reg),
-            _ => proto.code_bin_op(op, reg, left_reg, right_reg),
+            _ if op.is_comp() => self.code_comp(op, reg, left_rk, right_rk),
+            _ => proto.code_bin_op(op, reg, left_rk, right_rk),
         };
 
         if let Some(input_reg) = input {
@@ -370,7 +369,7 @@ impl Compiler {
         input: Option<u32>,
         expr: ExprResult,
     ) -> Result<ExprResult, CompileError> {
-        let src = expr.to_reg().unwrap_or_else(|| input.unwrap());
+        let src = expr.get_rk();
         let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
         // free temp register
