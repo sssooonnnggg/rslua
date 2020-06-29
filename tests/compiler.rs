@@ -682,4 +682,9 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_comp_4() {
+        let output = try_compile_and_print("local a, b; local c = not (a > b)");
+    }
 }

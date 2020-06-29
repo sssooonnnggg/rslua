@@ -31,6 +31,7 @@ macro_rules! compile_error {
 pub struct Reg {
     pub reg: u32,
     pub temp: bool,
+    pub mutable: bool,
 }
 
 pub enum ExprResult {
@@ -39,7 +40,6 @@ pub enum ExprResult {
     Nil,
     True,
     False,
-    None,
 }
 
 impl ExprResult {
@@ -51,15 +51,42 @@ impl ExprResult {
         }
     }
 
-    pub fn is_temp(&self) -> bool {
+    pub fn is_temp_reg(&self) -> bool {
         match self {
             ExprResult::RegIndex(i) => i.temp,
             _ => false,
         }
     }
 
-    pub fn temp(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg { reg, temp: true })
+    pub fn reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: false,
+            mutable: true,
+        })
+    }
+
+    pub fn temp_reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: true,
+            mutable: true,
+        })
+    }
+
+    pub fn const_reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: false,
+            mutable: false,
+        })
+    }
+
+    pub fn is_const_reg(&self) -> bool {
+        match self {
+            ExprResult::RegIndex(reg) => !reg.mutable,
+            _ => false
+        }
     }
 }
 
@@ -148,10 +175,7 @@ impl Compiler {
             Expr::False => ExprResult::False,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    return Ok(ExprResult::RegIndex(Reg {
-                        reg: src,
-                        temp: false,
-                    }));
+                    return Ok(ExprResult::const_reg(src));
                 }
                 // TODO : process upval and globals
                 todo!()
@@ -284,8 +308,13 @@ impl Compiler {
         let mut right_input = None;
         if let Some(input_reg) = input {
             right_input = match &left {
-                ExprResult::None => None,
-                ExprResult::RegIndex(r) =>  if r.reg < input_reg { input } else { None },
+                ExprResult::RegIndex(r) => {
+                    if r.reg < input_reg {
+                        input
+                    } else {
+                        None
+                    }
+                }
                 _ => input,
             };
         };
@@ -301,10 +330,10 @@ impl Compiler {
         let reg = input.unwrap_or_else(|| context.reserve_regs(1));
 
         // free register
-        if left.is_temp() {
+        if left.is_temp_reg() {
             context.free_reg(1);
         }
-        if right.is_temp() {
+        if right.is_temp_reg() {
             context.free_reg(1);
         }
 
@@ -315,10 +344,10 @@ impl Compiler {
             _ => proto.code_bin_op(op, reg, left_reg, right_reg),
         };
 
-        if input == None {
-            Ok(ExprResult::temp(reg))
+        if let Some(input_reg) = input {
+            Ok(ExprResult::reg(input_reg))
         } else {
-            Ok(ExprResult::None)
+            Ok(ExprResult::temp_reg(reg))
         }
     }
 
@@ -345,7 +374,7 @@ impl Compiler {
         let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
         // free temp register
-        if expr.is_temp() {
+        if expr.is_temp_reg() {
             self.context().free_reg(1);
         }
 
@@ -353,10 +382,10 @@ impl Compiler {
         let proto = self.proto();
         proto.code_un_op(op, target, src);
 
-        if input == None {
-            Ok(ExprResult::temp(target))
+        if let Some(input_reg) = input {
+            Ok(ExprResult::reg(input_reg))
         } else {
-            Ok(ExprResult::None)
+            Ok(ExprResult::temp_reg(target))
         }
     }
 
@@ -388,11 +417,11 @@ impl Compiler {
         let proto = self.proto();
         match result {
             ExprResult::ConstIndex(k) => proto.code_const(reg, k),
-            ExprResult::RegIndex(src) => proto.code_move(reg, src.reg),
+            ExprResult::RegIndex(src) if result.is_const_reg() => proto.code_move(reg, src.reg),
+            ExprResult::RegIndex(_) => proto.save(reg),
             ExprResult::True => proto.code_bool(reg, true, 0),
             ExprResult::False => proto.code_bool(reg, false, 0),
             ExprResult::Nil => proto.code_nil(reg, 1),
-            ExprResult::None => proto.save(reg),
         }
 
         if temp_reg != reg {
