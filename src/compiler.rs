@@ -34,7 +34,11 @@ pub struct Reg {
     pub mutable: bool,
 }
 
-pub enum ExprResult {
+pub struct ExprResult {
+    pub data: ExprData,
+}
+
+pub enum ExprData {
     ConstIndex(u32),
     RegIndex(Reg),
     Nil,
@@ -43,49 +47,62 @@ pub enum ExprResult {
 }
 
 impl ExprResult {
+    pub fn new(data: ExprData) -> Self {
+        ExprResult { data }
+    }
+
+    pub fn new_const(k: u32) -> Self {
+        ExprResult {
+            data: ExprData::ConstIndex(k),
+        }
+    }
+
     pub fn get_rk(&self) -> u32 {
-        match self {
-            ExprResult::ConstIndex(k) => MASK_K | *k,
-            ExprResult::RegIndex(i) => i.reg,
+        match &self.data {
+            ExprData::ConstIndex(k) => MASK_K | *k,
+            ExprData::RegIndex(i) => i.reg,
             _ => unreachable!(),
         }
     }
 
     pub fn is_temp_reg(&self) -> bool {
-        match self {
-            ExprResult::RegIndex(i) => i.temp,
+        match &self.data {
+            ExprData::RegIndex(i) => i.temp,
             _ => false,
         }
     }
 
     pub fn reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        let data = ExprData::RegIndex(Reg {
             reg,
             temp: false,
             mutable: true,
-        })
+        });
+        ExprResult::new(data)
     }
 
     pub fn temp_reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        let data = ExprData::RegIndex(Reg {
             reg,
             temp: true,
             mutable: true,
-        })
+        });
+        ExprResult::new(data)
     }
 
     pub fn const_reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        let data = ExprData::RegIndex(Reg {
             reg,
             temp: false,
             mutable: false,
-        })
+        });
+        ExprResult::new(data)
     }
 
     pub fn is_const_reg(&self) -> bool {
-        match self {
-            ExprResult::RegIndex(reg) => !reg.mutable,
-            _ => false
+        match &self.data {
+            ExprData::RegIndex(reg) => !reg.mutable,
+            _ => false,
         }
     }
 }
@@ -159,19 +176,19 @@ impl Compiler {
         let result = match expr {
             Expr::Int(i) => {
                 let k = proto.add_const(Const::Int(*i));
-                ExprResult::ConstIndex(k)
+                ExprResult::new_const(k)
             }
             Expr::Float(f) => {
                 let k = proto.add_const(Const::Float(*f));
-                ExprResult::ConstIndex(k)
+                ExprResult::new_const(k)
             }
             Expr::String(s) => {
                 let k = proto.add_const(Const::Str(s.clone()));
-                ExprResult::ConstIndex(k)
+                ExprResult::new_const(k)
             }
-            Expr::Nil => ExprResult::Nil,
-            Expr::True => ExprResult::True,
-            Expr::False => ExprResult::False,
+            Expr::Nil => ExprResult::new(ExprData::Nil),
+            Expr::True => ExprResult::new(ExprData::True),
+            Expr::False => ExprResult::new(ExprData::False),
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
                     return Ok(ExprResult::const_reg(src));
@@ -193,7 +210,8 @@ impl Compiler {
         reg: Option<u32>,
     ) -> Result<ExprResult, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
-            Ok(ExprResult::ConstIndex(self.proto().add_const(k)))
+            let k = self.proto().add_const(k);
+            Ok(ExprResult::new_const(k))
         } else {
             self.code_expr(expr, reg)
         }
@@ -306,8 +324,8 @@ impl Compiler {
         // if input is not used, apply it to right expr
         let mut right_input = None;
         if let Some(input_reg) = input {
-            right_input = match &left {
-                ExprResult::RegIndex(r) => {
+            right_input = match &left.data {
+                ExprData::RegIndex(r) => {
                     if r.reg < input_reg {
                         input
                     } else {
@@ -390,12 +408,12 @@ impl Compiler {
 
     fn code_not(&mut self, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
-            Ok(ExprResult::False)
+            Ok(ExprResult::new(ExprData::False))
         } else {
             let result = self.expr(expr, input)?;
-            match result {
-                ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
-                ExprResult::ConstIndex(_) | ExprResult::True => Ok(ExprResult::False),
+            match result.data {
+                ExprData::Nil | ExprData::False => Ok(ExprResult::new(ExprData::True)),
+                ExprData::ConstIndex(_) | ExprData::True => Ok(ExprResult::new(ExprData::False)),
                 _ => self.code_un_op(UnOp::Not, input, result),
             }
         }
@@ -414,13 +432,13 @@ impl Compiler {
 
         let result = self.expr(expr, Some(temp_reg))?;
         let proto = self.proto();
-        match result {
-            ExprResult::ConstIndex(k) => proto.code_const(reg, k),
-            ExprResult::RegIndex(src) if result.is_const_reg() => proto.code_move(reg, src.reg),
-            ExprResult::RegIndex(_) => proto.save(reg),
-            ExprResult::True => proto.code_bool(reg, true, 0),
-            ExprResult::False => proto.code_bool(reg, false, 0),
-            ExprResult::Nil => proto.code_nil(reg, 1),
+        match result.data {
+            ExprData::ConstIndex(k) => proto.code_const(reg, k),
+            ExprData::RegIndex(src) if result.is_const_reg() => proto.code_move(reg, src.reg),
+            ExprData::RegIndex(_) => proto.save(reg),
+            ExprData::True => proto.code_bool(reg, true, 0),
+            ExprData::False => proto.code_bool(reg, false, 0),
+            ExprData::Nil => proto.code_nil(reg, 1),
         }
 
         if temp_reg != reg {
