@@ -34,86 +34,109 @@ pub struct Reg {
     pub mutable: bool,
 }
 
-pub struct ExprResult {
-    pub data: ExprData,
-    pub cond: Option<usize>,
+impl Reg {
+    pub fn is_temp(&self) -> bool {
+        self.temp
+    }
+
+    pub fn is_const(&self) -> bool {
+        !self.mutable
+    }
+
+    pub fn resolve(&self, context: &mut ProtoContext) {
+        if self.is_temp() {
+            context.free_reg(1)
+        }
+    }
 }
 
-pub enum ExprData {
+pub struct Jump {
+    pub reg: Reg,
+    pub pc: usize,
+    pub true_jumps: Vec<usize>,
+    pub false_jumps: Vec<usize>,
+}
+
+impl Jump {
+    pub fn new(reg: Reg, pc: usize) -> Self {
+        Jump {
+            reg,
+            pc,
+            true_jumps: Vec::new(),
+            false_jumps: Vec::new(),
+        }
+    }
+
+    pub fn resolve(&self, context: &mut ProtoContext) {
+        self.reg.resolve(context);
+        // TODO
+    }
+
+    pub fn inverse(&self, context: &mut ProtoContext) {
+        let proto = &mut context.proto;
+        let cond = self.pc - 1;
+        let instruction = proto.get_instruction(cond);
+        instruction.set_arg_A(1 - instruction.get_arg_A());
+    }
+}
+
+pub enum ExprResult {
     ConstIndex(u32),
     RegIndex(Reg),
     Nil,
     True,
     False,
+    Jump(Jump),
 }
 
 impl ExprResult {
-    pub fn new(data: ExprData) -> Self {
-        ExprResult { data, cond: None }
+    pub fn new_const(k: u32) -> Self {
+        ExprResult::ConstIndex(k)
     }
 
-    pub fn new_const(k: u32) -> Self {
-        ExprResult {
-            data: ExprData::ConstIndex(k),
-            cond: None,
-        }
+    pub fn new_reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: false,
+            mutable: true,
+        })
+    }
+
+    pub fn new_temp_reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: true,
+            mutable: true,
+        })
+    }
+
+    pub fn new_const_reg(reg: u32) -> Self {
+        ExprResult::RegIndex(Reg {
+            reg,
+            temp: false,
+            mutable: false,
+        })
+    }
+
+    pub fn new_jump(reg: Reg, pc: usize) -> Self {
+        ExprResult::Jump(Jump::new(reg, pc))
     }
 
     pub fn get_rk(&self) -> u32 {
-        match &self.data {
-            ExprData::ConstIndex(k) => MASK_K | *k,
-            ExprData::RegIndex(i) => i.reg,
+        match self {
+            ExprResult::ConstIndex(k) => MASK_K | *k,
+            ExprResult::RegIndex(i) => i.reg,
+            ExprResult::Jump(j) => j.reg.reg,
             _ => unreachable!(),
         }
     }
 
-    pub fn is_temp_reg(&self) -> bool {
-        match &self.data {
-            ExprData::RegIndex(i) => i.temp,
-            _ => false,
-        }
-    }
-
-    pub fn reg(reg: u32) -> Self {
-        let data = ExprData::RegIndex(Reg {
-            reg,
-            temp: false,
-            mutable: true,
-        });
-        ExprResult::new(data)
-    }
-
-    pub fn temp_reg(reg: u32) -> Self {
-        let data = ExprData::RegIndex(Reg {
-            reg,
-            temp: true,
-            mutable: true,
-        });
-        ExprResult::new(data)
-    }
-
-    pub fn const_reg(reg: u32) -> Self {
-        let data = ExprData::RegIndex(Reg {
-            reg,
-            temp: false,
-            mutable: false,
-        });
-        ExprResult::new(data)
-    }
-
-    pub fn is_const_reg(&self) -> bool {
-        match &self.data {
-            ExprData::RegIndex(reg) => !reg.mutable,
-            _ => false,
-        }
-    }
-
-    pub fn set_cond(&mut self, cond: usize) {
-        self.cond = Some(cond);
-    }
-
-    pub fn get_cond(&self) -> Option<usize> {
-        self.cond
+    pub fn resolve(&self, context: &mut ProtoContext) {
+        match self {
+            ExprResult::RegIndex(r) => r.resolve(context),
+            ExprResult::Jump(j) => j.resolve(context),
+            _ => (),
+        };
     }
 }
 
@@ -196,12 +219,12 @@ impl Compiler {
                 let k = proto.add_const(Const::Str(s.clone()));
                 ExprResult::new_const(k)
             }
-            Expr::Nil => ExprResult::new(ExprData::Nil),
-            Expr::True => ExprResult::new(ExprData::True),
-            Expr::False => ExprResult::new(ExprData::False),
+            Expr::Nil => ExprResult::Nil,
+            Expr::True => ExprResult::True,
+            Expr::False => ExprResult::False,
             Expr::Name(name) => {
                 if let Some(src) = proto.get_local_var(name) {
-                    return Ok(ExprResult::const_reg(src));
+                    return Ok(ExprResult::new_const_reg(src));
                 }
                 // TODO : process upval and globals
                 todo!()
@@ -331,17 +354,13 @@ impl Compiler {
         // left expr and right expr try use input reg
         let left = self.expr(left_expr, input)?;
 
-        // if input is not used, apply it to right expr
+        // if input reg is not used by left expr, apply it to right expr
         let mut right_input = None;
+        let is_input_reusable = |r:u32, input:u32| { r < input };
         if let Some(input_reg) = input {
-            right_input = match &left.data {
-                ExprData::RegIndex(r) => {
-                    if r.reg < input_reg {
-                        input
-                    } else {
-                        None
-                    }
-                }
+            right_input = match &left {
+                ExprResult::RegIndex(r) if !is_input_reusable(r.reg, input_reg)=> None,
+                ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg)=> None,
                 _ => input,
             };
         };
@@ -356,29 +375,21 @@ impl Compiler {
         let context = self.context();
         let reg = input.unwrap_or_else(|| context.reserve_regs(1));
 
-        // free register
-        if left.is_temp_reg() {
-            context.free_reg(1);
-        }
-        if right.is_temp_reg() {
-            context.free_reg(1);
-        }
+        // resolve previous expr result
+        left.resolve(context);
+        right.resolve(context);
 
-        // register to save
-        let mut result = if let Some(input_reg) = input {
-            ExprResult::reg(input_reg)
+        let mut result = if let Some(_) = input {
+            ExprResult::new_reg(reg)
         } else {
-            ExprResult::temp_reg(reg)
+            ExprResult::new_temp_reg(reg)
         };
 
         // gennerate opcode of binop
         let proto = self.proto();
         match op {
             _ if op.is_comp() => {
-                let cond = self.code_comp(op, reg, left_rk, right_rk);
-
-                // set cond
-                result.set_cond(cond);
+                result = self.code_comp(op, result, left_rk, right_rk);
             }
             _ => {
                 proto.code_bin_op(op, reg, left_rk, right_rk);
@@ -388,18 +399,25 @@ impl Compiler {
         Ok(result)
     }
 
-    fn code_comp(&mut self, op: BinOp, target: u32, left: u32, right: u32) -> usize {
-        let (left, right) = match op {
-            BinOp::Ge | BinOp::Gt => (right, left),
-            _ => (left, right),
-        };
+    fn code_comp(&mut self, op: BinOp, target: ExprResult, left: u32, right: u32) -> ExprResult {
+        match target {
+            ExprResult::RegIndex(reg) => {
+                // covert >= to <=, > to <
+                let (left, right) = match op {
+                    BinOp::Ge | BinOp::Gt => (right, left),
+                    _ => (left, right),
+                };
 
-        let proto = self.proto();
-        let cond = proto.code_comp(op, left, right);
-        proto.code_jmp(1, 0);
-        proto.code_bool(target, false, 1);
-        proto.code_bool(target, true, 0);
-        cond
+                let target = reg.reg;
+                let proto = self.proto();
+                proto.code_comp(op, left, right);
+                let jump = proto.code_jmp(1, 0);
+                proto.code_bool(target, false, 1);
+                proto.code_bool(target, true, 0);
+                ExprResult::new_jump(reg, jump)
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn code_un_op(
@@ -411,40 +429,33 @@ impl Compiler {
         let src = expr.get_rk();
         let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
-        // free temp register
-        if expr.is_temp_reg() {
-            self.context().free_reg(1);
-        }
+        // resolve previous result
+        expr.resolve(self.context());
 
         // gennerate opcode of unop
         let proto = self.proto();
         proto.code_un_op(op, target, src);
 
         if let Some(input_reg) = input {
-            Ok(ExprResult::reg(input_reg))
+            Ok(ExprResult::new_reg(input_reg))
         } else {
-            Ok(ExprResult::temp_reg(target))
+            Ok(ExprResult::new_temp_reg(target))
         }
     }
 
     fn code_not(&mut self, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
-            Ok(ExprResult::new(ExprData::False))
+            Ok(ExprResult::False)
         } else {
             let result = self.expr(expr, input)?;
-
-            // if expr has cond, just inverse it
-            if let Some(cond) = result.get_cond() {
-                let proto = self.proto();
-                let instruction = proto.get_instruction(cond);
-                instruction.set_arg_A(1 - instruction.get_arg_A());
-                Ok(result)
-            } else {
-                match result.data {
-                    ExprData::Nil | ExprData::False => Ok(ExprResult::new(ExprData::True)),
-                    ExprData::ConstIndex(_) | ExprData::True => Ok(ExprResult::new(ExprData::False)),
-                    _ => self.code_un_op(UnOp::Not, input, result),
+            match &result {
+                ExprResult::Jump(j) => {
+                    j.inverse(self.context());
+                    Ok(result)
                 }
+                ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
+                ExprResult::ConstIndex(_) | ExprResult::True => Ok(ExprResult::False),
+                _ => self.code_un_op(UnOp::Not, input, result),
             }
         }
     }
@@ -462,13 +473,17 @@ impl Compiler {
 
         let result = self.expr(expr, Some(temp_reg))?;
         let proto = self.proto();
-        match result.data {
-            ExprData::ConstIndex(k) => proto.code_const(reg, k),
-            ExprData::RegIndex(src) if result.is_const_reg() => proto.code_move(reg, src.reg),
-            ExprData::RegIndex(_) => proto.save(reg),
-            ExprData::True => proto.code_bool(reg, true, 0),
-            ExprData::False => proto.code_bool(reg, false, 0),
-            ExprData::Nil => proto.code_nil(reg, 1),
+        match result {
+            ExprResult::ConstIndex(k) => proto.code_const(reg, k),
+            ExprResult::RegIndex(src) if src.is_const() => proto.code_move(reg, src.reg),
+            ExprResult::RegIndex(_) => proto.save(reg),
+            ExprResult::True => proto.code_bool(reg, true, 0),
+            ExprResult::False => proto.code_bool(reg, false, 0),
+            ExprResult::Nil => proto.code_nil(reg, 1),
+            ExprResult::Jump(j) => {
+                j.resolve(self.context());
+                0
+            }
         };
 
         if temp_reg != reg {
