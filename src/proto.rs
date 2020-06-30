@@ -98,8 +98,6 @@ impl Proto {
             BinOp::Shl => OpCode::Shl,
             BinOp::Shr => OpCode::Shr,
             BinOp::Concat => OpCode::Concat,
-            BinOp::And => todo!(),
-            BinOp::Or => todo!(),
             _ => unreachable!(),
         };
         self.code

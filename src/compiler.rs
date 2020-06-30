@@ -84,8 +84,8 @@ impl Jump {
 }
 
 pub enum ExprResult {
-    ConstIndex(u32),
-    RegIndex(Reg),
+    Const(Const),
+    Reg(Reg),
     Nil,
     True,
     False,
@@ -93,12 +93,12 @@ pub enum ExprResult {
 }
 
 impl ExprResult {
-    pub fn new_const(k: u32) -> Self {
-        ExprResult::ConstIndex(k)
+    pub fn new_const(k: Const) -> Self {
+        ExprResult::Const(k)
     }
 
     pub fn new_reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        ExprResult::Reg(Reg {
             reg,
             temp: false,
             mutable: true,
@@ -106,7 +106,7 @@ impl ExprResult {
     }
 
     pub fn new_temp_reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        ExprResult::Reg(Reg {
             reg,
             temp: true,
             mutable: true,
@@ -114,7 +114,7 @@ impl ExprResult {
     }
 
     pub fn new_const_reg(reg: u32) -> Self {
-        ExprResult::RegIndex(Reg {
+        ExprResult::Reg(Reg {
             reg,
             temp: false,
             mutable: false,
@@ -125,10 +125,13 @@ impl ExprResult {
         ExprResult::Jump(Jump::new(reg, pc))
     }
 
-    pub fn get_rk(&self) -> u32 {
+    pub fn get_rk(&self, context: &mut ProtoContext) -> u32 {
         match self {
-            ExprResult::ConstIndex(k) => MASK_K | *k,
-            ExprResult::RegIndex(i) => i.reg,
+            ExprResult::Const(k) => {
+                let index = context.proto.add_const(k.clone());
+                MASK_K | index
+            }
+            ExprResult::Reg(i) => i.reg,
             ExprResult::Jump(j) => j.reg.reg,
             _ => unreachable!(),
         }
@@ -136,7 +139,7 @@ impl ExprResult {
 
     pub fn resolve(&self, context: &mut ProtoContext) {
         match self {
-            ExprResult::RegIndex(r) => r.resolve(context),
+            ExprResult::Reg(r) => r.resolve(context),
             ExprResult::Jump(j) => j.resolve(context),
             _ => (),
         };
@@ -210,16 +213,11 @@ impl Compiler {
     fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         let proto = self.proto();
         let result = match expr {
-            Expr::Int(i) => {
-                let k = proto.add_const(Const::Int(*i));
-                ExprResult::new_const(k)
-            }
-            Expr::Float(f) => {
-                let k = proto.add_const(Const::Float(*f));
-                ExprResult::new_const(k)
-            }
+            Expr::Int(i) => ExprResult::new_const(Const::Int(*i)),
+            Expr::Float(f) => ExprResult::new_const(Const::Float(*f)),
             Expr::String(s) => {
-                let k = proto.add_const(Const::Str(s.clone()));
+                let k = Const::Str(s.clone());
+                proto.add_const(k.clone());
                 ExprResult::new_const(k)
             }
             Expr::Nil => ExprResult::Nil,
@@ -246,7 +244,6 @@ impl Compiler {
         reg: Option<u32>,
     ) -> Result<ExprResult, CompileError> {
         if let Some(k) = self.try_const_folding(expr)? {
-            let k = self.proto().add_const(k);
             Ok(ExprResult::new_const(k))
         } else {
             self.code_expr(expr, reg)
@@ -354,7 +351,6 @@ impl Compiler {
         left_expr: &Expr,
         right_expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
-
         // get left expr result
         let left = self.expr(left_expr, input)?;
         // resolve previous expr result
@@ -365,7 +361,7 @@ impl Compiler {
         let is_input_reusable = |r: u32, input: u32| r < input;
         if let Some(input_reg) = input {
             right_input = match &left {
-                ExprResult::RegIndex(r) if !is_input_reusable(r.reg, input_reg) => None,
+                ExprResult::Reg(r) if !is_input_reusable(r.reg, input_reg) => None,
                 ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg) => None,
                 _ => input,
             };
@@ -377,10 +373,6 @@ impl Compiler {
         // resolve previous expr result
         right.resolve(self.context());
 
-        // get rk of left and right expr
-        let left_rk = left.get_rk();
-        let right_rk = right.get_rk();
-
         // try use input reg otherwise alloc one
         let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
@@ -390,14 +382,25 @@ impl Compiler {
             ExprResult::new_temp_reg(reg)
         };
 
+        // get rk of left and right expr
+        let mut get_rk = || {
+            let left_rk = left.get_rk(self.context());
+            let right_rk = right.get_rk(self.context());
+            (left_rk, right_rk)
+        };
+
         // gennerate opcode of binop
-        let proto = self.proto();
         match op {
+            BinOp::And => {
+                result = self.code_and(result, left, right);
+            }
             _ if op.is_comp() => {
+                let (left_rk, right_rk) = get_rk();
                 result = self.code_comp(op, result, left_rk, right_rk);
             }
             _ => {
-                proto.code_bin_op(op, reg, left_rk, right_rk);
+                let (left_rk, right_rk) = get_rk();
+                self.proto().code_bin_op(op, reg, left_rk, right_rk);
             }
         };
 
@@ -406,7 +409,7 @@ impl Compiler {
 
     fn code_comp(&mut self, op: BinOp, target: ExprResult, left: u32, right: u32) -> ExprResult {
         match target {
-            ExprResult::RegIndex(reg) => {
+            ExprResult::Reg(reg) => {
                 // covert >= to <=, > to <
                 let (left, right) = match op {
                     BinOp::Ge | BinOp::Gt => (right, left),
@@ -422,13 +425,21 @@ impl Compiler {
         }
     }
 
+    fn code_and(&mut self, target: ExprResult, left: ExprResult, right: ExprResult) -> ExprResult {
+        match left {
+            // do const folding if left is const value
+            ExprResult::True | ExprResult::Const(_) => right,
+            _ => todo!(),
+        }
+    }
+
     fn code_un_op(
         &mut self,
         op: UnOp,
         input: Option<u32>,
         expr: ExprResult,
     ) -> Result<ExprResult, CompileError> {
-        let src = expr.get_rk();
+        let src = expr.get_rk(self.context());
         let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
         // resolve previous result
@@ -456,7 +467,7 @@ impl Compiler {
                     Ok(result)
                 }
                 ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
-                ExprResult::ConstIndex(_) | ExprResult::True => Ok(ExprResult::False),
+                ExprResult::Const(_) | ExprResult::True => Ok(ExprResult::False),
                 _ => self.code_un_op(UnOp::Not, input, result),
             }
         }
@@ -476,9 +487,12 @@ impl Compiler {
         let result = self.expr(expr, Some(temp_reg))?;
         let proto = self.proto();
         match result {
-            ExprResult::ConstIndex(k) => proto.code_const(reg, k),
-            ExprResult::RegIndex(src) if src.is_const() => proto.code_move(reg, src.reg),
-            ExprResult::RegIndex(_) => proto.save(reg),
+            ExprResult::Const(k) => {
+                let index = proto.add_const(k);
+                proto.code_const(reg, index)
+            }
+            ExprResult::Reg(src) if src.is_const() => proto.code_move(reg, src.reg),
+            ExprResult::Reg(_) => proto.save(reg),
             ExprResult::True => proto.code_bool(reg, true, 0),
             ExprResult::False => proto.code_bool(reg, false, 0),
             ExprResult::Nil => proto.code_nil(reg, 1),

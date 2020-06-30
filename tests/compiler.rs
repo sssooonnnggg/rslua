@@ -704,4 +704,58 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_and() {
+        let output = try_compile_and_print("local a = 1 and 2 and 3");
+        let expected = r#"
+stack size : 2
+consts :
+| 0     | 3          |
+locals :
+| 0     | a          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 0     |       |
+| 2     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_and_2() {
+        let output = try_compile_and_print("local a = true and 1 and 2.0 and 'str' and 3");
+        let expected = r#"
+stack size : 2
+consts :
+| 0     | "str"      |
+| 1     | 3          |
+locals :
+| 0     | a          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadK      | 0     | 1     |       |
+| 2     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn code_and_3() {
+        let output = try_compile_and_print("local a; local b = true and 0 and 1 and 2.0 and 'str' and a");
+        let expected = r#"
+stack size : 2
+consts :
+| 0     | "str"      |
+locals :
+| 0     | a          |
+| 1     | b          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 0     |       |
+| 2     | Move       | 1     | 0     |       |
+| 3     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
 }
