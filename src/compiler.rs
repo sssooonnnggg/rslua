@@ -68,8 +68,11 @@ impl Jump {
     }
 
     pub fn resolve(&self, context: &mut ProtoContext) {
+        let proto = &mut context.proto;
+        let target = self.reg.reg;
+        proto.code_bool(target, false, 1);
+        proto.code_bool(target, true, 0);
         self.reg.resolve(context);
-        // TODO
     }
 
     pub fn inverse(&self, context: &mut ProtoContext) {
@@ -351,33 +354,35 @@ impl Compiler {
         left_expr: &Expr,
         right_expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
-        // left expr and right expr try use input reg
+
+        // get left expr result
         let left = self.expr(left_expr, input)?;
+        // resolve previous expr result
+        left.resolve(self.context());
 
         // if input reg is not used by left expr, apply it to right expr
         let mut right_input = None;
-        let is_input_reusable = |r:u32, input:u32| { r < input };
+        let is_input_reusable = |r: u32, input: u32| r < input;
         if let Some(input_reg) = input {
             right_input = match &left {
-                ExprResult::RegIndex(r) if !is_input_reusable(r.reg, input_reg)=> None,
-                ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg)=> None,
+                ExprResult::RegIndex(r) if !is_input_reusable(r.reg, input_reg) => None,
+                ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg) => None,
                 _ => input,
             };
         };
 
+        // get right expr result
         let right = self.expr(right_expr, right_input)?;
+
+        // resolve previous expr result
+        right.resolve(self.context());
 
         // get rk of left and right expr
         let left_rk = left.get_rk();
         let right_rk = right.get_rk();
 
         // try use input reg otherwise alloc one
-        let context = self.context();
-        let reg = input.unwrap_or_else(|| context.reserve_regs(1));
-
-        // resolve previous expr result
-        left.resolve(context);
-        right.resolve(context);
+        let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
         let mut result = if let Some(_) = input {
             ExprResult::new_reg(reg)
@@ -408,12 +413,9 @@ impl Compiler {
                     _ => (left, right),
                 };
 
-                let target = reg.reg;
                 let proto = self.proto();
                 proto.code_comp(op, left, right);
                 let jump = proto.code_jmp(1, 0);
-                proto.code_bool(target, false, 1);
-                proto.code_bool(target, true, 0);
                 ExprResult::new_jump(reg, jump)
             }
             _ => unreachable!(),
