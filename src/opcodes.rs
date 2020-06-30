@@ -49,6 +49,8 @@ pub const MAXARG_SBX: i32 = (MAXARG_BX as i32) >> 1;
 
 pub const MASK_K: u32 = 1 << (SIZE_B - 1);
 
+pub const NO_JUMP: i32 = -1;
+
 pub fn is_const(index: u32) -> bool {
     index & MASK_K != 0
 }
@@ -364,7 +366,7 @@ impl Instruction {
         Instruction(((op as u32) << POS_OP) | (a << POS_AX))
     }
 
-    pub fn save(&mut self, a:u32) {
+    pub fn save(&mut self, a: u32) {
         let mask = !(((1 << SIZE_A) - 1) << POS_A);
         self.0 = (self.0 & mask) | (a << POS_A);
     }
@@ -374,7 +376,8 @@ impl Instruction {
     }
 
     fn set_arg(&mut self, value: u32, pos: u32, size: u32) {
-        self.0 = (Instruction::mask1(size, pos) & (value << pos)) | (self.0 & Instruction::mask0(size, pos))
+        self.0 = (Instruction::mask1(size, pos) & (value << pos))
+            | (self.0 & Instruction::mask0(size, pos))
     }
 
     fn mask1(n: u32, p: u32) -> u32 {

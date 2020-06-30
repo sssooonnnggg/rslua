@@ -71,7 +71,8 @@ impl Jump {
         let proto = &mut context.proto;
         let target = self.reg.reg;
         proto.code_bool(target, false, 1);
-        proto.code_bool(target, true, 0);
+        let jmp_pos = proto.code_bool(target, true, 0);
+        self.fix(jmp_pos, proto);
         self.reg.resolve(context);
     }
 
@@ -80,6 +81,11 @@ impl Jump {
         let cond = self.pc - 1;
         let instruction = proto.get_instruction(cond);
         instruction.set_arg_A(1 - instruction.get_arg_A());
+    }
+
+    fn fix(&self, target: usize, proto: &mut Proto) {
+        let instruction = proto.get_instruction(self.pc);
+        instruction.set_arg_sBx(target as i32 - self.pc as i32 - 1);
     }
 }
 
@@ -418,7 +424,7 @@ impl Compiler {
 
                 let proto = self.proto();
                 proto.code_comp(op, left, right);
-                let jump = proto.code_jmp(1, 0);
+                let jump = proto.code_jmp(NO_JUMP, 0);
                 ExprResult::new_jump(reg, jump)
             }
             _ => unreachable!(),
@@ -429,6 +435,7 @@ impl Compiler {
         match left {
             // do const folding if left is const value
             ExprResult::True | ExprResult::Const(_) => right,
+            ExprResult::Jump(j) => todo!(),
             _ => todo!(),
         }
     }
