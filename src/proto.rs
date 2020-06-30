@@ -137,6 +137,21 @@ impl Proto {
         self.code.len() - 1
     }
 
+    pub fn fix_cond_jump_pos(&mut self, true_pos: usize, false_pos: usize, pc: usize) {
+        let instruction = self.get_instruction(pc);
+        let pos = if instruction.get_arg_A() == 0 {
+            true_pos
+        } else {
+            false_pos
+        };
+        instruction.set_arg_sBx(pos as i32 - pc as i32 - 1);
+    }
+
+    pub fn fix_jump_pos(&mut self, pos: usize, pc: usize) {
+        let instruction = self.get_instruction(pc);
+        instruction.set_arg_sBx(pos as i32 - pc as i32 - 1);
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),

@@ -70,9 +70,13 @@ impl Jump {
     pub fn resolve(&self, context: &mut ProtoContext) {
         let proto = &mut context.proto;
         let target = self.reg.reg;
-        proto.code_bool(target, false, 1);
-        let jmp_pos = proto.code_bool(target, true, 0);
-        self.fix(jmp_pos, proto);
+        let false_pos = proto.code_bool(target, false, 1);
+        let true_pos = proto.code_bool(target, true, 0);
+        self.fix(true_pos, false_pos, proto);
+        self.reg.resolve(context);
+    }
+
+    pub fn free_reg(&self, context: &mut ProtoContext) {
         self.reg.resolve(context);
     }
 
@@ -83,9 +87,24 @@ impl Jump {
         instruction.set_arg_A(1 - instruction.get_arg_A());
     }
 
-    fn fix(&self, target: usize, proto: &mut Proto) {
-        let instruction = proto.get_instruction(self.pc);
-        instruction.set_arg_sBx(target as i32 - self.pc as i32 - 1);
+    pub fn concat_true_jumps(&mut self, other: &mut Jump) {
+        self.true_jumps.append(&mut other.true_jumps);
+        self.true_jumps.push(other.pc);
+    }
+
+    pub fn concat_false_jumps(&mut self, other: &mut Jump) {
+        self.false_jumps.append(&mut other.false_jumps);
+        self.false_jumps.push(other.pc);
+    }
+
+    fn fix(&self, true_pos: usize, false_pos: usize, proto: &mut Proto) {
+        proto.fix_cond_jump_pos(true_pos, false_pos, self.pc);
+        for pc in self.true_jumps.iter() {
+            proto.fix_jump_pos(true_pos, *pc)
+        }
+        for pc in self.false_jumps.iter() {
+            proto.fix_jump_pos(false_pos, *pc)
+        }
     }
 }
 
@@ -304,7 +323,10 @@ impl Compiler {
 
     fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         match expr {
-            Expr::BinExpr(bin) => self.code_bin_op(bin.op, reg, &bin.left, &bin.right),
+            Expr::BinExpr(bin) => match bin.op {
+                BinOp::And => self.code_and(reg, &bin.left, &bin.right),
+                _ => self.code_bin_op(bin.op, reg, &bin.left, &bin.right),
+            },
             Expr::UnExpr(un) => {
                 if un.op == UnOp::Not {
                     self.code_not(reg, &un.expr)
@@ -350,6 +372,19 @@ impl Compiler {
         Ok(result)
     }
 
+    fn get_right_input(&mut self, input: Option<u32>, left: &ExprResult) -> Option<u32> {
+        let mut right_input = None;
+        let is_input_reusable = |r: u32, input: u32| r < input;
+        if let Some(input_reg) = input {
+            right_input = match &left {
+                ExprResult::Reg(r) if !is_input_reusable(r.reg, input_reg) => None,
+                ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg) => None,
+                _ => input,
+            };
+        };
+        right_input
+    }
+
     fn code_bin_op(
         &mut self,
         op: BinOp,
@@ -363,15 +398,7 @@ impl Compiler {
         left.resolve(self.context());
 
         // if input reg is not used by left expr, apply it to right expr
-        let mut right_input = None;
-        let is_input_reusable = |r: u32, input: u32| r < input;
-        if let Some(input_reg) = input {
-            right_input = match &left {
-                ExprResult::Reg(r) if !is_input_reusable(r.reg, input_reg) => None,
-                ExprResult::Jump(j) if !is_input_reusable(j.reg.reg, input_reg) => None,
-                _ => input,
-            };
-        };
+        let right_input = self.get_right_input(input, &left);
 
         // get right expr result
         let right = self.expr(right_expr, right_input)?;
@@ -397,9 +424,6 @@ impl Compiler {
 
         // gennerate opcode of binop
         match op {
-            BinOp::And => {
-                result = self.code_and(result, left, right);
-            }
             _ if op.is_comp() => {
                 let (left_rk, right_rk) = get_rk();
                 result = self.code_comp(op, result, left_rk, right_rk);
@@ -431,11 +455,26 @@ impl Compiler {
         }
     }
 
-    fn code_and(&mut self, target: ExprResult, left: ExprResult, right: ExprResult) -> ExprResult {
-        match left {
+    fn code_and(
+        &mut self,
+        input: Option<u32>,
+        left_expr: &Expr,
+        right_expr: &Expr,
+    ) -> Result<ExprResult, CompileError> {
+        // get left expr result
+        let mut left = self.expr(left_expr, input)?;
+        match &mut left {
             // do const folding if left is const value
-            ExprResult::True | ExprResult::Const(_) => right,
-            ExprResult::Jump(j) => todo!(),
+            ExprResult::True | ExprResult::Const(_) => self.expr(right_expr, input),
+            ExprResult::Jump(j) => {
+                j.inverse(self.context());
+                let mut right = self.expr(right_expr, Some(j.reg.reg))?;
+                match &mut right {
+                    ExprResult::Jump(rj) => rj.concat_false_jumps(j),
+                    _ => todo!(),
+                };
+                Ok(right)
+            }
             _ => todo!(),
         }
     }

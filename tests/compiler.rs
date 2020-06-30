@@ -758,4 +758,33 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_and_4() {
+        let output = try_compile_and_print("local a = 1 < 2 and 3 < 4 and 5 < 6");
+        let expected = r#"
+stack size : 2
+consts :
+| 0     | 1          |
+| 1     | 2          |
+| 2     | 3          |
+| 3     | 4          |
+| 4     | 5          |
+| 5     | 6          |
+locals :
+| 0     | a          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | Lt         | 0     | 256   | 257   |
+| 2     | Jmp        | 0     | 4     |       |
+| 3     | Lt         | 0     | 258   | 259   |
+| 4     | Jmp        | 0     | 2     |       |
+| 5     | Lt         | 1     | 260   | 261   |
+| 6     | Jmp        | 0     | 1     |       |
+| 7     | LoadBool   | 0     | 0     | 1     |
+| 8     | LoadBool   | 0     | 1     | 0     |
+| 9     | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
 }
