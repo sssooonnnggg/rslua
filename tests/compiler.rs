@@ -787,4 +787,38 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_and_5() {
+        let output = try_compile_and_print("local a, b, c, d, e, f; local g = a >= b and c == d and (e + 1) ~= (f - 2)");
+        let expected = r#"
+stack size : 8
+consts :
+| 0     | 1          |
+| 1     | 2          |
+locals :
+| 0     | a          |
+| 1     | b          |
+| 2     | c          |
+| 3     | d          |
+| 4     | e          |
+| 5     | f          |
+| 6     | g          |
+instructions :
+| line  | OP         | A     | B     | C     |
+| 1     | LoadNil    | 0     | 5     |       |
+| 2     | Le         | 0     | 1     | 0     |
+| 3     | Jmp        | 0     | 6     |       |
+| 4     | Eq         | 0     | 2     | 3     |
+| 5     | Jmp        | 0     | 4     |       |
+| 6     | Add        | 6     | 4     | 256   |
+| 7     | Sub        | 7     | 5     | 257   |
+| 8     | Eq         | 0     | 6     | 7     |
+| 9     | Jmp        | 0     | 1     |       |
+| 10    | LoadBool   | 6     | 0     | 1     |
+| 11    | LoadBool   | 6     | 1     | 0     |
+| 12    | Return     | 0     | 1     |       |
+"#;
+        assert_eq!(output, expected);
+    }
 }
