@@ -50,6 +50,7 @@ pub const MAXARG_SBX: i32 = (MAXARG_BX as i32) >> 1;
 pub const MASK_K: u32 = 1 << (SIZE_B - 1);
 
 pub const NO_JUMP: i32 = -1;
+pub const NO_REG: u32 = MAXARG_A;
 
 pub fn is_const(index: u32) -> bool {
     index & MASK_K != 0

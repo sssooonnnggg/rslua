@@ -152,6 +152,11 @@ impl Proto {
         instruction.set_arg_sBx(pos as i32 - pc as i32 - 1);
     }
 
+    pub fn code_test_set(&mut self, set: u32, test: u32, to_test: u32) {
+        self.code
+            .push(Instruction::create_ABC(OpCode::TestSet, set, test, to_test));
+    }
+
     pub fn add_local_var(&mut self, name: &str) {
         self.local_vars.push(LocalVal {
             name: name.to_string(),

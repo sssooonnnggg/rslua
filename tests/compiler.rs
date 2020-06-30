@@ -821,4 +821,10 @@ instructions :
 "#;
         assert_eq!(output, expected);
     }
+
+    #[test]
+    fn code_and_6() {
+        let output = try_compile_and_print("local a, b, c; local d = a and b;");
+        // TODO
+    }
 }

@@ -35,6 +35,22 @@ pub struct Reg {
 }
 
 impl Reg {
+    pub fn new(reg: u32) -> Self {
+        Reg {
+            reg,
+            temp: false,
+            mutable: true,
+        }
+    }
+
+    pub fn new_temp(reg: u32) -> Self {
+        Reg {
+            reg,
+            temp: true,
+            mutable: true,
+        }
+    }
+
     pub fn is_temp(&self) -> bool {
         self.temp
     }
@@ -55,6 +71,7 @@ pub struct Jump {
     pub pc: usize,
     pub true_jumps: Vec<usize>,
     pub false_jumps: Vec<usize>,
+    pub reg_should_move: Option<u32>,
 }
 
 impl Jump {
@@ -64,12 +81,16 @@ impl Jump {
             pc,
             true_jumps: Vec::new(),
             false_jumps: Vec::new(),
+            reg_should_move: None,
         }
     }
 
     pub fn resolve(&self, context: &mut ProtoContext) {
         let proto = &mut context.proto;
         let target = self.reg.reg;
+        if let Some(from) = self.reg_should_move {
+            proto.code_move(target, from);
+        }
         let false_pos = proto.code_bool(target, false, 1);
         let true_pos = proto.code_bool(target, true, 0);
         self.fix(true_pos, false_pos, proto);
@@ -97,6 +118,10 @@ impl Jump {
         self.false_jumps.push(other.pc);
     }
 
+    pub fn set_reg_should_move(&mut self, from: u32) {
+        self.reg_should_move = Some(from)
+    }
+
     fn fix(&self, true_pos: usize, false_pos: usize, proto: &mut Proto) {
         proto.fix_cond_jump_pos(true_pos, false_pos, self.pc);
         for pc in self.true_jumps.iter() {
@@ -120,22 +145,6 @@ pub enum ExprResult {
 impl ExprResult {
     pub fn new_const(k: Const) -> Self {
         ExprResult::Const(k)
-    }
-
-    pub fn new_reg(reg: u32) -> Self {
-        ExprResult::Reg(Reg {
-            reg,
-            temp: false,
-            mutable: true,
-        })
-    }
-
-    pub fn new_temp_reg(reg: u32) -> Self {
-        ExprResult::Reg(Reg {
-            reg,
-            temp: true,
-            mutable: true,
-        })
     }
 
     pub fn new_const_reg(reg: u32) -> Self {
@@ -385,6 +394,15 @@ impl Compiler {
         right_input
     }
 
+    fn alloc_reg(&mut self, input: &Option<u32>) -> Reg {
+        let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
+        if let Some(_) = input {
+            Reg::new(reg)
+        } else {
+            Reg::new_temp(reg)
+        }
+    }
+
     fn code_bin_op(
         &mut self,
         op: BinOp,
@@ -406,14 +424,9 @@ impl Compiler {
         // resolve previous expr result
         right.resolve(self.context());
 
-        // try use input reg otherwise alloc one
-        let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
-
-        let mut result = if let Some(_) = input {
-            ExprResult::new_reg(reg)
-        } else {
-            ExprResult::new_temp_reg(reg)
-        };
+        let alloc_reg = self.alloc_reg(&input);
+        let reg = alloc_reg.reg;
+        let mut result = ExprResult::Reg(alloc_reg);
 
         // get rk of left and right expr
         let mut get_rk = || {
@@ -475,7 +488,32 @@ impl Compiler {
                 };
                 Ok(right)
             }
+            ExprResult::Reg(reg) => self.code_test(input, left, right_expr),
             _ => todo!(),
+        }
+    }
+
+    fn code_test(
+        &mut self,
+        input: Option<u32>,
+        left: ExprResult,
+        right: &Expr,
+    ) -> Result<ExprResult, CompileError> {
+        match &left {
+            ExprResult::Reg(r) => {
+                let proto = self.proto();
+                proto.code_test_set(NO_REG, r.reg, 0);
+                let jump = proto.code_jmp(NO_JUMP, 0);
+                let right_input = self.get_right_input(input, &left);
+                let right_result = self.expr(right, right_input)?;
+                let mut jump = Jump::new(self.alloc_reg(&input), jump);
+                match &right_result {
+                    ExprResult::Reg(r) if r.is_const() => jump.set_reg_should_move(r.reg),
+                    _ => (),
+                };
+                Ok(ExprResult::Jump(jump))
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -486,20 +524,19 @@ impl Compiler {
         expr: ExprResult,
     ) -> Result<ExprResult, CompileError> {
         let src = expr.get_rk(self.context());
-        let target = input.unwrap_or_else(|| self.context().reserve_regs(1));
 
         // resolve previous result
         expr.resolve(self.context());
 
+        let alloc_reg = self.alloc_reg(&input);
+        let reg = alloc_reg.reg;
+        let result = ExprResult::Reg(alloc_reg);
+
         // gennerate opcode of unop
         let proto = self.proto();
-        proto.code_un_op(op, target, src);
+        proto.code_un_op(op, reg, src);
 
-        if let Some(input_reg) = input {
-            Ok(ExprResult::new_reg(input_reg))
-        } else {
-            Ok(ExprResult::new_temp_reg(target))
-        }
+        Ok(result)
     }
 
     fn code_not(&mut self, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
