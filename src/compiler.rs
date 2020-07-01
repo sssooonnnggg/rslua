@@ -59,7 +59,7 @@ impl Reg {
         !self.mutable
     }
 
-    pub fn resolve(&self, context: &mut ProtoContext) {
+    pub fn free(&self, context: &mut ProtoContext) {
         if self.is_temp() {
             context.free_reg(1)
         }
@@ -85,7 +85,7 @@ impl Jump {
         }
     }
 
-    pub fn resolve(&self, context: &mut ProtoContext) {
+    pub fn free(&self, context: &mut ProtoContext) {
         let proto = &mut context.proto;
         let target = self.reg.reg;
         if let Some(from) = self.reg_should_move {
@@ -94,14 +94,14 @@ impl Jump {
         let false_pos = proto.code_bool(target, false, 1);
         let true_pos = proto.code_bool(target, true, 0);
         self.fix(true_pos, false_pos, proto);
-        self.reg.resolve(context);
+        self.reg.free(context);
     }
 
     pub fn free_reg(&self, context: &mut ProtoContext) {
-        self.reg.resolve(context);
+        self.reg.free(context);
     }
 
-    pub fn inverse(&self, context: &mut ProtoContext) {
+    pub fn inverse_cond(&self, context: &mut ProtoContext) {
         let proto = &mut context.proto;
         let cond = self.pc - 1;
         let instruction = proto.get_instruction(cond);
@@ -136,10 +136,10 @@ impl Jump {
 pub enum ExprResult {
     Const(Const),
     Reg(Reg),
+    Jump(Jump),
     Nil,
     True,
     False,
-    Jump(Jump),
 }
 
 impl ExprResult {
@@ -173,8 +173,8 @@ impl ExprResult {
 
     pub fn resolve(&self, context: &mut ProtoContext) {
         match self {
-            ExprResult::Reg(r) => r.resolve(context),
-            ExprResult::Jump(j) => j.resolve(context),
+            ExprResult::Reg(r) => r.free(context),
+            ExprResult::Jump(j) => j.free(context),
             _ => (),
         };
     }
@@ -224,9 +224,9 @@ impl Compiler {
         unreachable!()
     }
 
-    fn adjust_assign(&mut self, num_left: usize, exprs: &Vec<Expr>) -> i32 {
-        let extra = num_left as i32 - exprs.len() as i32;
-        if let Some(last_expr) = exprs.last() {
+    fn adjust_assign(&mut self, num_left: usize, right_exprs: &Vec<Expr>) -> i32 {
+        let extra = num_left as i32 - right_exprs.len() as i32;
+        if let Some(last_expr) = right_exprs.last() {
             if last_expr.has_mult_ret() {
                 // TODO : process multi return value
                 todo!("process mult ret")
@@ -250,6 +250,7 @@ impl Compiler {
             Expr::Int(i) => ExprResult::new_const(Const::Int(*i)),
             Expr::Float(f) => ExprResult::new_const(Const::Float(*f)),
             Expr::String(s) => {
+                // const string will always be added to consts
                 let k = Const::Str(s.clone());
                 proto.add_const(k.clone());
                 ExprResult::new_const(k)
@@ -396,7 +397,7 @@ impl Compiler {
 
     fn alloc_reg(&mut self, input: &Option<u32>) -> Reg {
         let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
-        if let Some(_) = input {
+        if Some(reg) == *input {
             Reg::new(reg)
         } else {
             Reg::new_temp(reg)
@@ -480,7 +481,7 @@ impl Compiler {
             // do const folding if left is const value
             ExprResult::True | ExprResult::Const(_) => self.expr(right_expr, input),
             ExprResult::Jump(j) => {
-                j.inverse(self.context());
+                j.inverse_cond(self.context());
                 let mut right = self.expr(right_expr, Some(j.reg.reg))?;
                 match &mut right {
                     ExprResult::Jump(rj) => rj.concat_false_jumps(j),
@@ -546,7 +547,7 @@ impl Compiler {
             let result = self.expr(expr, input)?;
             match &result {
                 ExprResult::Jump(j) => {
-                    j.inverse(self.context());
+                    j.inverse_cond(self.context());
                     Ok(result)
                 }
                 ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
@@ -580,7 +581,7 @@ impl Compiler {
             ExprResult::False => proto.code_bool(reg, false, 0),
             ExprResult::Nil => proto.code_nil(reg, 1),
             ExprResult::Jump(j) => {
-                j.resolve(self.context());
+                j.free(self.context());
                 0
             }
         };
