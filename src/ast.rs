@@ -203,7 +203,7 @@ pub struct Table {
 #[derive(PartialEq, Debug)]
 pub enum Field {
     ListField(Expr),
-    RecFileld(RecField),
+    RecField(RecField),
 }
 
 #[derive(PartialEq, Debug)]

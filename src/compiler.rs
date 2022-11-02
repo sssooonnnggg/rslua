@@ -489,7 +489,7 @@ impl Compiler {
                 };
                 Ok(right)
             }
-            ExprResult::Reg(reg) => self.code_test(input, left, right_expr),
+            ExprResult::Reg(_reg) => self.code_test(input, left, right_expr),
             _ => todo!(),
         }
     }

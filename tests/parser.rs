@@ -346,15 +346,15 @@ mod parser_tests {
                     names: vec!["t".to_string()],
                     exprs: vec![Expr::Table(Table {
                         fields: vec![
-                            Field::RecFileld(RecField {
+                            Field::RecField(RecField {
                                 key: FieldKey::Name("a".to_string()),
                                 value: Expr::String("1".to_string()),
                             }),
-                            Field::RecFileld(RecField {
+                            Field::RecField(RecField {
                                 key: FieldKey::Expr(Expr::String("b".to_string())),
                                 value: Expr::Int(2),
                             }),
-                            Field::RecFileld(RecField {
+                            Field::RecField(RecField {
                                 key: FieldKey::Expr(Expr::BinExpr(BinExpr {
                                     op: BinOp::Minus,
                                     left: Box::new(Expr::Name("a".to_string())),

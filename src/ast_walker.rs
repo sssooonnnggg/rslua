@@ -458,7 +458,7 @@ pub mod ast_walker {
 
     pub fn walk_field<T: AstVisitor<E>, E>(field: &Field, visitor: &mut T) -> Result<(), E> {
         match field {
-            Field::RecFileld(field) => walk_recfield(field, visitor),
+            Field::RecField(field) => walk_recfield(field, visitor),
             Field::ListField(field) => walk_expr(field, visitor),
         }
     }

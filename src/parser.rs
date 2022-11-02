@@ -564,7 +564,7 @@ impl Parser {
         self.check_next(TokenType::Assign)?;
         self.skip_comment();
         let value = self.expr()?;
-        Ok(Field::RecFileld(RecField { key, value }))
+        Ok(Field::RecField(RecField { key, value }))
     }
 
     // listfield -> expr

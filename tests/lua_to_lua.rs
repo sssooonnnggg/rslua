@@ -8,16 +8,16 @@ use std::fs::{create_dir, read_dir};
 use std::io::prelude::*;
 use std::str;
 
-struct LuaWritter {
+struct LuaWriter {
     output: String,
     indent: usize,
     depth: usize,
 }
 
 #[allow(dead_code)]
-impl LuaWritter {
+impl LuaWriter {
     pub fn new() -> Self {
-        LuaWritter {
+        LuaWriter {
             output: String::new(),
             indent: 2,
             depth: 0,
@@ -84,7 +84,7 @@ impl LuaWritter {
 type WriteResult<T> = Result<T, ()>;
 type WriteSuccess = WriteResult<()>;
 
-impl AstVisitor for LuaWritter {
+impl AstVisitor for LuaWriter {
     fn stat_sep(&mut self) {
         self.incline();
     }
@@ -461,7 +461,7 @@ fn try_convert(input: &str) -> String {
         let mut parser = Parser::new();
         parser.set_debug(true);
         if let Ok(ast) = parser.run(tokens) {
-            let mut writter = LuaWritter::new();
+            let mut writter = LuaWriter::new();
             return writter.run(&ast).to_string();
         }
     }
@@ -508,6 +508,19 @@ fn execute_lua_tests(bin: &str, dir: &str) -> String {
 #[test]
 fn write_method_call() {
     assert_eq!("str:sub(i, i)\n".to_string(), try_convert("str:sub(i,i)"));
+}
+
+#[test]
+fn parse_comments() {
+    let code = "
+        --Hello
+        local a = 1
+        local b = 2
+        --World
+        local c = 3
+    ";
+    let result = try_convert(code);
+    println!("{}", result);
 }
 
 #[test]

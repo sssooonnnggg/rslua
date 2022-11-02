@@ -83,7 +83,7 @@ pub enum TokenType {
     Semi,
     // .
     Attr,
-    // single line coment
+    // single line comment
     SComment,
     // multi-line comment
     MComment,
