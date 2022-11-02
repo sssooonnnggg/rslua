@@ -141,9 +141,9 @@ pub enum Expr {
 }
 
 impl Expr {
-    pub fn has_mult_ret(&self) -> bool {
+    pub fn has_multi_ret(&self) -> bool {
         match self {
-            Expr::SuffixedExpr(s) => s.has_mult_ret(),
+            Expr::SuffixedExpr(s) => s.has_multi_ret(),
             Expr::VarArg => true,
             _ => false,
         }
@@ -175,7 +175,7 @@ pub struct SuffixedExpr {
 }
 
 impl SuffixedExpr {
-    pub fn has_mult_ret(&self) -> bool {
+    pub fn has_multi_ret(&self) -> bool {
         todo!()
     }
 }
