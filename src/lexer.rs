@@ -13,6 +13,8 @@ struct Context<'a> {
     old_pos: usize,
     old_line: usize,
     old_col: usize,
+    offset: usize,
+    comment_offset: usize,
 }
 
 impl<'a> Context<'a> {
@@ -25,6 +27,8 @@ impl<'a> Context<'a> {
             old_pos: 0,
             old_line: 0,
             old_col: 0,
+            offset: 0,
+            comment_offset: 0,
         }
     }
 
@@ -82,14 +86,14 @@ pub struct LexerConfig {
     // if use origin string, lexer won't escape special chars and keep the quotes or string boundaries.
     pub use_origin_string: bool,
     // reserve comments or not
-    pub reserve_comments: bool
+    pub reserve_comments: bool,
 }
 
 impl LexerConfig {
     pub fn default() -> Self {
         LexerConfig {
             use_origin_string: false,
-            reserve_comments: false
+            reserve_comments: false,
         }
     }
 }
@@ -120,7 +124,7 @@ impl<'a> Lexer {
         Lexer {
             debug: false,
             tokens: Vec::<Token>::new(),
-            config: LexerConfig::default()
+            config: LexerConfig::default(),
         }
     }
 
@@ -150,11 +154,11 @@ impl<'a> Lexer {
                     b'[' if self.check_next2(&ctx, '[', '=') => self.read_long_string(&mut ctx)?,
                     _ => self.read_other_tokens(&mut ctx)?,
                 } {
-                    self.add_token(&ctx, token_type, token_value);
+                    self.add_token(&mut ctx, token_type, token_value);
                 }
             } else {
                 // append eos and return tokens
-                self.add_token(&ctx, TokenType::Eos, TokenValue::None);
+                self.add_token(&mut ctx, TokenType::Eos, TokenValue::None);
                 return Ok(mem::replace(&mut self.tokens, Vec::<Token>::new()));
             }
         }
@@ -529,7 +533,7 @@ impl<'a> Lexer {
         if !self.config.use_origin_string {
             start = ctx.current;
         }
-        
+
         while let Some(c) = ctx.get() {
             match c {
                 b']' => {
@@ -847,9 +851,19 @@ impl<'a> Lexer {
         self.check(ctx.get_next(), c1) || self.check(ctx.get_next(), c2)
     }
 
-    fn add_token(&mut self, ctx: &Context, t: TokenType, value: TokenValue) {
+    fn add_token(&mut self, ctx: &mut Context, t: TokenType, value: TokenValue) {
         let source = ctx.get_saved_source();
-        self.tokens.push(Token { t, value, source });
+        self.tokens.push(Token {
+            t,
+            value,
+            source,
+            offset: ctx.offset,
+            comment_offset: ctx.comment_offset,
+        });
+        ctx.offset += 1;
+        if t != TokenType::SComment && t != TokenType::MComment {
+            ctx.comment_offset = ctx.offset;
+        }
     }
 
     debuggable!();

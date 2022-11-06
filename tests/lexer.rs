@@ -187,8 +187,11 @@ mod lexer_tests {
                         length: 5,
                         line: 1,
                         col: 1
-                    }
+                    },
+                    offset: 0,
+                    comment_offset: 0
                 },
+                
                 Token {
                     t: TokenType::Eos,
                     value: TokenValue::None,
@@ -197,7 +200,9 @@ mod lexer_tests {
                         length: 0,
                         line: 1,
                         col: 6
-                    }
+                    },
+                    offset: 1,
+                    comment_offset: 1
                 }
             ]
         )
@@ -216,8 +221,10 @@ mod lexer_tests {
                         pos: 0,
                         length: 17,
                         line: 1,
-                        col: 1
-                    }
+                        col: 1,
+                    },
+                    offset: 0,
+                    comment_offset: 0
                 },
                 Token {
                     t: TokenType::Eos,
@@ -227,7 +234,9 @@ mod lexer_tests {
                         length: 0,
                         line: 1,
                         col: 18
-                    }
+                    },
+                    offset: 1,
+                    comment_offset: 1
                 }
             ]
         )
@@ -248,6 +257,8 @@ mod lexer_tests {
                         line: 1,
                         col: 1,
                     },
+                    offset: 0,
+                    comment_offset: 0
                 },
                 Token {
                     t: TokenType::Eos,
@@ -258,6 +269,8 @@ mod lexer_tests {
                         line: 1,
                         col: 3,
                     },
+                    offset: 1,
+                    comment_offset: 1
                 },
             ],
         )
