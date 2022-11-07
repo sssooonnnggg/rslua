@@ -1,7 +1,6 @@
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
 use crate::{debuggable, error, success};
-use std::mem;
 use std::str;
 
 // context for lexer
@@ -132,7 +131,7 @@ impl<'a> Lexer {
         self.config = config;
     }
 
-    pub fn run(&mut self, input: &'a str) -> Result<Vec<Token>, LexError> {
+    pub fn run(&mut self, input: &'a str) -> Result<&Vec<Token>, LexError> {
         self.reset();
         let mut ctx = Context::new(input);
         loop {
@@ -159,9 +158,13 @@ impl<'a> Lexer {
             } else {
                 // append eos and return tokens
                 self.add_token(&mut ctx, TokenType::Eos, TokenValue::None);
-                return Ok(mem::replace(&mut self.tokens, Vec::<Token>::new()));
+                return Ok(&self.tokens);
             }
         }
+    }
+
+    pub fn tokens(&self) -> &Vec<Token> {
+        &self.tokens
     }
 
     fn read_line_break(&self, ctx: &mut Context) -> LexResult {

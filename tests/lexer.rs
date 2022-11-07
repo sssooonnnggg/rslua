@@ -6,12 +6,11 @@ mod lexer_tests {
     use std::fs::File;
     use std::io::prelude::*;
 
-    fn try_lexer(input: &str) -> Vec<Token> {
+    fn try_lexer(input: &str) -> Lexer {
         let mut lexer = Lexer::new();
         lexer.set_debug(true);
-        let tokens = lexer.run(input);
-        println!("{:#?}", tokens);
-        tokens.ok().unwrap()
+        lexer.run(input);
+        lexer
     }
 
     #[test]
@@ -175,10 +174,10 @@ mod lexer_tests {
 
     #[test]
     fn number() {
-        let tokens = try_lexer("13e-2");
+        let lexer = try_lexer("13e-2");
         assert_eq!(
-            tokens,
-            vec![
+            lexer.tokens(),
+            &vec![
                 Token {
                     t: TokenType::Flt,
                     value: TokenValue::Float(0.13),
@@ -210,10 +209,10 @@ mod lexer_tests {
 
     #[test]
     fn name() {
-        let tokens = try_lexer("codepoint_to_utf8");
+        let lexer = try_lexer("codepoint_to_utf8");
         assert_eq!(
-            tokens,
-            vec![
+            lexer.tokens(),
+            &vec![
                 Token {
                     t: TokenType::Name,
                     value: TokenValue::Str("codepoint_to_utf8".to_string()),
@@ -244,10 +243,10 @@ mod lexer_tests {
 
     #[test]
     fn idiv() {
-        let tokens = try_lexer("//");
+        let lexer = try_lexer("//");
         assert_eq!(
-            tokens,
-            vec![
+            lexer.tokens(),
+            &vec![
                 Token {
                     t: TokenType::IDiv,
                     value: TokenValue::None,

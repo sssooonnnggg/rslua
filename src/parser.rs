@@ -4,8 +4,8 @@ use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::Source;
 
-pub struct Parser {
-    tokens: Vec<Token>,
+pub struct Parser<'a> {
+    tokens: Option<&'a Vec<Token>>,
     current: usize,
     debug: bool,
 }
@@ -17,10 +17,10 @@ type ParseResult<T> = Result<T, SyntaxError>;
 
 macro_rules! syntax_error {
     ($self:ident, $msg:expr) => {{
-        let token = &$self.tokens[$self.current];
+        let token = &$self.tokens.unwrap()[$self.current];
         let ident = match token.value {
             TokenValue::None => format!("{:?}", token.t),
-            _ => format!("{:?}", token.value)
+            _ => format!("{:?}", token.value),
         };
         let error_msg = format!(
             "[syntax error] {} at line [{}:{}] near [{}]",
@@ -36,18 +36,18 @@ macro_rules! error_expected {
     };
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     pub fn new() -> Self {
         Parser {
-            tokens: Vec::new(),
+            tokens: None,
             current: 0,
             debug: false,
         }
     }
 
-    pub fn run(&mut self, tokens: Vec<Token>) -> ParseResult<Block> {
+    pub fn run(&mut self, tokens: &'a Vec<Token>) -> ParseResult<Block> {
         self.reset();
-        self.tokens = tokens;
+        self.tokens = Some(tokens);
         self.block()
     }
 
@@ -604,15 +604,15 @@ impl Parser {
     }
 
     fn current_token(&self) -> &Token {
-        &self.tokens[self.current]
+        &self.tokens.unwrap()[self.current]
     }
 
     fn next_token(&self) -> &Token {
         let mut current = self.current + 1;
-        while self.tokens[current].is_comment() {
+        while self.tokens.unwrap()[current].is_comment() {
             current += 1;
         }
-        &self.tokens[current]
+        &self.tokens.unwrap()[current]
     }
 
     fn current_token_type(&self) -> TokenType {
