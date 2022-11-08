@@ -1,23 +1,23 @@
-use crate::tokens::TokenType;
+use crate::tokens::{Token, TokenType};
 use crate::types::Source;
 use crate::types::{FloatType, IntType};
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum UnOp {
-    Minus,
-    BNot,
-    Not,
-    Len,
-    None,
+pub enum UnOp<'a> {
+    Minus(&'a Token),
+    BNot(&'a Token),
+    Not(&'a Token),
+    Len(&'a Token),
+    None(&'a Token),
 }
 
-impl UnOp {
-    pub fn from_token(token: TokenType) -> UnOp {
-        match token {
-            TokenType::Minus => UnOp::Minus,
-            TokenType::BXor => UnOp::BNot,
-            TokenType::Not => UnOp::Not,
-            TokenType::Len => UnOp::Len,
-            _ => UnOp::None,
+impl<'a> UnOp<'a> {
+    pub fn from_token(token: &'a Token) -> UnOp<'a> {
+        match token.t {
+            TokenType::Minus => UnOp::Minus(token),
+            TokenType::BXor => UnOp::BNot(token),
+            TokenType::Not => UnOp::Not(token),
+            TokenType::Len => UnOp::Len(token),
+            _ => UnOp::None(token),
         }
     }
     pub fn priority(self) -> u8 {
@@ -28,29 +28,29 @@ impl UnOp {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum BinOp {
-    Add,
-    Minus,
-    Mul,
-    Mod,
-    Pow,
-    Div,
-    IDiv,
-    BAnd,
-    BOr,
-    BXor,
-    Shl,
-    Shr,
-    Concat,
-    Ne,
-    Eq,
-    Lt,
-    Le,
-    Gt,
-    Ge,
-    And,
-    Or,
-    None,
+pub enum BinOp<'a> {
+    Add(&'a Token),
+    Minus(&'a Token),
+    Mul(&'a Token),
+    Mod(&'a Token),
+    Pow(&'a Token),
+    Div(&'a Token),
+    IDiv(&'a Token),
+    BAnd(&'a Token),
+    BOr(&'a Token),
+    BXor(&'a Token),
+    Shl(&'a Token),
+    Shr(&'a Token),
+    Concat(&'a Token),
+    Ne(&'a Token),
+    Eq(&'a Token),
+    Lt(&'a Token),
+    Le(&'a Token),
+    Gt(&'a Token),
+    Ge(&'a Token),
+    And(&'a Token),
+    Or(&'a Token),
+    None(&'a Token),
 }
 
 pub struct BinOpPriority {
@@ -58,55 +58,58 @@ pub struct BinOpPriority {
     pub right: u8,
 }
 
-impl BinOp {
-    pub fn from_token(token: TokenType) -> BinOp {
-        match token {
-            TokenType::Add => BinOp::Add,
-            TokenType::Minus => BinOp::Minus,
-            TokenType::Mul => BinOp::Mul,
-            TokenType::Mod => BinOp::Mod,
-            TokenType::Pow => BinOp::Pow,
-            TokenType::Div => BinOp::Div,
-            TokenType::IDiv => BinOp::IDiv,
-            TokenType::BAnd => BinOp::BAnd,
-            TokenType::BOr => BinOp::BOr,
-            TokenType::BXor => BinOp::BXor,
-            TokenType::Shl => BinOp::Shl,
-            TokenType::Shr => BinOp::Shr,
-            TokenType::Concat => BinOp::Concat,
-            TokenType::Ne => BinOp::Ne,
-            TokenType::Eq => BinOp::Eq,
-            TokenType::Lt => BinOp::Lt,
-            TokenType::Le => BinOp::Le,
-            TokenType::Gt => BinOp::Gt,
-            TokenType::Ge => BinOp::Ge,
-            TokenType::And => BinOp::And,
-            TokenType::Or => BinOp::Or,
-            _ => BinOp::None,
+impl<'a> BinOp<'a> {
+    pub fn from_token(token: &'a Token) -> BinOp<'a> {
+        match token.t {
+            TokenType::Add => BinOp::Add(token),
+            TokenType::Minus => BinOp::Minus(token),
+            TokenType::Mul => BinOp::Mul(token),
+            TokenType::Mod => BinOp::Mod(token),
+            TokenType::Pow => BinOp::Pow(token),
+            TokenType::Div => BinOp::Div(token),
+            TokenType::IDiv => BinOp::IDiv(token),
+            TokenType::BAnd => BinOp::BAnd(token),
+            TokenType::BOr => BinOp::BOr(token),
+            TokenType::BXor => BinOp::BXor(token),
+            TokenType::Shl => BinOp::Shl(token),
+            TokenType::Shr => BinOp::Shr(token),
+            TokenType::Concat => BinOp::Concat(token),
+            TokenType::Ne => BinOp::Ne(token),
+            TokenType::Eq => BinOp::Eq(token),
+            TokenType::Lt => BinOp::Lt(token),
+            TokenType::Le => BinOp::Le(token),
+            TokenType::Gt => BinOp::Gt(token),
+            TokenType::Ge => BinOp::Ge(token),
+            TokenType::And => BinOp::And(token),
+            TokenType::Or => BinOp::Or(token),
+            _ => BinOp::None(token),
         }
     }
 
     pub fn priority(self) -> BinOpPriority {
         match self {
-            BinOp::Or => BinOpPriority { left: 1, right: 1 },
-            BinOp::And => BinOpPriority { left: 2, right: 2 },
-            BinOp::Eq | BinOp::Ne | BinOp::Lt | BinOp::Gt | BinOp::Le | BinOp::Ge => {
-                BinOpPriority { left: 3, right: 3 }
-            }
-            BinOp::BOr => BinOpPriority { left: 4, right: 4 },
-            BinOp::BXor => BinOpPriority { left: 5, right: 5 },
-            BinOp::BAnd => BinOpPriority { left: 6, right: 6 },
-            BinOp::Shl | BinOp::Shr => BinOpPriority { left: 7, right: 7 },
-            BinOp::Concat => BinOpPriority { left: 9, right: 8 },
-            BinOp::Add | BinOp::Minus => BinOpPriority {
+            BinOp::Or(_) => BinOpPriority { left: 1, right: 1 },
+            BinOp::And(_) => BinOpPriority { left: 2, right: 2 },
+            BinOp::Eq(_)
+            | BinOp::Ne(_)
+            | BinOp::Lt(_)
+            | BinOp::Gt(_)
+            | BinOp::Le(_)
+            | BinOp::Ge(_) => BinOpPriority { left: 3, right: 3 },
+            BinOp::BOr(_) => BinOpPriority { left: 4, right: 4 },
+            BinOp::BXor(_) => BinOpPriority { left: 5, right: 5 },
+            BinOp::BAnd(_) => BinOpPriority { left: 6, right: 6 },
+            BinOp::Shl(_) | BinOp::Shr(_) => BinOpPriority { left: 7, right: 7 },
+            BinOp::Concat(_) => BinOpPriority { left: 9, right: 8 },
+            BinOp::Add(_) | BinOp::Minus(_) => BinOpPriority {
                 left: 10,
                 right: 10,
             },
-            BinOp::Mul | BinOp::Mod | BinOp::Div | BinOp::IDiv => BinOpPriority {
+            BinOp::Mul(_) | BinOp::Mod(_) | BinOp::Div(_) | BinOp::IDiv(_) => BinOpPriority {
                 left: 11,
                 right: 11,
             },
-            BinOp::Pow => BinOpPriority {
+            BinOp::Pow(_) => BinOpPriority {
                 left: 14,
                 right: 13,
             },
@@ -116,49 +119,44 @@ impl BinOp {
 
     pub fn is_comp(&self) -> bool {
         match self {
-            BinOp::Le | BinOp::Ge | BinOp::Ne | BinOp::Eq | BinOp::Lt | BinOp::Gt => true,
+            BinOp::Le(_)
+            | BinOp::Ge(_)
+            | BinOp::Ne(_)
+            | BinOp::Eq(_)
+            | BinOp::Lt(_)
+            | BinOp::Gt(_) => true,
             _ => false,
         }
     }
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Expr {
-    Nil,
-    True,
-    False,
-    VarArg,
-    Float(FloatType),
-    Int(IntType),
-    String(String),
-    Name(String),
-    ParenExpr(Box<Expr>),
-    FuncBody(FuncBody),
-    Table(Table),
-    BinExpr(BinExpr),
-    UnExpr(UnExpr),
-    SuffixedExpr(SuffixedExpr),
-}
-
-impl Expr {
-    pub fn has_multi_ret(&self) -> bool {
-        match self {
-            Expr::SuffixedExpr(s) => s.has_multi_ret(),
-            Expr::VarArg => true,
-            _ => false,
-        }
-    }
+pub enum Expr<'a> {
+    Nil(&'a Token),
+    True(&'a Token),
+    False(&'a Token),
+    VarArg(&'a Token),
+    Float(FloatExpr<'a>),
+    Int(IntExpr<'a>),
+    String(StringExpr<'a>),
+    Name(StringExpr<'a>),
+    ParenExpr(Box<Expr<'a>>),
+    FuncBody(FuncBody<'a>),
+    Table(Table<'a>),
+    BinExpr(BinExpr<'a>),
+    UnExpr(UnExpr<'a>),
+    SuffixedExpr(SuffixedExpr<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Assignable {
-    Name(String),
-    ParenExpr(Box<Expr>),
-    SuffixedExpr(SuffixedExpr),
+pub enum Assignable<'a> {
+    Name(StringExpr<'a>),
+    ParenExpr(Box<Expr<'a>>),
+    SuffixedExpr(SuffixedExpr<'a>),
 }
 
-impl Expr {
-    pub fn to_assignable(self) -> Assignable {
+impl<'a> Expr<'a> {
+    pub fn to_assignable(self) -> Assignable<'a> {
         match self {
             Expr::Name(s) => Assignable::Name(s),
             Expr::ParenExpr(p) => Assignable::ParenExpr(p),
@@ -169,211 +167,225 @@ impl Expr {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct SuffixedExpr {
-    pub primary: Box<Expr>,
-    pub suffixes: Vec<Suffix>,
-}
-
-impl SuffixedExpr {
-    pub fn has_multi_ret(&self) -> bool {
-        todo!()
-    }
+pub struct FloatExpr<'a> {
+    pub value: FloatType,
+    pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Suffix {
-    Attr(String),
-    Index(Expr),
-    Method(String),
-    FuncArgs(FuncArgs),
+pub struct IntExpr<'a> {
+    pub value: IntType,
+    pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum FuncArgs {
-    Exprs(Vec<Expr>),
-    Table(Table),
-    String(String),
+pub struct StringExpr<'a> {
+    pub value: String,
+    pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct Table {
-    pub fields: Vec<Field>,
+pub struct SuffixedExpr<'a> {
+    pub primary: Box<Expr<'a>>,
+    pub suffixes: Vec<Suffix<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Field {
-    ListField(Expr),
-    RecField(RecField),
+pub enum Suffix<'a> {
+    Attr(StringExpr<'a>),
+    Index(Expr<'a>),
+    Method(StringExpr<'a>),
+    FuncArgs(FuncArgs<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct RecField {
-    pub key: FieldKey,
-    pub value: Expr,
+pub enum FuncArgs<'a> {
+    Exprs(Vec<Expr<'a>>),
+    Table(Table<'a>),
+    String(StringExpr<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub enum FieldKey {
-    Name(String),
-    Expr(Expr),
+pub struct Table<'a> {
+    pub fields: Vec<Field<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct UnExpr {
-    pub op: UnOp,
-    pub expr: Box<Expr>,
+pub enum Field<'a> {
+    ListField(Expr<'a>),
+    RecField(RecField<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct BinExpr {
-    pub op: BinOp,
-    pub left: Box<Expr>,
-    pub right: Box<Expr>,
+pub struct RecField<'a> {
+    pub key: FieldKey<'a>,
+    pub value: Expr<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct IfStat {
-    pub cond_blocks: Vec<CondBlock>,
-    pub else_block: Option<Block>,
+pub enum FieldKey<'a> {
+    Name(StringExpr<'a>),
+    Expr(Expr<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct CondBlock {
-    pub cond: Expr,
-    pub block: Block,
+pub struct UnExpr<'a> {
+    pub op: UnOp<'a>,
+    pub expr: Box<Expr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct WhileStat {
-    pub cond: Expr,
-    pub block: Block,
+pub struct BinExpr<'a> {
+    pub op: BinOp<'a>,
+    pub left: Box<Expr<'a>>,
+    pub right: Box<Expr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct DoBlock {
-    pub block: Block,
+pub struct IfStat<'a> {
+    pub cond_blocks: Vec<CondBlock<'a>>,
+    pub else_block: Option<Block<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum ForStat {
-    ForNum(ForNum),
-    ForList(ForList),
+pub struct CondBlock<'a> {
+    pub cond: Expr<'a>,
+    pub block: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct ForNum {
+pub struct WhileStat<'a> {
+    pub cond: Expr<'a>,
+    pub block: Block<'a>,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct DoBlock<'a> {
+    pub block: Block<'a>,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ForStat<'a> {
+    ForNum(ForNum<'a>),
+    ForList(ForList<'a>),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ForNum<'a> {
     pub var: String,
-    pub init: Expr,
-    pub limit: Expr,
-    pub step: Option<Expr>,
-    pub body: Block,
+    pub init: Expr<'a>,
+    pub limit: Expr<'a>,
+    pub step: Option<Expr<'a>>,
+    pub body: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct ForList {
-    pub vars: Vec<String>,
-    pub exprs: Vec<Expr>,
-    pub body: Block,
+pub struct ForList<'a> {
+    pub vars: Vec<StringExpr<'a>>,
+    pub exprs: Vec<Expr<'a>>,
+    pub body: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct RepeatStat {
-    pub cond: Expr,
-    pub block: Block,
+pub struct RepeatStat<'a> {
+    pub cond: Expr<'a>,
+    pub block: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum FuncType {
+pub enum FuncType<'a> {
     Global,
-    Local,
+    Local(&'a Token),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct FuncStat {
-    pub func_type: FuncType,
-    pub func_name: FuncName,
-    pub body: FuncBody,
+pub struct FuncStat<'a> {
+    pub func_type: FuncType<'a>,
+    pub func_name: FuncName<'a>,
+    pub body: FuncBody<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct FuncName {
-    pub fields: Vec<String>,
-    pub method: Option<String>,
+pub struct FuncName<'a> {
+    pub fields: Vec<StringExpr<'a>>,
+    pub method: Option<StringExpr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct FuncBody {
-    pub params: Vec<Param>,
-    pub block: Block,
+pub struct FuncBody<'a> {
+    pub params: Vec<Param<'a>>,
+    pub block: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Param {
-    VarArg,
-    Name(String),
+pub enum Param<'a> {
+    VarArg(&'a Token),
+    Name(StringExpr<'a>),
 }
 
 #[derive(PartialEq, Debug)]
-pub struct LocalStat {
-    pub names: Vec<String>,
-    pub exprs: Vec<Expr>,
+pub struct LocalStat<'a> {
+    pub names: Vec<StringExpr<'a>>,
+    pub exprs: Vec<Expr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct LabelStat {
-    pub label: String,
+pub struct LabelStat<'a> {
+    pub label: StringExpr<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct RetStat {
-    pub exprs: Vec<Expr>,
+pub struct RetStat<'a> {
+    pub exprs: Vec<Expr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct BreakStat {}
-
-#[derive(PartialEq, Debug)]
-pub struct GotoStat {
-    pub label: String,
+pub struct BreakStat<'a> {
+    pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct AssignStat {
-    pub left: Vec<Assignable>,
-    pub right: Vec<Expr>,
+pub struct GotoStat<'a> {
+    pub label: StringExpr<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct CallStat {
-    pub call: Assignable,
+pub struct AssignStat<'a> {
+    pub left: Vec<Assignable<'a>>,
+    pub right: Vec<Expr<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct CommentStat {
+pub struct CallStat<'a> {
+    pub call: Assignable<'a>,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct CommentStat<'a> {
     pub is_single_line: bool,
-    pub comment: String,
+    pub comment: StringExpr<'a>,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Stat {
-    IfStat(IfStat),
-    WhileStat(WhileStat),
-    DoBlock(DoBlock),
-    ForStat(ForStat),
-    RepeatStat(RepeatStat),
-    FuncStat(FuncStat),
-    LocalStat(LocalStat),
-    LabelStat(LabelStat),
-    RetStat(RetStat),
-    BreakStat(BreakStat),
-    GotoStat(GotoStat),
-    AssignStat(AssignStat),
-    CallStat(CallStat),
-    CommentStat(CommentStat),
+pub enum Stat<'a> {
+    IfStat(IfStat<'a>),
+    WhileStat(WhileStat<'a>),
+    DoBlock(DoBlock<'a>),
+    ForStat(ForStat<'a>),
+    RepeatStat(RepeatStat<'a>),
+    FuncStat(FuncStat<'a>),
+    LocalStat(LocalStat<'a>),
+    LabelStat(LabelStat<'a>),
+    RetStat(RetStat<'a>),
+    BreakStat(BreakStat<'a>),
+    GotoStat(GotoStat<'a>),
+    AssignStat(AssignStat<'a>),
+    CallStat(CallStat<'a>),
+    CommentStat(CommentStat<'a>),
 }
 
-impl Stat {
-    pub fn to_stat_info(self) -> StatInfo {
+impl<'a> Stat<'a> {
+    pub fn to_stat_info(self) -> StatInfo<'a> {
         StatInfo {
             stat: self,
             source: Source::new(),
@@ -382,13 +394,13 @@ impl Stat {
 }
 
 #[derive(Debug)]
-pub struct StatInfo {
-    pub stat: Stat,
+pub struct StatInfo<'a> {
+    pub stat: Stat<'a>,
     pub source: Source,
 }
 
-impl StatInfo {
-    pub fn from_stat(stat: Stat) -> Self {
+impl<'a> StatInfo<'a> {
+    pub fn from_stat(stat: Stat<'a>) -> Self {
         StatInfo {
             stat,
             source: Source::new(),
@@ -396,13 +408,13 @@ impl StatInfo {
     }
 }
 
-impl PartialEq for StatInfo {
+impl PartialEq for StatInfo<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.stat == other.stat
     }
 }
 
 #[derive(PartialEq, Debug)]
-pub struct Block {
-    pub stats: Vec<StatInfo>,
+pub struct Block<'a> {
+    pub stats: Vec<StatInfo<'a>>,
 }
