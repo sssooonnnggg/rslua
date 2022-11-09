@@ -593,7 +593,6 @@ impl Compiler {
     fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
         match assignable {
             Assignable::Name(name) => self.proto().get_local_var(name).unwrap(),
-            Assignable::ParenExpr(_) => todo!(),
             Assignable::SuffixedExpr(_) => todo!(),
         }
     }

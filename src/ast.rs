@@ -151,7 +151,6 @@ pub enum Expr<'a> {
 #[derive(PartialEq, Debug)]
 pub enum Assignable<'a> {
     Name(StringExpr<'a>),
-    ParenExpr(Box<Expr<'a>>),
     SuffixedExpr(SuffixedExpr<'a>),
 }
 
@@ -159,7 +158,6 @@ impl<'a> Expr<'a> {
     pub fn to_assignable(self) -> Assignable<'a> {
         match self {
             Expr::Name(s) => Assignable::Name(s),
-            Expr::ParenExpr(p) => Assignable::ParenExpr(p),
             Expr::SuffixedExpr(s) => Assignable::SuffixedExpr(s),
             _ => unreachable!(),
         }
@@ -192,17 +190,28 @@ pub struct SuffixedExpr<'a> {
 
 #[derive(PartialEq, Debug)]
 pub enum Suffix<'a> {
-    Attr(StringExpr<'a>),
-    Index(Expr<'a>),
-    Method(StringExpr<'a>),
+    // '.' NAME
+    Attr(&'a Token, StringExpr<'a>),
+    // '[' expr ']' 
+    Index(&'a Token, Expr<'a>, &'a Token),
+    // ':' NAME
+    Method(&'a Token, StringExpr<'a>),
     FuncArgs(FuncArgs<'a>),
 }
 
 #[derive(PartialEq, Debug)]
 pub enum FuncArgs<'a> {
-    Exprs(Vec<Expr<'a>>),
-    Table(Table<'a>),
+    // '(' [ exprlist ] ')'
+    Exprs(&'a Token, ExprList<'a>, &'a Token), 
+    // '{' TABLE '}'
+    Table(&'a Token, Table<'a>, &'a Token),
     String(StringExpr<'a>),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ExprList<'a> {
+    exprs: Vec<Expr<'a>>,
+    commas: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -212,20 +221,23 @@ pub struct Table<'a> {
 
 #[derive(PartialEq, Debug)]
 pub enum Field<'a> {
-    ListField(Expr<'a>),
     RecField(RecField<'a>),
+    ListField(Expr<'a>),
 }
 
 #[derive(PartialEq, Debug)]
 pub struct RecField<'a> {
     pub key: FieldKey<'a>,
+    pub equal: &'a Token,
     pub value: Expr<'a>,
+    pub commas: Option<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum FieldKey<'a> {
     Name(StringExpr<'a>),
-    Expr(Expr<'a>),
+    // '[' expr ']'
+    Expr((&'a Token, Expr<'a>, &'a Token)),
 }
 
 #[derive(PartialEq, Debug)]
@@ -244,24 +256,33 @@ pub struct BinExpr<'a> {
 #[derive(PartialEq, Debug)]
 pub struct IfStat<'a> {
     pub cond_blocks: Vec<CondBlock<'a>>,
+    pub else_: &'a Token,
     pub else_block: Option<Block<'a>>,
+    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct CondBlock<'a> {
+    pub if_: &'a Token,
     pub cond: Expr<'a>,
+    pub then: &'a Token,
     pub block: Block<'a>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct WhileStat<'a> {
+    pub while_: &'a Token,
     pub cond: Expr<'a>,
+    pub do_: &'a Token,
     pub block: Block<'a>,
+    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct DoBlock<'a> {
+    pub do_: &'a Token,
     pub block: Block<'a>,
+    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
@@ -272,24 +293,43 @@ pub enum ForStat<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct ForNum<'a> {
-    pub var: String,
+    pub for_: &'a Token,
+    pub var: StringExpr<'a>,
+    pub equal: &'a Token,
     pub init: Expr<'a>,
+    pub init_commas: &'a Token,
     pub limit: Expr<'a>,
+    pub limit_commas: Option<&'a Token>,
     pub step: Option<Expr<'a>>,
+    pub do_: &'a Token,
     pub body: Block<'a>,
+    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct ForList<'a> {
-    pub vars: Vec<StringExpr<'a>>,
-    pub exprs: Vec<Expr<'a>>,
+    pub for_: &'a Token,
+    pub vars: VarList<'a>,
+    pub exprs: ExprList<'a>,
+    pub do_: &'a Token,
     pub body: Block<'a>,
+    pub end: &'a Token,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct VarList<'a> {
+    pub vars: Vec<StringExpr<'a>>,
+    pub delimiters: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct RepeatStat<'a> {
-    pub cond: Expr<'a>,
+    pub repeat: &'a Token,
     pub block: Block<'a>,
+    pub until: &'a Token,
+    pub lp: &'a Token,
+    pub cond: Expr<'a>,
+    pub rp: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
@@ -301,20 +341,33 @@ pub enum FuncType<'a> {
 #[derive(PartialEq, Debug)]
 pub struct FuncStat<'a> {
     pub func_type: FuncType<'a>,
+    pub function_: &'a Token,
     pub func_name: FuncName<'a>,
     pub body: FuncBody<'a>,
+    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct FuncName<'a> {
-    pub fields: Vec<StringExpr<'a>>,
-    pub method: Option<StringExpr<'a>>,
+    // NAME {'.' NAME}
+    pub fields: VarList<'a>,
+    // [':' NAME]
+    pub method: Option<(&'a Token, StringExpr<'a>)>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct FuncBody<'a> {
-    pub params: Vec<Param<'a>>,
+    pub lp: &'a Token,
+    pub params: ParamList<'a>,
+    pub rp: &'a Token,
     pub block: Block<'a>,
+    pub end: &'a Token,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ParamList<'a> {
+    params: Vec<Param<'a>>,
+    commas: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -325,18 +378,23 @@ pub enum Param<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct LocalStat<'a> {
-    pub names: Vec<StringExpr<'a>>,
-    pub exprs: Vec<Expr<'a>>,
+    pub local: &'a Token,
+    pub names: VarList<'a>,
+    pub equal: &'a Token,
+    pub exprs: ExprList<'a>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct LabelStat<'a> {
+    pub ldc: &'a Token,
     pub label: StringExpr<'a>,
+    pub rdc: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct RetStat<'a> {
-    pub exprs: Vec<Expr<'a>>,
+    pub return_: &'a Token,
+    pub exprs: ExprList<'a>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -346,13 +404,20 @@ pub struct BreakStat<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct GotoStat<'a> {
+    pub goto: &'a Token,
     pub label: StringExpr<'a>,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct AssignStat<'a> {
-    pub left: Vec<Assignable<'a>>,
-    pub right: Vec<Expr<'a>>,
+    pub left: AssignableList<'a>,
+    pub right: ExprList<'a>,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct AssignableList<'a> {
+    pub assignables: Vec<Assignable<'a>>,
+    pub commas: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
