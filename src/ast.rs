@@ -153,7 +153,6 @@ impl Expr {
 #[derive(PartialEq, Debug)]
 pub enum Assignable {
     Name(String),
-    ParenExpr(Box<Expr>),
     SuffixedExpr(SuffixedExpr),
 }
 
@@ -161,7 +160,6 @@ impl Expr {
     pub fn to_assignable(self) -> Assignable {
         match self {
             Expr::Name(s) => Assignable::Name(s),
-            Expr::ParenExpr(p) => Assignable::ParenExpr(p),
             Expr::SuffixedExpr(s) => Assignable::SuffixedExpr(s),
             _ => unreachable!(),
         }
