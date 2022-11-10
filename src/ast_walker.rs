@@ -406,8 +406,7 @@ pub mod ast_walker {
     ) -> Result<(), E> {
         match assignable {
             Assignable::SuffixedExpr(s) => walk_suffixedexpr(s, visitor)?,
-            Assignable::Name(s) => visitor.name(s),
-            Assignable::ParenExpr(expr) => walk_parenexpr(expr, visitor)?,
+            Assignable::Name(s) => visitor.name(s)
         };
         Ok(())
     }
