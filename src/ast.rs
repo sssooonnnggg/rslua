@@ -192,7 +192,7 @@ pub struct SuffixedExpr<'a> {
 pub enum Suffix<'a> {
     // '.' NAME
     Attr(&'a Token, StringExpr<'a>),
-    // '[' expr ']' 
+    // '[' expr ']'
     Index(&'a Token, Expr<'a>, &'a Token),
     // ':' NAME
     Method(&'a Token, StringExpr<'a>),
@@ -202,7 +202,7 @@ pub enum Suffix<'a> {
 #[derive(PartialEq, Debug)]
 pub enum FuncArgs<'a> {
     // '(' [ exprlist ] ')'
-    Exprs(&'a Token, ExprList<'a>, &'a Token), 
+    Exprs(&'a Token, ExprList<'a>, &'a Token),
     // '{' TABLE '}'
     Table(&'a Token, Table<'a>, &'a Token),
     String(StringExpr<'a>),
@@ -429,6 +429,18 @@ pub struct CallStat<'a> {
 pub struct CommentStat<'a> {
     pub is_single_line: bool,
     pub comment: StringExpr<'a>,
+}
+
+impl<'a> CommentStat<'a> {
+    pub fn new(token: &'a Token) -> Self {
+        CommentStat {
+            is_single_line: token.t == TokenType::SComment,
+            comment: StringExpr {
+                value: token.get_string(),
+                token: token,
+            },
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]

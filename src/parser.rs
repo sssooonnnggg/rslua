@@ -80,25 +80,13 @@ impl<'a> Parser<'a> {
                 return Ok(None);
             }
             // stat -> comment
-            TokenType::SComment | TokenType::MComment => {
-                let stat = Stat::CommentStat(CommentStat {
-                    is_single_line: self.current_token_type() == TokenType::SComment,
-                    comment: self.current_token().get_string(),
-                });
-                self.next();
-                stat
-            }
+            TokenType::SComment | TokenType::MComment => Stat::CommentStat(self.commentstat()?),
             // stat -> if stat
             TokenType::If => Stat::IfStat(self.ifstat()?),
             // stat -> while stat
             TokenType::While => Stat::WhileStat(self.whilestat()?),
             // stat -> DO block END
-            TokenType::Do => {
-                self.next();
-                let block = self.block()?;
-                self.check_match(TokenType::End, TokenType::Do, line)?;
-                Stat::DoBlock(DoBlock { block })
-            }
+            TokenType::Do => Stat::DoBlock(self.doblock()?),
             // stat -> forstat
             TokenType::For => Stat::ForStat(self.forstat()?),
             // stat -> repeatstat
@@ -132,6 +120,20 @@ impl<'a> Parser<'a> {
             _ => self.exprstat()?,
         };
         Ok(Some(stat))
+    }
+
+    fn commentstat(&mut self) -> ParseResult<CommentStat> {
+        let stat = CommentStat::new(self.current_token());
+        self.next();
+        Ok(stat)
+    }
+
+    fn doblock(&mut self) -> ParseResult<DoBlock> {
+        let line = self.current_line();
+        let do_ = self.next();
+        let block = self.block()?;
+        let end = self.check_match(TokenType::End, TokenType::Do, line)?;
+        Ok(DoBlock { do_, block, end })
     }
 
     // ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
@@ -640,8 +642,10 @@ impl<'a> Parser<'a> {
         self.skip_comment();
     }
 
-    fn next(&mut self) {
+    fn next(&mut self) -> &Token {
+        let token = self.current_token();
         self.current += 1;
+        token
     }
 
     fn skip_comment(&mut self) -> usize {
@@ -665,7 +669,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<()> {
+    fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<&Token> {
         self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {
@@ -677,8 +681,7 @@ impl<'a> Parser<'a> {
                 )?;
             }
         }
-        self.next();
-        Ok(())
+        Ok(self.next())
     }
 
     fn test(&self, expected: TokenType) -> bool {
