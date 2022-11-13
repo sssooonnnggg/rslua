@@ -56,15 +56,12 @@ impl<'a> Parser<'a> {
         let mut stats: Vec<StatInfo> = Vec::new();
         let saved = self.current_source();
         while !self.is_block_end() {
-            let (stat, should_break) = match self.current_token_type() {
-                TokenType::Return => (self.stat()?, true),
-                _ => (self.stat()?, false),
-            };
+            let stat = self.stat()?;
             if let Some(stat) = stat {
                 let source = self.current_source() - saved;
                 stats.push(StatInfo { source, stat });
             }
-            if should_break {
+            if let Some(Stat::RetStat(_)) = stat {
                 break;
             }
         }
@@ -93,13 +90,14 @@ impl<'a> Parser<'a> {
             TokenType::Repeat => Stat::RepeatStat(self.repeatstat()?),
             // stat -> funcstat
             TokenType::Function => Stat::FuncStat(self.funcstat()?),
-            // stat -> localstat
+            // stat -> localstat | localfunc
             TokenType::Local => {
+                let local = self.current_token();
                 self.next_and_skip_comment();
                 if self.test(TokenType::Function) {
-                    Stat::FuncStat(self.localfunc()?)
+                    Stat::FuncStat(self.localfunc(local)?)
                 } else {
-                    Stat::LocalStat(self.localstat()?)
+                    Stat::LocalStat(self.localstat(local)?)
                 }
             }
             // stat -> label
@@ -300,19 +298,21 @@ impl<'a> Parser<'a> {
     }
 
     // funcstat -> local FUNCTION funcname body
-    fn localfunc(&mut self) -> ParseResult<FuncStat> {
+    fn localfunc(&mut self, token: &Token) -> ParseResult<FuncStat<'a>> {
+        let function_ = self.current_token();
         self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
         Ok(FuncStat {
-            func_type: FuncType::Local,
+            func_type: FuncType::Local(token),
+            function_,
             func_name,
             body,
         })
     }
 
     // stat -> LOCAL NAME {',' NAME} ['=' explist]
-    fn localstat(&mut self) -> ParseResult<LocalStat> {
+    fn localstat(&mut self, token: &Token) -> ParseResult<LocalStat> {
         let mut names: Vec<String> = Vec::new();
         loop {
             names.push(self.check_name()?);
@@ -605,7 +605,7 @@ impl<'a> Parser<'a> {
         self.current = 0;
     }
 
-    fn current_token(&self) -> &Token {
+    fn current_token(&self) -> &'a Token {
         &self.tokens.unwrap()[self.current]
     }
 
@@ -669,7 +669,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<&Token> {
+    fn check_match(
+        &mut self,
+        end: TokenType,
+        start: TokenType,
+        line: usize,
+    ) -> ParseResult<&Token> {
         self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {

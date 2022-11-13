@@ -344,7 +344,6 @@ pub struct FuncStat<'a> {
     pub function_: &'a Token,
     pub func_name: FuncName<'a>,
     pub body: FuncBody<'a>,
-    pub end: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
