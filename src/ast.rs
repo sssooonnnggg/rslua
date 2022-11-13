@@ -256,7 +256,7 @@ pub struct BinExpr<'a> {
 #[derive(PartialEq, Debug)]
 pub struct IfStat<'a> {
     pub cond_blocks: Vec<CondBlock<'a>>,
-    pub else_: &'a Token,
+    pub else_: Option<&'a Token>,
     pub else_block: Option<Block<'a>>,
     pub end: &'a Token,
 }

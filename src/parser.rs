@@ -142,14 +142,18 @@ impl<'a> Parser<'a> {
         while self.current_token_type() == TokenType::ElseIf {
             cond_blocks.push(self.test_then_block()?);
         }
+        let mut else_ = None;
         let mut else_block = None;
-        if self.test_next(TokenType::Else) {
+        if let Some(else_token) = self.test_next(TokenType::Else) {
+            else_ = Some(else_token);
             else_block = Some(self.block()?);
         }
-        self.check_match(TokenType::End, TokenType::If, line)?;
+        let end = self.check_match(TokenType::End, TokenType::If, line)?;
         Ok(IfStat {
             cond_blocks,
+            else_,
             else_block,
+            end
         })
     }
 
@@ -693,14 +697,13 @@ impl<'a> Parser<'a> {
         self.current_token_type() == expected
     }
 
-    fn test_next(&mut self, expected: TokenType) -> bool {
+    fn test_next(&mut self, expected: TokenType) -> Option<&Token> {
         let origin = self.skip_comment();
         if self.test(expected) {
-            self.next();
-            true
+            Some(self.next())
         } else {
             self.current = origin;
-            false
+            None
         }
     }
 
