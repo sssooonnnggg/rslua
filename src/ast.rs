@@ -166,19 +166,16 @@ impl<'a> Expr<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct FloatExpr<'a> {
-    pub value: FloatType,
     pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct IntExpr<'a> {
-    pub value: IntType,
     pub token: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct StringExpr<'a> {
-    pub value: String,
     pub token: &'a Token,
 }
 

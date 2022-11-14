@@ -159,22 +159,22 @@ impl<'a> Parser<'a> {
 
     //  [IF | ELSEIF] cond THEN block
     fn test_then_block(&mut self) -> ParseResult<CondBlock> {
-        self.next_and_skip_comment();
+        let if_ = self.next_and_skip_comment();
         let cond = self.cond()?;
-        self.check_next(TokenType::Then)?;
+        let then = self.check_next(TokenType::Then)?;
         let block = self.block()?;
-        Ok(CondBlock { cond, block })
+        Ok(CondBlock { if_, cond, then, block })
     }
 
     // whilestat -> WHILE cond DO block END
     fn whilestat(&mut self) -> ParseResult<WhileStat> {
         let line = self.current_line();
-        self.next_and_skip_comment();
+        let while_ = self.next_and_skip_comment();
         let cond = self.cond()?;
-        self.check_next(TokenType::Do)?;
+        let do_ = self.check_next(TokenType::Do)?;
         let block = self.block()?;
-        self.check_match(TokenType::End, TokenType::While, line)?;
-        Ok(WhileStat { cond, block })
+        let end = self.check_match(TokenType::End, TokenType::While, line)?;
+        Ok(WhileStat { while_, cond, do_, block, end })
     }
 
     fn cond(&mut self) -> ParseResult<Expr> {
@@ -184,41 +184,42 @@ impl<'a> Parser<'a> {
     // forstat -> FOR (fornum | forlist) END
     fn forstat(&mut self) -> ParseResult<ForStat> {
         let line = self.current_line();
-        self.next_and_skip_comment();
-        let var_name = self.check_name()?;
-        let forstat = match self.current_token_type() {
-            TokenType::Assign => self.forenum(&var_name),
-            TokenType::Comma | TokenType::In => self.forlist(&var_name),
+        let for_ = self.next_and_skip_comment();
+        let var = self.check_name()?;
+        match self.current_token_type() {
+            TokenType::Assign => self.forenum(line, for_, var),
+            TokenType::Comma | TokenType::In => self.forlist(line, for_, var),
             _ => syntax_error!(self, "'=' or 'in' expected"),
-        };
-        match forstat {
-            Ok(stat) => {
-                self.check_match(TokenType::End, TokenType::For, line)?;
-                Ok(stat)
-            }
-            Err(err) => Err(err),
         }
     }
 
     // fornum -> NAME = exp1,exp1[,exp1] forbody
-    fn forenum(&mut self, var_name: &str) -> ParseResult<ForStat> {
-        self.next_and_skip_comment();
+    fn forenum(&mut self, line: usize, for_: &'a Token, var: StringExpr<'a>) -> ParseResult<ForStat<'a>> {
+        let equal = self.next_and_skip_comment();
         let init = self.expr()?;
-        self.check_next(TokenType::Comma)?;
+        let init_commas = self.check_next(TokenType::Comma)?;
         self.skip_comment();
         let limit = self.expr()?;
-        let mut step = None;
-        if self.test_next(TokenType::Comma) {
-            step = Some(self.expr()?);
-        }
-        self.check_next(TokenType::Do)?;
+        let limit_commas = self.test_next(TokenType::Comma);
+        let step = match limit_commas {
+            Some(_) => Some(self.expr()?),
+            None => None
+        };
+        let do_ = self.check_next(TokenType::Do)?;
         let body = self.block()?;
+        let end = self.check_match(TokenType::End, TokenType::For, line)?;
         Ok(ForStat::ForNum(ForNum {
-            var: String::from(var_name),
+            for_,
+            var,
+            equal,
             init,
+            init_commas,
             limit,
+            limit_commas,
             step,
+            do_,
             body,
+            end
         }))
     }
 
@@ -235,6 +236,7 @@ impl<'a> Parser<'a> {
         self.check_next(TokenType::Do)?;
         let body = self.block()?;
         Ok(ForStat::ForList(ForList { vars, exprs, body }))
+        // Check match end
     }
 
     // repeatstat -> REPEAT block UNTIL cond
@@ -641,9 +643,11 @@ impl<'a> Parser<'a> {
         token.t
     }
 
-    fn next_and_skip_comment(&mut self) {
+    fn next_and_skip_comment(&mut self) -> &'a Token {
+        let token = self.current_token();
         self.current += 1;
         self.skip_comment();
+        token
     }
 
     fn next(&mut self) -> &Token {
@@ -707,31 +711,24 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check(&self, expected: TokenType) -> ParseResult<()> {
+    fn check(&self, expected: TokenType) -> ParseResult<&Token> {
         if self.current_token_type() != expected {
             error_expected!(self, expected)
         } else {
-            Ok(())
+            Ok(self.current_token())
         }
     }
 
-    fn check_next(&mut self, expected: TokenType) -> ParseResult<()> {
+    fn check_next(&mut self, expected: TokenType) -> ParseResult<&Token> {
         self.skip_comment();
         self.check(expected)?;
-        self.next();
-        Ok(())
+        Ok(self.next())
     }
 
-    fn check_name(&mut self) -> ParseResult<String> {
+    fn check_name(&mut self) -> ParseResult<StringExpr> {
         self.skip_comment();
         self.check(TokenType::Name)?;
-        let token = self.current_token();
-        let name = match &token.value {
-            TokenValue::Str(name) => name.clone(),
-            _ => unreachable!(),
-        };
-        self.next();
-        Ok(name)
+        Ok(StringExpr { token: self.next() })
     }
 
     debuggable!();
