@@ -68,7 +68,7 @@ impl<'a> Parser<'a> {
         Ok(Block { stats })
     }
 
-    fn stat(&mut self) -> ParseResult<Option<Stat>> {
+    fn stat(&mut self) -> ParseResult<Option<Stat<'a>>> {
         let line = self.current_line();
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
@@ -120,13 +120,13 @@ impl<'a> Parser<'a> {
         Ok(Some(stat))
     }
 
-    fn commentstat(&mut self) -> ParseResult<CommentStat> {
+    fn commentstat(&mut self) -> ParseResult<CommentStat<'a>> {
         let stat = CommentStat::new(self.current_token());
         self.next();
         Ok(stat)
     }
 
-    fn doblock(&mut self) -> ParseResult<DoBlock> {
+    fn doblock(&mut self) -> ParseResult<DoBlock<'a>> {
         let line = self.current_line();
         let do_ = self.next();
         let block = self.block()?;
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
     }
 
     // ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
-    fn ifstat(&mut self) -> ParseResult<IfStat> {
+    fn ifstat(&mut self) -> ParseResult<IfStat<'a>> {
         let line = self.current_line();
         let mut cond_blocks: Vec<CondBlock> = Vec::new();
         cond_blocks.push(self.test_then_block()?);
@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
     }
 
     //  [IF | ELSEIF] cond THEN block
-    fn test_then_block(&mut self) -> ParseResult<CondBlock> {
+    fn test_then_block(&mut self) -> ParseResult<CondBlock<'a>> {
         let if_ = self.next_and_skip_comment();
         let cond = self.cond()?;
         let then = self.check_next(TokenType::Then)?;
@@ -172,7 +172,7 @@ impl<'a> Parser<'a> {
     }
 
     // whilestat -> WHILE cond DO block END
-    fn whilestat(&mut self) -> ParseResult<WhileStat> {
+    fn whilestat(&mut self) -> ParseResult<WhileStat<'a>> {
         let line = self.current_line();
         let while_ = self.next_and_skip_comment();
         let cond = self.cond()?;
@@ -188,12 +188,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn cond(&mut self) -> ParseResult<Expr> {
+    fn cond(&mut self) -> ParseResult<Expr<'a>> {
         self.expr()
     }
 
     // forstat -> FOR (fornum | forlist) END
-    fn forstat(&mut self) -> ParseResult<ForStat> {
+    fn forstat(&mut self) -> ParseResult<ForStat<'a>> {
         let line = self.current_line();
         let for_ = self.next_and_skip_comment();
         let var = self.check_name()?;
@@ -273,7 +273,7 @@ impl<'a> Parser<'a> {
     }
 
     // repeatstat -> REPEAT block UNTIL cond
-    fn repeatstat(&mut self) -> ParseResult<RepeatStat> {
+    fn repeatstat(&mut self) -> ParseResult<RepeatStat<'a>> {
         let line = self.current_line();
         self.next();
         let block = self.block()?;
@@ -435,7 +435,7 @@ impl<'a> Parser<'a> {
         Ok(exprs)
     }
 
-    fn expr(&mut self) -> ParseResult<Expr> {
+    fn expr(&mut self) -> ParseResult<Expr<'a>> {
         self.subexpr(0)
     }
 
