@@ -512,15 +512,15 @@ fn write_method_call() {
 
 #[test]
 fn parse_comments() {
-    let code = "
-        --Hello
-        local a = 1
-        local b = 2
-        --World
-        local c = 3
-    ";
+    let code = "--Hello
+local a = 1
+local b = 2
+--World
+local c = 3
+--Tail Comment
+";
     let result = try_convert(code);
-    println!("{}", result);
+    assert_eq!(code.to_string(), result);
 }
 
 #[test]

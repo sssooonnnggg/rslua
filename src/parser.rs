@@ -73,6 +73,7 @@ impl<'a> Parser<'a> {
 
     fn stat(&mut self) -> ParseResult<Option<Stat>> {
         let line = self.current_line();
+        let t = self.current_token();
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
@@ -399,7 +400,15 @@ impl<'a> Parser<'a> {
     }
 
     fn get_binop(&self) -> BinOp {
-        BinOp::from_token(self.current_token_type())
+        let mut current = self.current;
+        let token_type = loop { 
+            if self.tokens.unwrap()[current].is_comment() {
+                current = current + 1;
+            } else {
+                break self.tokens.unwrap()[current].t
+            }
+        };
+        BinOp::from_token(token_type)
     }
 
     // subexpr -> (simpleexpr | unop subexpr) { binop subexpr }
@@ -416,6 +425,7 @@ impl<'a> Parser<'a> {
         }
         let mut binop = self.get_binop();
         while binop != BinOp::None && binop.priority().left > limit {
+            self.skip_comment();
             self.next_and_skip_comment();
             let right = self.subexpr(binop.priority().right)?;
             left = Expr::BinExpr(BinExpr {
@@ -446,7 +456,7 @@ impl<'a> Parser<'a> {
             }
             _ => return Ok(self.suffixedexpr()?),
         };
-        self.next_and_skip_comment();
+        self.next();
         Ok(expr)
     }
 
