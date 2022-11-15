@@ -73,7 +73,6 @@ impl<'a> Parser<'a> {
 
     fn stat(&mut self) -> ParseResult<Option<Stat>> {
         let line = self.current_line();
-        let t = self.current_token();
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
