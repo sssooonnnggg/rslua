@@ -207,8 +207,8 @@ pub enum FuncArgs<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct ExprList<'a> {
-    exprs: Vec<Expr<'a>>,
-    commas: Vec<&'a Token>,
+    pub exprs: Vec<Expr<'a>>,
+    pub commas: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -307,6 +307,7 @@ pub struct ForNum<'a> {
 pub struct ForList<'a> {
     pub for_: &'a Token,
     pub vars: VarList<'a>,
+    pub in_: &'a Token,
     pub exprs: ExprList<'a>,
     pub do_: &'a Token,
     pub body: Block<'a>,

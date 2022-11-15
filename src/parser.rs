@@ -52,7 +52,7 @@ impl<'a> Parser<'a> {
     }
 
     // block -> { stat [';'] }
-    fn block(&mut self) -> ParseResult<Block> {
+    fn block(&mut self) -> ParseResult<Block<'a>> {
         let mut stats: Vec<StatInfo> = Vec::new();
         let saved = self.current_source();
         while !self.is_block_end() {
@@ -153,7 +153,7 @@ impl<'a> Parser<'a> {
             cond_blocks,
             else_,
             else_block,
-            end
+            end,
         })
     }
 
@@ -163,7 +163,12 @@ impl<'a> Parser<'a> {
         let cond = self.cond()?;
         let then = self.check_next(TokenType::Then)?;
         let block = self.block()?;
-        Ok(CondBlock { if_, cond, then, block })
+        Ok(CondBlock {
+            if_,
+            cond,
+            then,
+            block,
+        })
     }
 
     // whilestat -> WHILE cond DO block END
@@ -174,7 +179,13 @@ impl<'a> Parser<'a> {
         let do_ = self.check_next(TokenType::Do)?;
         let block = self.block()?;
         let end = self.check_match(TokenType::End, TokenType::While, line)?;
-        Ok(WhileStat { while_, cond, do_, block, end })
+        Ok(WhileStat {
+            while_,
+            cond,
+            do_,
+            block,
+            end,
+        })
     }
 
     fn cond(&mut self) -> ParseResult<Expr> {
@@ -194,7 +205,12 @@ impl<'a> Parser<'a> {
     }
 
     // fornum -> NAME = exp1,exp1[,exp1] forbody
-    fn forenum(&mut self, line: usize, for_: &'a Token, var: StringExpr<'a>) -> ParseResult<ForStat<'a>> {
+    fn forenum(
+        &mut self,
+        line: usize,
+        for_: &'a Token,
+        var: StringExpr<'a>,
+    ) -> ParseResult<ForStat<'a>> {
         let equal = self.next_and_skip_comment();
         let init = self.expr()?;
         let init_commas = self.check_next(TokenType::Comma)?;
@@ -203,7 +219,7 @@ impl<'a> Parser<'a> {
         let limit_commas = self.test_next(TokenType::Comma);
         let step = match limit_commas {
             Some(_) => Some(self.expr()?),
-            None => None
+            None => None,
         };
         let do_ = self.check_next(TokenType::Do)?;
         let body = self.block()?;
@@ -219,24 +235,41 @@ impl<'a> Parser<'a> {
             step,
             do_,
             body,
-            end
+            end,
         }))
     }
 
     // forlist -> NAME {,NAME} IN explist forbody
-    fn forlist(&mut self, var_name: &str) -> ParseResult<ForStat> {
-        let mut vars: Vec<String> = Vec::new();
-        vars.push(String::from(var_name));
-        while self.test_next(TokenType::Comma) {
-            vars.push(self.check_name()?);
+    fn forlist(
+        &mut self,
+        line: usize,
+        for_: &'a Token,
+        var: StringExpr<'a>,
+    ) -> ParseResult<ForStat<'a>> {
+        let mut vars = VarList {
+            vars: Vec::new(),
+            delimiters: Vec::new(),
+        };
+        vars.vars.push(var);
+        while let Some(comma) = self.test_next(TokenType::Comma) {
+            vars.delimiters.push(comma);
+            vars.vars.push(self.check_name()?);
         }
-        self.check_next(TokenType::In)?;
+        let in_ = self.check_next(TokenType::In)?;
         self.skip_comment();
         let exprs = self.exprlist()?;
-        self.check_next(TokenType::Do)?;
+        let do_ = self.check_next(TokenType::Do)?;
         let body = self.block()?;
-        Ok(ForStat::ForList(ForList { vars, exprs, body }))
-        // Check match end
+        let end = self.check_match(TokenType::End, TokenType::For, line)?;
+        Ok(ForStat::ForList(ForList {
+            for_,
+            vars,
+            in_,
+            exprs,
+            do_,
+            body,
+            end,
+        }))
     }
 
     // repeatstat -> REPEAT block UNTIL cond
@@ -389,11 +422,15 @@ impl<'a> Parser<'a> {
     }
 
     // exprlist -> expr { ',' expr }
-    fn exprlist(&mut self) -> ParseResult<Vec<Expr>> {
-        let mut exprs: Vec<Expr> = Vec::new();
-        exprs.push(self.expr()?);
-        while self.test_next(TokenType::Comma) {
-            exprs.push(self.expr()?)
+    fn exprlist(&mut self) -> ParseResult<ExprList<'a>> {
+        let mut exprs = ExprList {
+            exprs: Vec::new(),
+            commas: Vec::new(),
+        };
+        exprs.exprs.push(self.expr()?);
+        while let Some(comma) = self.test_next(TokenType::Comma) {
+            exprs.commas.push(comma);
+            exprs.exprs.push(self.expr()?)
         }
         Ok(exprs)
     }
@@ -682,7 +719,7 @@ impl<'a> Parser<'a> {
         end: TokenType,
         start: TokenType,
         line: usize,
-    ) -> ParseResult<&Token> {
+    ) -> ParseResult<&'a Token> {
         self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {
@@ -701,7 +738,7 @@ impl<'a> Parser<'a> {
         self.current_token_type() == expected
     }
 
-    fn test_next(&mut self, expected: TokenType) -> Option<&Token> {
+    fn test_next(&mut self, expected: TokenType) -> Option<&'a Token> {
         let origin = self.skip_comment();
         if self.test(expected) {
             Some(self.next())
@@ -719,13 +756,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check_next(&mut self, expected: TokenType) -> ParseResult<&Token> {
+    fn check_next(&mut self, expected: TokenType) -> ParseResult<&'a Token> {
         self.skip_comment();
         self.check(expected)?;
         Ok(self.next())
     }
 
-    fn check_name(&mut self) -> ParseResult<StringExpr> {
+    fn check_name(&mut self) -> ParseResult<StringExpr<'a>> {
         self.skip_comment();
         self.check(TokenType::Name)?;
         Ok(StringExpr { token: self.next() })
