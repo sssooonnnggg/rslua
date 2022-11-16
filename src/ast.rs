@@ -361,8 +361,8 @@ pub struct FuncBody<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct ParamList<'a> {
-    params: Vec<Param<'a>>,
-    commas: Vec<&'a Token>,
+    pub params: Vec<Param<'a>>,
+    pub commas: Vec<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]

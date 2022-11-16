@@ -321,29 +321,40 @@ impl<'a> Parser<'a> {
     // body ->  '(' parlist ')' block END
     fn funcbody(&mut self) -> ParseResult<FuncBody> {
         let line = self.current_line();
-        self.check_next(TokenType::Lp)?;
+        let lp = self.check_next(TokenType::Lp)?;
         self.skip_comment();
-        let mut params: Vec<Param> = Vec::new();
+        let mut params = ParamList {
+            params: Vec::new(),
+            commas: Vec::new(),
+        };
         loop {
             if self.test(TokenType::Rp) {
                 break;
             }
             match self.current_token_type() {
                 TokenType::Dots => {
-                    params.push(Param::VarArg);
-                    self.next_and_skip_comment()
+                    params.params.push(Param::VarArg(self.current_token()));
+                    self.next_and_skip_comment();
                 }
-                TokenType::Name => params.push(Param::Name(self.check_name()?)),
+                TokenType::Name => params.params.push(Param::Name(self.check_name()?)),
                 _ => syntax_error!(self, "<name> or '...' expected")?,
             };
-            if !self.test_next(TokenType::Comma) {
+            if let Some(commas) = self.test_next(TokenType::Comma) {
+                params.commas.push(commas);
+            } else {
                 break;
             }
         }
-        self.check_next(TokenType::Rp)?;
+        let rp = self.check_next(TokenType::Rp)?;
         let block = self.block()?;
-        self.check_match(TokenType::End, TokenType::Function, line)?;
-        Ok(FuncBody { params, block })
+        let end = self.check_match(TokenType::End, TokenType::Function, line)?;
+        Ok(FuncBody {
+            lp,
+            params,
+            rp,
+            block,
+            end,
+        })
     }
 
     // funcstat -> local FUNCTION funcname body
