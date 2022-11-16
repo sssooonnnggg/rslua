@@ -227,10 +227,7 @@ impl Compiler {
     fn adjust_assign(&mut self, num_left: usize, right_exprs: &Vec<Expr>) -> i32 {
         let extra = num_left as i32 - right_exprs.len() as i32;
         if let Some(last_expr) = right_exprs.last() {
-            if last_expr.has_multi_ret() {
-                // TODO : process multi return value
-                todo!("process mult ret")
-            }
+            // TODO : process multi return value
         }
 
         if extra > 0 {
