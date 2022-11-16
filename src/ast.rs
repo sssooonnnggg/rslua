@@ -337,7 +337,7 @@ pub enum FuncType<'a> {
 #[derive(PartialEq, Debug)]
 pub struct FuncStat<'a> {
     pub func_type: FuncType<'a>,
-    pub function_: &'a Token,
+    pub function: &'a Token,
     pub func_name: FuncName<'a>,
     pub body: FuncBody<'a>,
 }

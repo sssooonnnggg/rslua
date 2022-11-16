@@ -279,15 +279,21 @@ impl<'a> Parser<'a> {
         let block = self.block()?;
         let until = self.check_match(TokenType::Until, TokenType::Repeat, line)?;
         let cond = self.cond()?;
-        Ok(RepeatStat { repeat, block, until, cond })
+        Ok(RepeatStat {
+            repeat,
+            block,
+            until,
+            cond,
+        })
     }
 
     // funcstat -> FUNCTION funcname body
     fn funcstat(&mut self) -> ParseResult<FuncStat> {
-        self.next_and_skip_comment();
+        let function = self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
         Ok(FuncStat {
+            function,
             func_type: FuncType::Global,
             func_name,
             body,
@@ -296,14 +302,18 @@ impl<'a> Parser<'a> {
 
     // funcname -> NAME {'.' NAME} [':' NAME]
     fn funcname(&mut self) -> ParseResult<FuncName> {
-        let mut fields: Vec<String> = Vec::new();
-        fields.push(self.check_name()?);
-        while self.test_next(TokenType::Attr) {
-            fields.push(self.check_name()?);
+        let mut fields = VarList {
+            vars: Vec::new(),
+            delimiters: Vec::new(),
+        };
+        fields.vars.push(self.check_name()?);
+        while let Some(dot) = self.test_next(TokenType::Attr) {
+            fields.delimiters.push(dot);
+            fields.vars.push(self.check_name()?);
         }
         let mut method = None;
-        if self.test_next(TokenType::Colon) {
-            method = Some(self.check_name()?);
+        if let Some(colon) = self.test_next(TokenType::Colon) {
+            method = Some((colon, self.check_name()?));
         }
         Ok(FuncName { fields, method })
     }
