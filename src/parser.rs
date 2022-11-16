@@ -275,11 +275,11 @@ impl<'a> Parser<'a> {
     // repeatstat -> REPEAT block UNTIL cond
     fn repeatstat(&mut self) -> ParseResult<RepeatStat<'a>> {
         let line = self.current_line();
-        self.next();
+        let repeat = self.next();
         let block = self.block()?;
-        self.check_match(TokenType::Until, TokenType::Repeat, line)?;
+        let until = self.check_match(TokenType::Until, TokenType::Repeat, line)?;
         let cond = self.cond()?;
-        Ok(RepeatStat { block, cond })
+        Ok(RepeatStat { repeat, block, until, cond })
     }
 
     // funcstat -> FUNCTION funcname body
@@ -687,7 +687,7 @@ impl<'a> Parser<'a> {
         token
     }
 
-    fn next(&mut self) -> &Token {
+    fn next(&mut self) -> &'a Token {
         let token = self.current_token();
         self.current += 1;
         token

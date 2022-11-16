@@ -325,9 +325,7 @@ pub struct RepeatStat<'a> {
     pub repeat: &'a Token,
     pub block: Block<'a>,
     pub until: &'a Token,
-    pub lp: &'a Token,
     pub cond: Expr<'a>,
-    pub rp: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]
