@@ -409,14 +409,14 @@ impl<'a> Parser<'a> {
     }
 
     fn breakstat(&mut self) -> ParseResult<BreakStat> {
-        self.next_and_skip_comment();
-        Ok(BreakStat {})
+        let token = self.next_and_skip_comment();
+        Ok(BreakStat { token })
     }
 
     fn gotostat(&mut self) -> ParseResult<GotoStat> {
-        self.next_and_skip_comment();
+        let goto = self.next_and_skip_comment();
         let label = self.check_name()?;
-        Ok(GotoStat { label })
+        Ok(GotoStat { goto, label })
     }
 
     // stat -> func call | assignment
