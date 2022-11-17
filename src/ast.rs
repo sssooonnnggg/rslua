@@ -389,7 +389,8 @@ pub struct LabelStat<'a> {
 #[derive(PartialEq, Debug)]
 pub struct RetStat<'a> {
     pub return_: &'a Token,
-    pub exprs: ExprList<'a>,
+    pub exprs: Option<ExprList<'a>>,
+    pub semi: Option<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]

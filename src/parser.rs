@@ -100,15 +100,9 @@ impl<'a> Parser<'a> {
                 }
             }
             // stat -> label
-            TokenType::DbColon => {
-                self.next_and_skip_comment();
-                Stat::LabelStat(self.labelstat()?)
-            }
+            TokenType::DbColon => Stat::LabelStat(self.labelstat()?),
             // stat -> retstat
-            TokenType::Return => {
-                self.next_and_skip_comment();
-                Stat::RetStat(self.retstat()?)
-            }
+            TokenType::Return => Stat::RetStat(self.retstat()?),
             // stat -> breakstat
             TokenType::Break => Stat::BreakStat(self.breakstat()?),
             // stat -> gotostat
@@ -263,7 +257,11 @@ impl<'a> Parser<'a> {
         }))
     }
 
-    fn varlist(&mut self, delimiter: TokenType, first_var: Option<StringExpr<'a>>) -> ParseResult<VarList<'a>> {
+    fn varlist(
+        &mut self,
+        delimiter: TokenType,
+        first_var: Option<StringExpr<'a>>,
+    ) -> ParseResult<VarList<'a>> {
         let mut vars = VarList {
             vars: Vec::new(),
             delimiters: Vec::new(),
@@ -376,25 +374,38 @@ impl<'a> Parser<'a> {
         let names = self.varlist(TokenType::Comma, None)?;
         let equal = self.test_next(TokenType::Assign);
         let exprs = equal.and_then(|_| self.exprlist().ok());
-        Ok(LocalStat { local, names, equal, exprs })
+        Ok(LocalStat {
+            local,
+            names,
+            equal,
+            exprs,
+        })
     }
 
     // label -> '::' NAME '::'
     fn labelstat(&mut self) -> ParseResult<LabelStat> {
-        let label = self.check_name()?;
-        self.check_next(TokenType::DbColon)?;
+        let ldc = self.next();
         self.skip_comment();
-        Ok(LabelStat { label })
+        let label = self.check_name()?;
+        let rdc = self.check_next(TokenType::DbColon)?;
+        self.skip_comment();
+        Ok(LabelStat { ldc, label, rdc })
     }
 
     // stat -> RETURN [explist] [';']
     fn retstat(&mut self) -> ParseResult<RetStat> {
-        let mut exprs: Vec<Expr> = Vec::new();
-        if !self.is_block_end() && self.current_token_type() != TokenType::Semi {
-            exprs = self.exprlist()?;
-        }
-        self.test_next(TokenType::Semi);
-        Ok(RetStat { exprs })
+        let return_ = self.next_and_skip_comment();
+        let exprs = if !self.is_block_end() && self.current_token_type() != TokenType::Semi {
+            self.exprlist().ok()
+        } else {
+            None
+        };
+        let semi = self.test_next(TokenType::Semi);
+        Ok(RetStat {
+            return_,
+            exprs,
+            semi,
+        })
     }
 
     fn breakstat(&mut self) -> ParseResult<BreakStat> {
