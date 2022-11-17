@@ -375,8 +375,8 @@ pub enum Param<'a> {
 pub struct LocalStat<'a> {
     pub local: &'a Token,
     pub names: VarList<'a>,
-    pub equal: &'a Token,
-    pub exprs: ExprList<'a>,
+    pub equal: Option<&'a Token>,
+    pub exprs: Option<ExprList<'a>>,
 }
 
 #[derive(PartialEq, Debug)]

@@ -92,8 +92,7 @@ impl<'a> Parser<'a> {
             TokenType::Function => Stat::FuncStat(self.funcstat()?),
             // stat -> localstat | localfunc
             TokenType::Local => {
-                let local = self.current_token();
-                self.next_and_skip_comment();
+                let local = self.next_and_skip_comment();
                 if self.test(TokenType::Function) {
                     Stat::FuncStat(self.localfunc(local)?)
                 } else {
@@ -246,15 +245,7 @@ impl<'a> Parser<'a> {
         for_: &'a Token,
         var: StringExpr<'a>,
     ) -> ParseResult<ForStat<'a>> {
-        let mut vars = VarList {
-            vars: Vec::new(),
-            delimiters: Vec::new(),
-        };
-        vars.vars.push(var);
-        while let Some(comma) = self.test_next(TokenType::Comma) {
-            vars.delimiters.push(comma);
-            vars.vars.push(self.check_name()?);
-        }
+        let mut vars = self.varlist(TokenType::Comma, Some(var))?;
         let in_ = self.check_next(TokenType::In)?;
         self.skip_comment();
         let exprs = self.exprlist()?;
@@ -270,6 +261,23 @@ impl<'a> Parser<'a> {
             body,
             end,
         }))
+    }
+
+    fn varlist(&mut self, delimiter: TokenType, first_var: Option<StringExpr<'a>>) -> ParseResult<VarList<'a>> {
+        let mut vars = VarList {
+            vars: Vec::new(),
+            delimiters: Vec::new(),
+        };
+        let var = match first_var {
+            Some(var) => var,
+            None => self.check_name()?,
+        };
+        vars.vars.push(var);
+        while let Some(comma) = self.test_next(delimiter) {
+            vars.delimiters.push(comma);
+            vars.vars.push(self.check_name()?);
+        }
+        Ok(vars)
     }
 
     // repeatstat -> REPEAT block UNTIL cond
@@ -301,16 +309,8 @@ impl<'a> Parser<'a> {
     }
 
     // funcname -> NAME {'.' NAME} [':' NAME]
-    fn funcname(&mut self) -> ParseResult<FuncName> {
-        let mut fields = VarList {
-            vars: Vec::new(),
-            delimiters: Vec::new(),
-        };
-        fields.vars.push(self.check_name()?);
-        while let Some(dot) = self.test_next(TokenType::Attr) {
-            fields.delimiters.push(dot);
-            fields.vars.push(self.check_name()?);
-        }
+    fn funcname(&mut self) -> ParseResult<FuncName<'a>> {
+        let mut fields = self.varlist(TokenType::Attr, None)?;
         let mut method = None;
         if let Some(colon) = self.test_next(TokenType::Colon) {
             method = Some((colon, self.check_name()?));
@@ -319,7 +319,7 @@ impl<'a> Parser<'a> {
     }
 
     // body ->  '(' parlist ')' block END
-    fn funcbody(&mut self) -> ParseResult<FuncBody> {
+    fn funcbody(&mut self) -> ParseResult<FuncBody<'a>> {
         let line = self.current_line();
         let lp = self.check_next(TokenType::Lp)?;
         self.skip_comment();
@@ -358,33 +358,25 @@ impl<'a> Parser<'a> {
     }
 
     // funcstat -> local FUNCTION funcname body
-    fn localfunc(&mut self, token: &Token) -> ParseResult<FuncStat<'a>> {
-        let function_ = self.current_token();
+    fn localfunc(&mut self, token: &'a Token) -> ParseResult<FuncStat<'a>> {
+        let function = self.current_token();
         self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
         Ok(FuncStat {
             func_type: FuncType::Local(token),
-            function_,
+            function,
             func_name,
             body,
         })
     }
 
     // stat -> LOCAL NAME {',' NAME} ['=' explist]
-    fn localstat(&mut self, token: &Token) -> ParseResult<LocalStat> {
-        let mut names: Vec<String> = Vec::new();
-        loop {
-            names.push(self.check_name()?);
-            if !self.test_next(TokenType::Comma) {
-                break;
-            }
-        }
-        let mut exprs: Vec<Expr> = Vec::new();
-        if self.test_next(TokenType::Assign) {
-            exprs = self.exprlist()?;
-        }
-        Ok(LocalStat { names, exprs })
+    fn localstat(&mut self, local: &'a Token) -> ParseResult<LocalStat<'a>> {
+        let names = self.varlist(TokenType::Comma, None)?;
+        let equal = self.test_next(TokenType::Assign);
+        let exprs = equal.and_then(|_| self.exprlist().ok());
+        Ok(LocalStat { local, names, equal, exprs })
     }
 
     // label -> '::' NAME '::'
