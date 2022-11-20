@@ -229,7 +229,7 @@ pub struct RecField<'a> {
     pub key: FieldKey<'a>,
     pub equal: &'a Token,
     pub value: Expr<'a>,
-    pub commas: Option<&'a Token>,
+    pub comma: Option<&'a Token>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -296,9 +296,9 @@ pub struct ForNum<'a> {
     pub var: StringExpr<'a>,
     pub equal: &'a Token,
     pub init: Expr<'a>,
-    pub init_commas: &'a Token,
+    pub init_comma: &'a Token,
     pub limit: Expr<'a>,
-    pub limit_commas: Option<&'a Token>,
+    pub limit_comma: Option<&'a Token>,
     pub step: Option<Expr<'a>>,
     pub do_: &'a Token,
     pub body: Block<'a>,

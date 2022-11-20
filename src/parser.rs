@@ -222,9 +222,9 @@ impl<'a> Parser<'a> {
             var,
             equal,
             init,
-            init_commas,
+            init_comma: init_commas,
             limit,
-            limit_commas,
+            limit_comma: limit_commas,
             step,
             do_,
             body,
@@ -373,7 +373,11 @@ impl<'a> Parser<'a> {
     fn localstat(&mut self, local: &'a Token) -> ParseResult<LocalStat<'a>> {
         let names = self.varlist(TokenType::Comma, None)?;
         let equal = self.test_next(TokenType::Assign);
-        let exprs = equal.and_then(|_| self.exprlist().ok());
+        let exprs = if let Some(_) = equal {
+            Some(self.exprlist()?)
+        } else {
+            None
+        };
         Ok(LocalStat {
             local,
             names,
@@ -396,7 +400,7 @@ impl<'a> Parser<'a> {
     fn retstat(&mut self) -> ParseResult<RetStat> {
         let return_ = self.next_and_skip_comment();
         let exprs = if !self.is_block_end() && self.current_token_type() != TokenType::Semi {
-            self.exprlist().ok()
+            Some(self.exprlist()?)
         } else {
             None
         };
@@ -591,7 +595,6 @@ impl<'a> Parser<'a> {
         let mut fields: Vec<Field> = Vec::new();
         while !self.test(TokenType::Rb) {
             fields.push(self.field()?);
-            self.skip_comment();
         }
         let rb = self.check_match(TokenType::Rb, TokenType::Lb, line)?;
         Ok(Table { lb, fields, rb })
@@ -610,27 +613,34 @@ impl<'a> Parser<'a> {
             TokenType::Ls => self.recfield()?,
             _ => self.listfield()?,
         };
-        // TODO: commas
+        self.skip_comment();
         Ok(field)
     }
 
-    // recfield -> (NAME | '['exp1']') = exp1
+    // recfield -> (NAME | '['exp1']') = exp1 ','
     fn recfield(&mut self) -> ParseResult<Field> {
-        let key;
-        match self.current_token_type() {
-            TokenType::Name => key = FieldKey::Name(self.check_name()?),
+        let key = match self.current_token_type() {
+            TokenType::Name => FieldKey::Name(self.check_name()?),
             TokenType::Ls => {
                 let line = self.current_line();
-                self.next_and_skip_comment();
-                key = FieldKey::Expr(self.expr()?);
-                self.check_match(TokenType::Rs, TokenType::Ls, line)?;
+                let ls = self.next_and_skip_comment();
+                let expr = self.expr()?;
+                let rs = self.check_match(TokenType::Rs, TokenType::Ls, line)?;
+                FieldKey::Expr((ls, expr, rs))
             }
             _ => unreachable!(),
         };
-        self.check_next(TokenType::Assign)?;
+        let equal = self.check_next(TokenType::Assign)?;
         self.skip_comment();
         let value = self.expr()?;
-        Ok(Field::RecField(RecField { key, value }))
+        self.skip_comment();
+        let comma = Some(self.check_next(TokenType::Comma)?);
+        Ok(Field::RecField(RecField {
+            key,
+            equal,
+            value,
+            comma,
+        }))
     }
 
     // listfield -> expr
