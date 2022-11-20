@@ -433,16 +433,20 @@ impl<'a> Parser<'a> {
 
     // assignment -> ',' suffixedexp assignment
     // assignment -> '=' explist
-    fn assignment(&mut self, first: Assignable) -> ParseResult<AssignStat> {
-        let mut left: Vec<Assignable> = Vec::new();
-        left.push(first);
-        while self.test_next(TokenType::Comma) {
-            left.push(self.suffixedexpr()?.to_assignable())
+    fn assignment(&mut self, first: Assignable<'a>) -> ParseResult<AssignStat> {
+        let mut left = AssignableList {
+            assignables: Vec::new(),
+            commas: Vec::new(),
+        };
+        left.assignables.push(first);
+        while let Some(comma) = self.test_next(TokenType::Comma) {
+            left.commas.push(comma);
+            left.assignables.push(self.suffixedexpr()?.to_assignable())
         }
-        self.check_next(TokenType::Assign)?;
+        let equal = self.check_next(TokenType::Assign)?;
         self.skip_comment();
         let right = self.exprlist()?;
-        Ok(AssignStat { left, right })
+        Ok(AssignStat { left, equal, right })
     }
 
     // exprlist -> expr { ',' expr }
@@ -464,11 +468,11 @@ impl<'a> Parser<'a> {
     }
 
     fn get_unop(&self) -> UnOp {
-        UnOp::from_token(self.current_token_type())
+        UnOp::from_token(self.current_token())
     }
 
     fn get_binop(&self) -> BinOp {
-        BinOp::from_token(self.current_token_type())
+        BinOp::from_token(self.current_token())
     }
 
     // subexpr -> (simpleexpr | unop subexpr) { binop subexpr }
@@ -501,13 +505,13 @@ impl<'a> Parser<'a> {
     fn simpleexpr(&mut self) -> ParseResult<Expr> {
         let token = self.current_token();
         let expr = match token.t {
-            TokenType::Flt => Expr::Float(token.get_float()),
-            TokenType::Int => Expr::Int(token.get_int()),
-            TokenType::String => Expr::String(token.get_string()),
-            TokenType::Nil => Expr::Nil,
-            TokenType::True => Expr::True,
-            TokenType::False => Expr::False,
-            TokenType::Dots => Expr::VarArg,
+            TokenType::Flt => Expr::Float(FloatExpr { token }),
+            TokenType::Int => Expr::Int(IntExpr { token }),
+            TokenType::String => Expr::String(StringExpr { token }),
+            TokenType::Nil => Expr::Nil(token),
+            TokenType::True => Expr::True(token),
+            TokenType::False => Expr::False(token),
+            TokenType::Dots => Expr::VarArg(token),
             TokenType::Lb => return Ok(Expr::Table(self.table()?)),
             TokenType::Function => {
                 self.next_and_skip_comment();
@@ -526,19 +530,19 @@ impl<'a> Parser<'a> {
         loop {
             match self.current_token_type() {
                 TokenType::Attr => {
-                    self.next_and_skip_comment();
-                    suffixes.push(Suffix::Attr(self.check_name()?));
+                    let attr = self.next_and_skip_comment();
+                    suffixes.push(Suffix::Attr(attr, self.check_name()?));
                 }
                 TokenType::Ls => {
                     let line = self.current_line();
-                    self.next_and_skip_comment();
-                    suffixes.push(Suffix::Index(self.expr()?));
-                    self.check_match(TokenType::Rs, TokenType::Ls, line)?;
+                    let ls = self.next_and_skip_comment();
+                    let rs = self.check_match(TokenType::Rs, TokenType::Ls, line)?;
+                    suffixes.push(Suffix::Index(ls, self.expr()?, rs));
                 }
                 TokenType::Colon => {
-                    self.next_and_skip_comment();
+                    let colon = self.next_and_skip_comment();
                     let name = self.check_name()?;
-                    suffixes.push(Suffix::Method(name));
+                    suffixes.push(Suffix::Method(colon, name));
                 }
                 TokenType::Lp | TokenType::Lb | TokenType::String => {
                     suffixes.push(Suffix::FuncArgs(self.funcargs()?));

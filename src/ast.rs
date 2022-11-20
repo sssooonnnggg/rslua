@@ -7,7 +7,7 @@ pub enum UnOp<'a> {
     BNot(&'a Token),
     Not(&'a Token),
     Len(&'a Token),
-    None(&'a Token),
+    None,
 }
 
 impl<'a> UnOp<'a> {
@@ -50,7 +50,7 @@ pub enum BinOp<'a> {
     Ge(&'a Token),
     And(&'a Token),
     Or(&'a Token),
-    None(&'a Token),
+    None,
 }
 
 pub struct BinOpPriority {
@@ -407,6 +407,7 @@ pub struct GotoStat<'a> {
 #[derive(PartialEq, Debug)]
 pub struct AssignStat<'a> {
     pub left: AssignableList<'a>,
+    pub equal: &'a Token,
     pub right: ExprList<'a>,
 }
 
