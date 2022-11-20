@@ -213,7 +213,9 @@ pub struct ExprList<'a> {
 
 #[derive(PartialEq, Debug)]
 pub struct Table<'a> {
+    pub lb: &'a Token,
     pub fields: Vec<Field<'a>>,
+    pub rb: &'a Token,
 }
 
 #[derive(PartialEq, Debug)]

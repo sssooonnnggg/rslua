@@ -586,23 +586,15 @@ impl<'a> Parser<'a> {
     // sep -> ',' | ';'
     fn table(&mut self) -> ParseResult<Table> {
         let line = self.current_line();
-        self.check_next(TokenType::Lb)?;
+        let lb = self.check_next(TokenType::Lb)?;
         self.skip_comment();
         let mut fields: Vec<Field> = Vec::new();
-        loop {
-            if self.test(TokenType::Rb) {
-                break;
-            }
+        while !self.test(TokenType::Rb) {
             fields.push(self.field()?);
-            if !self.test_next(TokenType::Comma) && !self.test_next(TokenType::Semi) {
-                break;
-            } else {
-                // TODO : reverse comment for table fields
-                self.skip_comment();
-            }
+            self.skip_comment();
         }
-        self.check_match(TokenType::Rb, TokenType::Lb, line)?;
-        Ok(Table { fields })
+        let rb = self.check_match(TokenType::Rb, TokenType::Lb, line)?;
+        Ok(Table { lb, fields, rb })
     }
 
     // field -> listfield | recfield
@@ -618,6 +610,7 @@ impl<'a> Parser<'a> {
             TokenType::Ls => self.recfield()?,
             _ => self.listfield()?,
         };
+        // TODO: commas
         Ok(field)
     }
 
