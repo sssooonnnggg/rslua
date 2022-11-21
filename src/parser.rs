@@ -294,7 +294,7 @@ impl<'a> Parser<'a> {
     }
 
     // funcstat -> FUNCTION funcname body
-    fn funcstat(&mut self) -> ParseResult<FuncStat> {
+    fn funcstat(&mut self) -> ParseResult<FuncStat<'a>> {
         let function = self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
@@ -387,7 +387,7 @@ impl<'a> Parser<'a> {
     }
 
     // label -> '::' NAME '::'
-    fn labelstat(&mut self) -> ParseResult<LabelStat> {
+    fn labelstat(&mut self) -> ParseResult<LabelStat<'a>> {
         let ldc = self.next();
         self.skip_comment();
         let label = self.check_name()?;
@@ -397,7 +397,7 @@ impl<'a> Parser<'a> {
     }
 
     // stat -> RETURN [explist] [';']
-    fn retstat(&mut self) -> ParseResult<RetStat> {
+    fn retstat(&mut self) -> ParseResult<RetStat<'a>> {
         let return_ = self.next_and_skip_comment();
         let exprs = if !self.is_block_end() && self.current_token_type() != TokenType::Semi {
             Some(self.exprlist()?)
@@ -412,19 +412,19 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn breakstat(&mut self) -> ParseResult<BreakStat> {
+    fn breakstat(&mut self) -> ParseResult<BreakStat<'a>> {
         let token = self.next_and_skip_comment();
         Ok(BreakStat { token })
     }
 
-    fn gotostat(&mut self) -> ParseResult<GotoStat> {
+    fn gotostat(&mut self) -> ParseResult<GotoStat<'a>> {
         let goto = self.next_and_skip_comment();
         let label = self.check_name()?;
         Ok(GotoStat { goto, label })
     }
 
     // stat -> func call | assignment
-    fn exprstat(&mut self) -> ParseResult<Stat> {
+    fn exprstat(&mut self) -> ParseResult<Stat<'a>> {
         let expr = self.suffixedexpr()?;
         if self.test(TokenType::Assign) || self.test(TokenType::Comma) {
             Ok(Stat::AssignStat(self.assignment(expr.to_assignable())?))
@@ -468,17 +468,17 @@ impl<'a> Parser<'a> {
         self.subexpr(0)
     }
 
-    fn get_unop(&self) -> UnOp {
+    fn get_unop(&self) -> UnOp<'a> {
         UnOp::from_token(self.current_token())
     }
 
-    fn get_binop(&self) -> BinOp {
+    fn get_binop(&self) -> BinOp<'a> {
         BinOp::from_token(self.current_token())
     }
 
     // subexpr -> (simpleexpr | unop subexpr) { binop subexpr }
     // where 'binop' is any binary operator with a priority higher than 'limit'
-    fn subexpr(&mut self, limit: u8) -> ParseResult<Expr> {
+    fn subexpr(&mut self, limit: u8) -> ParseResult<Expr<'a>> {
         let mut left;
         let unop = self.get_unop();
         if unop != UnOp::None {
@@ -503,7 +503,7 @@ impl<'a> Parser<'a> {
     }
 
     // simpleexpr -> FLT | INT | STRING | NIL | TRUE | FALSE | ... | constructor | FUNCTION body | suffixedexp
-    fn simpleexpr(&mut self) -> ParseResult<Expr> {
+    fn simpleexpr(&mut self) -> ParseResult<Expr<'a>> {
         let token = self.current_token();
         let expr = match token.t {
             TokenType::Flt => Expr::Float(FloatExpr { token }),

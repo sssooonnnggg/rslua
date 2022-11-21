@@ -17,7 +17,7 @@ impl<'a> UnOp<'a> {
             TokenType::BXor => UnOp::BNot(token),
             TokenType::Not => UnOp::Not(token),
             TokenType::Len => UnOp::Len(token),
-            _ => UnOp::None(token),
+            _ => UnOp::None,
         }
     }
     pub fn priority(self) -> u8 {
