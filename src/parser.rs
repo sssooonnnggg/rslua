@@ -455,10 +455,7 @@ impl<'a> Parser<'a> {
 
     // exprlist -> expr { ',' expr }
     fn exprlist(&mut self) -> ParseResult<ExprList<'a>> {
-        let mut exprs = ExprList {
-            exprs: Vec::new(),
-            commas: Vec::new(),
-        };
+        let mut exprs = ExprList::new();
         exprs.exprs.push(self.expr()?);
         while let Some(comma) = self.test_next(TokenType::Comma) {
             exprs.commas.push(comma);
@@ -653,23 +650,21 @@ impl<'a> Parser<'a> {
         let func_args = match self.current_token_type() {
             TokenType::Lp => {
                 let line = self.current_line();
-                self.next_and_skip_comment();
+                let lp = self.next_and_skip_comment();
 
                 // empty arg list
-                if self.test_next(TokenType::Rp) {
-                    return Ok(FuncArgs::Exprs(Vec::<Expr>::new()));
+                if let Some(rp) = self.test_next(TokenType::Rp) {
+                    return Ok(FuncArgs::Exprs(lp, ExprList::new(), rp));
                 }
 
                 let exprs = self.exprlist()?;
-                self.check_match(TokenType::Rp, TokenType::Lp, line)?;
-                FuncArgs::Exprs(exprs)
+                let rp = self.check_match(TokenType::Rp, TokenType::Lp, line)?;
+                FuncArgs::Exprs(lp, exprs, rp)
             }
             TokenType::Lb => FuncArgs::Table(self.table()?),
-            TokenType::String => {
-                let arg = FuncArgs::String(self.current_token().get_string());
-                self.next_and_skip_comment();
-                arg
-            }
+            TokenType::String => FuncArgs::String(StringExpr {
+                token: self.next_and_skip_comment(),
+            }),
             _ => return syntax_error!(self, "function arguments expected"),
         };
         Ok(func_args)

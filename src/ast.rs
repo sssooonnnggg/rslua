@@ -200,8 +200,7 @@ pub enum Suffix<'a> {
 pub enum FuncArgs<'a> {
     // '(' [ exprlist ] ')'
     Exprs(&'a Token, ExprList<'a>, &'a Token),
-    // '{' TABLE '}'
-    Table(&'a Token, Table<'a>, &'a Token),
+    Table(Table<'a>),
     String(StringExpr<'a>),
 }
 
@@ -209,6 +208,15 @@ pub enum FuncArgs<'a> {
 pub struct ExprList<'a> {
     pub exprs: Vec<Expr<'a>>,
     pub commas: Vec<&'a Token>,
+}
+
+impl ExprList<'_> {
+    pub fn new() -> Self {
+        ExprList {
+            exprs: Vec::new(),
+            commas: Vec::new(),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
