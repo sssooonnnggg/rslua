@@ -437,7 +437,7 @@ impl<'a> Parser<'a> {
 
     // assignment -> ',' suffixedexp assignment
     // assignment -> '=' explist
-    fn assignment(&mut self, first: Assignable<'a>) -> ParseResult<AssignStat> {
+    fn assignment(&mut self, first: Assignable<'a>) -> ParseResult<AssignStat<'a>> {
         let mut left = AssignableList {
             assignables: Vec::new(),
             commas: Vec::new(),
@@ -525,7 +525,7 @@ impl<'a> Parser<'a> {
     }
 
     // suffixedexpr -> primaryexpr { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
-    fn suffixedexpr(&mut self) -> ParseResult<Expr> {
+    fn suffixedexpr(&mut self) -> ParseResult<Expr<'a>> {
         let primary = self.primaryexpr()?;
         let mut suffixes: Vec<Suffix> = Vec::new();
         loop {
@@ -563,7 +563,7 @@ impl<'a> Parser<'a> {
     }
 
     // primaryexp -> NAME | '(' expr ')'
-    fn primaryexpr(&mut self) -> ParseResult<Expr> {
+    fn primaryexpr(&mut self) -> ParseResult<Expr<'a>> {
         let expr = match self.current_token_type() {
             TokenType::Name => Expr::Name(self.check_name()?),
             TokenType::Lp => {
@@ -585,7 +585,7 @@ impl<'a> Parser<'a> {
 
     // table constructor -> '{' [ field { sep field } [sep] ] '}'
     // sep -> ',' | ';'
-    fn table(&mut self) -> ParseResult<Table> {
+    fn table(&mut self) -> ParseResult<Table<'a>> {
         let line = self.current_line();
         let lb = self.check_next(TokenType::Lb)?;
         self.skip_comment();
@@ -598,7 +598,7 @@ impl<'a> Parser<'a> {
     }
 
     // field -> listfield | recfield
-    fn field(&mut self) -> ParseResult<Field> {
+    fn field(&mut self) -> ParseResult<Field<'a>> {
         let field = match self.current_token_type() {
             TokenType::Name => {
                 if self.next_token_type() == TokenType::Assign {
@@ -615,7 +615,7 @@ impl<'a> Parser<'a> {
     }
 
     // recfield -> (NAME | '['exp1']') = exp1 ','
-    fn recfield(&mut self) -> ParseResult<Field> {
+    fn recfield(&mut self) -> ParseResult<Field<'a>> {
         let key = match self.current_token_type() {
             TokenType::Name => FieldKey::Name(self.check_name()?),
             TokenType::Ls => {
@@ -641,12 +641,12 @@ impl<'a> Parser<'a> {
     }
 
     // listfield -> expr
-    fn listfield(&mut self) -> ParseResult<Field> {
+    fn listfield(&mut self) -> ParseResult<Field<'a>> {
         Ok(Field::ListField(self.expr()?))
     }
 
     // funcargs -> '(' [ explist ] ') | table constructor | STRING
-    fn funcargs(&mut self) -> ParseResult<FuncArgs> {
+    fn funcargs(&mut self) -> ParseResult<FuncArgs<'a>> {
         let func_args = match self.current_token_type() {
             TokenType::Lp => {
                 let line = self.current_line();
