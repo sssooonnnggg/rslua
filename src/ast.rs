@@ -1,6 +1,5 @@
 use crate::tokens::{Token, TokenType};
 use crate::types::Source;
-use crate::types::{FloatType, IntType};
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum UnOp<'a> {
     Minus(&'a Token),

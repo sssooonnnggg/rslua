@@ -85,19 +85,19 @@ impl Proto {
 
     pub fn code_bin_op(&mut self, op: BinOp, target: u32, left: u32, right: u32) -> usize {
         let op_code = match op {
-            BinOp::Add => OpCode::Add,
-            BinOp::Minus => OpCode::Sub,
-            BinOp::Mul => OpCode::Mul,
-            BinOp::Mod => OpCode::Mod,
-            BinOp::Pow => OpCode::Pow,
-            BinOp::Div => OpCode::Div,
-            BinOp::IDiv => OpCode::IDiv,
-            BinOp::BAnd => OpCode::BAdd,
-            BinOp::BOr => OpCode::BOr,
-            BinOp::BXor => OpCode::BXor,
-            BinOp::Shl => OpCode::Shl,
-            BinOp::Shr => OpCode::Shr,
-            BinOp::Concat => OpCode::Concat,
+            BinOp::Add(_) => OpCode::Add,
+            BinOp::Minus(_) => OpCode::Sub,
+            BinOp::Mul(_) => OpCode::Mul,
+            BinOp::Mod(_) => OpCode::Mod,
+            BinOp::Pow(_) => OpCode::Pow,
+            BinOp::Div(_) => OpCode::Div,
+            BinOp::IDiv(_) => OpCode::IDiv,
+            BinOp::BAnd(_) => OpCode::BAdd,
+            BinOp::BOr(_) => OpCode::BOr,
+            BinOp::BXor(_) => OpCode::BXor,
+            BinOp::Shl(_) => OpCode::Shl,
+            BinOp::Shr(_) => OpCode::Shr,
+            BinOp::Concat(_) => OpCode::Concat,
             _ => unreachable!(),
         };
         self.code
@@ -107,12 +107,15 @@ impl Proto {
 
     pub fn code_comp(&mut self, op: BinOp, left: u32, right: u32) -> usize {
         let op_code = match op {
-            BinOp::Lt | BinOp::Gt => OpCode::Lt,
-            BinOp::Ne | BinOp::Eq => OpCode::Eq,
-            BinOp::Le | BinOp::Ge => OpCode::Le,
+            BinOp::Lt(_) | BinOp::Gt(_) => OpCode::Lt,
+            BinOp::Ne(_) | BinOp::Eq(_) => OpCode::Eq,
+            BinOp::Le(_) | BinOp::Ge(_) => OpCode::Le,
             _ => unreachable!(),
         };
-        let cond = if op == BinOp::Ne { 0 } else { 1 };
+        let cond = match op {
+            BinOp::Ne(_) => 0,
+            _ => 1,
+        };
         self.code
             .push(Instruction::create_ABC(op_code, cond, left, right));
         self.code.len() - 1
@@ -120,10 +123,10 @@ impl Proto {
 
     pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) -> usize {
         let op_code = match op {
-            UnOp::Minus => OpCode::Unm,
-            UnOp::BNot => OpCode::BNot,
-            UnOp::Not => OpCode::Not,
-            UnOp::Len => OpCode::Len,
+            UnOp::Minus(_) => OpCode::Unm,
+            UnOp::BNot(_) => OpCode::BNot,
+            UnOp::Not(_) => OpCode::Not,
+            UnOp::Len(_) => OpCode::Len,
             _ => unimplemented!(),
         };
         self.code
