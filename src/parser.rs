@@ -623,7 +623,7 @@ impl<'a> Parser<'a> {
                 let ls = self.next_and_skip_comment();
                 let expr = self.expr()?;
                 let rs = self.check_match(TokenType::Rs, TokenType::Ls, line)?;
-                FieldKey::Expr((ls, expr, rs))
+                FieldKey::Expr(ls, expr, rs)
             }
             _ => unreachable!(),
         };

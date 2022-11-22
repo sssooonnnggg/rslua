@@ -83,9 +83,9 @@ pub trait AstVisitor<E = ()> {
     fn nil(&mut self) {}
     fn true_(&mut self) {}
     fn false_(&mut self) {}
-    fn float(&mut self, _f: FloatType) {}
-    fn int(&mut self, _i: IntType) {}
-    fn string(&mut self, _s: &str) {}
+    fn float(&mut self, _f: &FloatExpr) {}
+    fn int(&mut self, _i: &IntExpr) {}
+    fn string(&mut self, _s: &StringExpr) {}
     fn vararg(&mut self) {}
 
     fn anonymous_func(&mut self) {}
@@ -128,9 +128,9 @@ pub trait AstVisitor<E = ()> {
     }
     fn end_suffixed_expr(&mut self) {}
 
-    fn name(&mut self, _name: &str) {}
-    fn attr(&mut self, _attr: &str) {}
-    fn method(&mut self, _method: &str) {}
+    fn name(&mut self, _name: &StringExpr) {}
+    fn attr(&mut self, _attr: &StringExpr) {}
+    fn method(&mut self, _method: &StringExpr) {}
 
     fn begin_index(&mut self, _expr: &Expr) -> Result<bool, E> {
         Ok(false)
@@ -330,13 +330,13 @@ pub mod ast_walker {
     pub fn walk_expr<T: AstVisitor<E>, E>(expr: &Expr, visitor: &mut T) -> Result<(), E> {
         if !visitor.expr(expr)? {
             match expr {
-                Expr::Nil => visitor.nil(),
-                Expr::True => visitor.true_(),
-                Expr::False => visitor.false_(),
-                Expr::Float(f) => visitor.float(*f),
-                Expr::Int(i) => visitor.int(*i),
+                Expr::Nil(_) => visitor.nil(),
+                Expr::True(_) => visitor.true_(),
+                Expr::False(_) => visitor.false_(),
+                Expr::Float(f) => visitor.float(f),
+                Expr::Int(i) => visitor.int(i),
                 Expr::String(string) => visitor.string(string),
-                Expr::VarArg => visitor.vararg(),
+                Expr::VarArg(_) => visitor.vararg(),
                 Expr::Name(s) => visitor.name(s),
                 Expr::ParenExpr(expr) => walk_parenexpr(expr, visitor)?,
                 Expr::FuncBody(body) => {
@@ -388,9 +388,9 @@ pub mod ast_walker {
             for suf in expr.suffixes.iter() {
                 if !visitor.suffix(suf)? {
                     match suf {
-                        Suffix::Attr(attr) => visitor.attr(attr),
-                        Suffix::Method(method) => visitor.method(method),
-                        Suffix::Index(index) => walk_index(index, visitor)?,
+                        Suffix::Attr(token, attr) => visitor.attr(attr),
+                        Suffix::Method(token, method) => visitor.method(method),
+                        Suffix::Index(ls, index, rs) => walk_index(index, visitor)?,
                         Suffix::FuncArgs(args) => walk_funcargs(args, visitor)?,
                     }
                 }
@@ -424,7 +424,7 @@ pub mod ast_walker {
             match args {
                 FuncArgs::String(s) => visitor.string(s),
                 FuncArgs::Table(t) => walk_table(t, visitor)?,
-                FuncArgs::Exprs(exprs) => walk_exprlist(exprs, visitor)?,
+                FuncArgs::Exprs(lp, exprs, rp) => walk_exprlist(exprs, visitor)?,
             }
         }
         visitor.end_func_args();
@@ -476,7 +476,7 @@ pub mod ast_walker {
         if !visitor.begin_field_key(key)? {
             match key {
                 FieldKey::Name(s) => visitor.name(s),
-                FieldKey::Expr(expr) => walk_expr(expr, visitor)?,
+                FieldKey::Expr(ls, expr, rs) => walk_expr(expr, visitor)?,
             };
         }
         visitor.end_field_key(key);
@@ -484,12 +484,12 @@ pub mod ast_walker {
     }
 
     pub fn walk_exprlist<T: AstVisitor<E>, E>(
-        exprlist: &Vec<Expr>,
+        exprlist: &ExprList,
         visitor: &mut T,
     ) -> Result<(), E> {
-        for (n, expr) in exprlist.iter().enumerate() {
+        for (n, expr) in exprlist.exprs.iter().enumerate() {
             walk_expr(expr, visitor)?;
-            if n < exprlist.len() - 1 {
+            if n < exprlist.exprs.len() - 1 {
                 visitor.expr_sep();
             }
         }

@@ -82,7 +82,7 @@ impl<'a> BinOp<'a> {
             TokenType::Ge => BinOp::Ge(token),
             TokenType::And => BinOp::And(token),
             TokenType::Or => BinOp::Or(token),
-            _ => BinOp::None(token),
+            _ => BinOp::None,
         }
     }
 
@@ -244,7 +244,7 @@ pub struct RecField<'a> {
 pub enum FieldKey<'a> {
     Name(StringExpr<'a>),
     // '[' expr ']'
-    Expr((&'a Token, Expr<'a>, &'a Token)),
+    Expr(&'a Token, Expr<'a>, &'a Token),
 }
 
 #[derive(PartialEq, Debug)]
@@ -443,8 +443,7 @@ impl<'a> CommentStat<'a> {
         CommentStat {
             is_single_line: token.t == TokenType::SComment,
             comment: StringExpr {
-                value: token.get_string(),
-                token: token,
+                token
             },
         }
     }
