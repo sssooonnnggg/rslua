@@ -1,5 +1,6 @@
 use crate::tokens::{Token, TokenType};
-use crate::types::Source;
+use crate::types::{Source, IntType, FloatType};
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum UnOp<'a> {
     Minus(&'a Token),
@@ -168,14 +169,32 @@ pub struct FloatExpr<'a> {
     pub token: &'a Token,
 }
 
+impl FloatExpr<'_> {
+    pub fn value(&self) -> FloatType {
+        self.token.get_float()
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub struct IntExpr<'a> {
     pub token: &'a Token,
 }
 
+impl IntExpr<'_> {
+    pub fn value(&self) -> IntType {
+        self.token.get_int()
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub struct StringExpr<'a> {
     pub token: &'a Token,
+}
+
+impl StringExpr<'_> {
+    pub fn value(&self) -> String {
+        self.token.get_string()
+    }
 }
 
 #[derive(PartialEq, Debug)]

@@ -224,7 +224,7 @@ impl Compiler {
         unreachable!()
     }
 
-    fn adjust_assign(&mut self, num_left: usize, right_exprs: &Vec<Expr>) -> i32 {
+    fn adjust_assign(&mut self, num_left: usize, right_exprs: &Option<ExprList>) -> i32 {
         let extra = num_left as i32 - right_exprs.len() as i32;
         if let Some(last_expr) = right_exprs.last() {
             // TODO : process multi return value
@@ -244,19 +244,19 @@ impl Compiler {
     fn expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         let proto = self.proto();
         let result = match expr {
-            Expr::Int(i) => ExprResult::new_const(Const::Int(*i)),
-            Expr::Float(f) => ExprResult::new_const(Const::Float(*f)),
+            Expr::Int(i) => ExprResult::new_const(Const::Int(i.value())),
+            Expr::Float(f) => ExprResult::new_const(Const::Float(f.value())),
             Expr::String(s) => {
                 // const string will always be added to consts
-                let k = Const::Str(s.clone());
+                let k = Const::Str(s.value());
                 proto.add_const(k.clone());
                 ExprResult::new_const(k)
             }
-            Expr::Nil => ExprResult::Nil,
-            Expr::True => ExprResult::True,
-            Expr::False => ExprResult::False,
+            Expr::Nil(_) => ExprResult::Nil,
+            Expr::True(_) => ExprResult::True,
+            Expr::False(_) => ExprResult::False,
             Expr::Name(name) => {
-                if let Some(src) = proto.get_local_var(name) {
+                if let Some(src) = proto.get_local_var(&name.value()) {
                     return Ok(ExprResult::new_const_reg(src));
                 }
                 // TODO : process upval and globals
@@ -285,22 +285,22 @@ impl Compiler {
     // try constant folding expr
     fn try_const_folding(&self, expr: &Expr) -> Result<Option<Const>, CompileError> {
         match expr {
-            Expr::Int(i) => return success!(Const::Int(*i)),
-            Expr::Float(f) => return success!(Const::Float(*f)),
-            Expr::String(s) => return success!(Const::Str(s.clone())),
+            Expr::Int(i) => return success!(Const::Int(i.value())),
+            Expr::Float(f) => return success!(Const::Float(f.value())),
+            Expr::String(s) => return success!(Const::Str(s.value())),
             Expr::BinExpr(bin) => match bin.op {
-                BinOp::Add
-                | BinOp::Minus
-                | BinOp::Mul
-                | BinOp::Div
-                | BinOp::IDiv
-                | BinOp::Mod
-                | BinOp::Pow
-                | BinOp::BAnd
-                | BinOp::BOr
-                | BinOp::BXor
-                | BinOp::Shl
-                | BinOp::Shr => {
+                BinOp::Add(_)
+                | BinOp::Minus(_)
+                | BinOp::Mul(_)
+                | BinOp::Div(_)
+                | BinOp::IDiv(_)
+                | BinOp::Mod(_)
+                | BinOp::Pow(_)
+                | BinOp::BAnd(_)
+                | BinOp::BOr(_)
+                | BinOp::BXor(_)
+                | BinOp::Shl(_)
+                | BinOp::Shr(_) => {
                     if let (Some(l), Some(r)) = (
                         self.try_const_folding(&bin.left)?,
                         self.try_const_folding(&bin.right)?,
@@ -313,7 +313,7 @@ impl Compiler {
                 _ => (),
             },
             Expr::UnExpr(un) => match un.op {
-                UnOp::BNot | UnOp::Minus => {
+                UnOp::BNot(_) | UnOp::Minus(_) => {
                     if let Some(k) = self.try_const_folding(&un.expr)? {
                         if let Some(k) = self.const_folding_un_op(un.op, k)? {
                             return success!(k);
@@ -331,12 +331,12 @@ impl Compiler {
     fn code_expr(&mut self, expr: &Expr, reg: Option<u32>) -> Result<ExprResult, CompileError> {
         match expr {
             Expr::BinExpr(bin) => match bin.op {
-                BinOp::And => self.code_and(reg, &bin.left, &bin.right),
+                BinOp::And(_) => self.code_and(reg, &bin.left, &bin.right),
                 _ => self.code_bin_op(bin.op, reg, &bin.left, &bin.right),
             },
             Expr::UnExpr(un) => {
-                if un.op == UnOp::Not {
-                    self.code_not(reg, &un.expr)
+                if let UnOp::Not(_) = un.op {
+                    self.code_not(un.op, reg, &un.expr)
                 } else {
                     let result = self.expr(&un.expr, reg)?;
                     self.code_un_op(un.op, reg, result)
@@ -353,18 +353,18 @@ impl Compiler {
         r: Const,
     ) -> Result<Option<Const>, CompileError> {
         let result = match op {
-            BinOp::Add => l.add(r)?,
-            BinOp::Minus => l.sub(r)?,
-            BinOp::Mul => l.mul(r)?,
-            BinOp::Div => l.div(r)?,
-            BinOp::IDiv => l.idiv(r)?,
-            BinOp::Mod => l.mod_(r)?,
-            BinOp::Pow => l.pow(r)?,
-            BinOp::BAnd => l.band(r)?,
-            BinOp::BOr => l.bor(r)?,
-            BinOp::BXor => l.bxor(r)?,
-            BinOp::Shl => l.shl(r)?,
-            BinOp::Shr => l.shr(r)?,
+            BinOp::Add(_) => l.add(r)?,
+            BinOp::Minus(_) => l.sub(r)?,
+            BinOp::Mul(_) => l.mul(r)?,
+            BinOp::Div(_) => l.div(r)?,
+            BinOp::IDiv(_) => l.idiv(r)?,
+            BinOp::Mod(_) => l.mod_(r)?,
+            BinOp::Pow(_) => l.pow(r)?,
+            BinOp::BAnd(_) => l.band(r)?,
+            BinOp::BOr(_) => l.bor(r)?,
+            BinOp::BXor(_) => l.bxor(r)?,
+            BinOp::Shl(_) => l.shl(r)?,
+            BinOp::Shr(_) => l.shr(r)?,
             _ => None,
         };
         Ok(result)
@@ -372,8 +372,8 @@ impl Compiler {
 
     fn const_folding_un_op(&self, op: UnOp, k: Const) -> Result<Option<Const>, CompileError> {
         let result = match op {
-            UnOp::Minus => k.minus()?,
-            UnOp::BNot => k.bnot()?,
+            UnOp::Minus(_) => k.minus()?,
+            UnOp::BNot(_) => k.bnot()?,
             _ => None,
         };
         Ok(result)
@@ -453,7 +453,7 @@ impl Compiler {
             ExprResult::Reg(reg) => {
                 // covert >= to <=, > to <
                 let (left, right) = match op {
-                    BinOp::Ge | BinOp::Gt => (right, left),
+                    BinOp::Ge(_) | BinOp::Gt(_) => (right, left),
                     _ => (left, right),
                 };
 
@@ -530,14 +530,14 @@ impl Compiler {
         let reg = alloc_reg.reg;
         let result = ExprResult::Reg(alloc_reg);
 
-        // gennerate opcode of unop
+        // generate opcode of unop
         let proto = self.proto();
         proto.code_un_op(op, reg, src);
 
         Ok(result)
     }
 
-    fn code_not(&mut self, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
+    fn code_not(&mut self, op: UnOp, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
             Ok(ExprResult::False)
         } else {
@@ -549,7 +549,7 @@ impl Compiler {
                 }
                 ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),
                 ExprResult::Const(_) | ExprResult::True => Ok(ExprResult::False),
-                _ => self.code_un_op(UnOp::Not, input, result),
+                _ => self.code_un_op(op, input, result),
             }
         }
     }
@@ -592,7 +592,7 @@ impl Compiler {
 
     fn get_assinable_reg(&mut self, assignable: &Assignable) -> u32 {
         match assignable {
-            Assignable::Name(name) => self.proto().get_local_var(name).unwrap(),
+            Assignable::Name(name) => self.proto().get_local_var(&name.value()).unwrap(),
             Assignable::SuffixedExpr(_) => todo!(),
         }
     }
@@ -609,13 +609,15 @@ impl AstVisitor<CompileError> for Compiler {
     // compile local stat
     fn local_stat(&mut self, stat: &LocalStat) -> Result<(), CompileError> {
         let proto = self.proto();
-        for name in stat.names.iter() {
-            proto.add_local_var(name);
+        for name in stat.names.vars.iter() {
+            proto.add_local_var(&name.value());
         }
-        for expr in stat.exprs.iter() {
-            self.expr_and_save(expr, None)?;
+        if let Some(expr_list) = stat.exprs {
+            for expr in expr_list.exprs.iter() {
+                self.expr_and_save(expr, None)?;
+            }
         }
-        self.adjust_assign(stat.names.len(), &stat.exprs);
+        self.adjust_assign(stat.names.vars.len(), &stat.exprs);
         Ok(())
     }
 
