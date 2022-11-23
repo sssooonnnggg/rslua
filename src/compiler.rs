@@ -224,9 +224,9 @@ impl Compiler {
         unreachable!()
     }
 
-    fn adjust_assign(&mut self, num_left: usize, right_exprs: &Option<ExprList>) -> i32 {
-        let extra = num_left as i32 - right_exprs.len() as i32;
-        if let Some(last_expr) = right_exprs.last() {
+    fn adjust_assign(&mut self, num_left: usize, right_exprs: Option<&ExprList>) -> i32 {
+        let extra = num_left as i32 - right_exprs.map_or(0, |v| v.exprs.len()) as i32;
+        if let Some(last_expr) = right_exprs.and_then(|v| v.exprs.last()) {
             // TODO : process multi return value
         }
 
@@ -612,18 +612,18 @@ impl AstVisitor<CompileError> for Compiler {
         for name in stat.names.vars.iter() {
             proto.add_local_var(&name.value());
         }
-        if let Some(expr_list) = stat.exprs {
+        if let Some(expr_list) = &stat.exprs {
             for expr in expr_list.exprs.iter() {
                 self.expr_and_save(expr, None)?;
             }
         }
-        self.adjust_assign(stat.names.vars.len(), &stat.exprs);
+        self.adjust_assign(stat.names.vars.len(), stat.exprs.as_ref());
         Ok(())
     }
 
     // compile assign stat
     fn assign_stat(&mut self, stat: &AssignStat) -> Result<(), CompileError> {
-        let use_temp_reg = stat.right.len() != stat.left.len();
+        let use_temp_reg = stat.right.exprs.len() != stat.left.assignables.len();
         let mut to_move: Vec<(u32, u32)> = Vec::new();
 
         // move rules:
@@ -634,26 +634,26 @@ impl AstVisitor<CompileError> for Compiler {
         //      MOVE temp[1..(n-1)] right[1..(n-1)]
         //      MOVE left[n] right[n]
         //      MOVE left[1..(n-1)] temp[1..(n-1)]
-        for (i, expr) in stat.right.iter().enumerate() {
-            if i != stat.right.len() - 1 || use_temp_reg {
+        for (i, expr) in stat.right.exprs.iter().enumerate() {
+            if i != stat.right.exprs.len() - 1 || use_temp_reg {
                 let reg = self.expr_and_save(expr, None)?;
-                if i < stat.left.len() {
-                    let target = self.get_assinable_reg(&stat.left[i]);
+                if i < stat.left.assignables.len() {
+                    let target = self.get_assinable_reg(&stat.left.assignables[i]);
                     to_move.push((target, reg));
                 }
             } else {
-                let reg = self.get_assinable_reg(&stat.left[i]);
+                let reg = self.get_assinable_reg(&stat.left.assignables[i]);
                 self.expr_and_save(expr, Some(reg))?;
             };
         }
 
         // nil move
         let reg = self.context().get_reg_top();
-        let extra = self.adjust_assign(stat.left.len(), &stat.right);
+        let extra = self.adjust_assign(stat.left.assignables.len(), Some(&stat.right));
         if extra > 0 {
-            let left_start = stat.left.len() as i32 - extra;
+            let left_start = stat.left.assignables.len() as i32 - extra;
             for i in 0..extra {
-                let target = self.get_assinable_reg(&stat.left[(left_start + i) as usize]);
+                let target = self.get_assinable_reg(&stat.left.assignables[(left_start + i) as usize]);
                 let src = (reg as i32 + i) as u32;
                 to_move.push((target, src));
             }
