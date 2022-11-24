@@ -59,17 +59,20 @@ impl<'a> Parser<'a> {
             let stat = self.stat()?;
             if let Some(stat) = stat {
                 let source = self.current_source() - saved;
+                let should_break = match stat {
+                    Stat::RetStat(_) => true,
+                    _ => false
+                };
                 stats.push(StatInfo { source, stat });
-            }
-            if let Some(Stat::RetStat(_)) = stat {
-                break;
+                if should_break {
+                    break;
+                }
             }
         }
         Ok(Block { stats })
     }
 
     fn stat(&mut self) -> ParseResult<Option<Stat<'a>>> {
-        let line = self.current_line();
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
@@ -239,7 +242,7 @@ impl<'a> Parser<'a> {
         for_: &'a Token,
         var: StringExpr<'a>,
     ) -> ParseResult<ForStat<'a>> {
-        let mut vars = self.varlist(TokenType::Comma, Some(var))?;
+        let vars = self.varlist(TokenType::Comma, Some(var))?;
         let in_ = self.check_next(TokenType::In)?;
         self.skip_comment();
         let exprs = self.exprlist()?;
@@ -308,7 +311,7 @@ impl<'a> Parser<'a> {
 
     // funcname -> NAME {'.' NAME} [':' NAME]
     fn funcname(&mut self) -> ParseResult<FuncName<'a>> {
-        let mut fields = self.varlist(TokenType::Attr, None)?;
+        let fields = self.varlist(TokenType::Attr, None)?;
         let mut method = None;
         if let Some(colon) = self.test_next(TokenType::Colon) {
             method = Some((colon, self.check_name()?));
