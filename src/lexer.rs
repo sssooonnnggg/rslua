@@ -856,12 +856,13 @@ impl<'a> Lexer {
 
     fn add_token(&mut self, ctx: &mut Context, t: TokenType, value: TokenValue) {
         let source = ctx.get_saved_source();
+        let mut comments: Vec<Token> = Vec::new();
+        comments.clone_from_slice(&self.tokens[ctx.comment_offset..ctx.offset]);
         self.tokens.push(Token {
             t,
             value,
             source,
-            offset: ctx.offset,
-            comment_offset: ctx.comment_offset,
+            comments,
         });
         ctx.offset += 1;
         if t != TokenType::SComment && t != TokenType::MComment {

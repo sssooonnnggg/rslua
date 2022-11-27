@@ -120,7 +120,7 @@ impl TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenValue {
     None,
     Float(FloatType),
@@ -128,13 +128,12 @@ pub enum TokenValue {
     Str(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub t: TokenType,
     pub value: TokenValue,
     pub source: Source,
-    pub offset: usize,
-    pub comment_offset: usize,
+    pub comments: Vec<Token>,
 }
 
 impl Token {
@@ -158,9 +157,5 @@ impl Token {
     }
     pub fn is_comment(&self) -> bool {
         self.t == TokenType::SComment || self.t == TokenType::MComment
-    }
-
-    pub fn comments<'a>(&self, tokens: &'a Vec<Token>) -> &'a [Token] {
-        &tokens[self.comment_offset..self.offset]
     }
 }
