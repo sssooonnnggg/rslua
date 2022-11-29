@@ -4,8 +4,8 @@ use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::Source;
 
-pub struct Parser<'a> {
-    tokens: Option<&'a Vec<Token>>,
+pub struct Parser {
+    tokens: Vec<Token>,
     current: usize,
     debug: bool,
 }
@@ -17,7 +17,7 @@ type ParseResult<T> = Result<T, SyntaxError>;
 
 macro_rules! syntax_error {
     ($self:ident, $msg:expr) => {{
-        let token = &$self.tokens.unwrap()[$self.current];
+        let token = $self.tokens[$self.current].clone();
         let ident = match token.value {
             TokenValue::None => format!("{:?}", token.t),
             _ => format!("{:?}", token.value),
@@ -36,23 +36,23 @@ macro_rules! error_expected {
     };
 }
 
-impl<'a> Parser<'a> {
+impl Parser {
     pub fn new() -> Self {
         Parser {
-            tokens: None,
+            tokens: Vec::new(),
             current: 0,
             debug: false,
         }
     }
 
-    pub fn run(&mut self, tokens: &'a Vec<Token>) -> ParseResult<Block> {
+    pub fn run(&mut self, tokens: Vec<Token>) -> ParseResult<Block> {
         self.reset();
-        self.tokens = Some(tokens);
+        self.tokens = tokens;
         self.block()
     }
 
     // block -> { stat [';'] }
-    fn block(&mut self) -> ParseResult<Block<'a>> {
+    fn block(&mut self) -> ParseResult<Block> {
         let mut stats: Vec<StatInfo> = Vec::new();
         let saved = self.current_source();
         while !self.is_block_end() {
@@ -61,7 +61,7 @@ impl<'a> Parser<'a> {
                 let source = self.current_source() - saved;
                 let should_break = match stat {
                     Stat::RetStat(_) => true,
-                    _ => false
+                    _ => false,
                 };
                 stats.push(StatInfo { source, stat });
                 if should_break {
@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
         Ok(Block { stats })
     }
 
-    fn stat(&mut self) -> ParseResult<Option<Stat<'a>>> {
+    fn stat(&mut self) -> ParseResult<Option<Stat>> {
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
             TokenType::Semi => {
@@ -116,13 +116,13 @@ impl<'a> Parser<'a> {
         Ok(Some(stat))
     }
 
-    fn commentstat(&mut self) -> ParseResult<CommentStat<'a>> {
+    fn commentstat(&mut self) -> ParseResult<CommentStat> {
         let stat = CommentStat::new(self.current_token());
         self.next();
         Ok(stat)
     }
 
-    fn doblock(&mut self) -> ParseResult<DoBlock<'a>> {
+    fn doblock(&mut self) -> ParseResult<DoBlock> {
         let line = self.current_line();
         let do_ = self.next();
         let block = self.block()?;
@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
     }
 
     // ifstat -> IF cond THEN block {ELSEIF cond THEN block} [ELSE block] END
-    fn ifstat(&mut self) -> ParseResult<IfStat<'a>> {
+    fn ifstat(&mut self) -> ParseResult<IfStat> {
         let line = self.current_line();
         let mut cond_blocks: Vec<CondBlock> = Vec::new();
         cond_blocks.push(self.test_then_block()?);
@@ -154,7 +154,7 @@ impl<'a> Parser<'a> {
     }
 
     //  [IF | ELSEIF] cond THEN block
-    fn test_then_block(&mut self) -> ParseResult<CondBlock<'a>> {
+    fn test_then_block(&mut self) -> ParseResult<CondBlock> {
         let if_ = self.next_and_skip_comment();
         let cond = self.cond()?;
         let then = self.check_next(TokenType::Then)?;
@@ -168,7 +168,7 @@ impl<'a> Parser<'a> {
     }
 
     // whilestat -> WHILE cond DO block END
-    fn whilestat(&mut self) -> ParseResult<WhileStat<'a>> {
+    fn whilestat(&mut self) -> ParseResult<WhileStat> {
         let line = self.current_line();
         let while_ = self.next_and_skip_comment();
         let cond = self.cond()?;
@@ -184,12 +184,12 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn cond(&mut self) -> ParseResult<Expr<'a>> {
+    fn cond(&mut self) -> ParseResult<Expr> {
         self.expr()
     }
 
     // forstat -> FOR (fornum | forlist) END
-    fn forstat(&mut self) -> ParseResult<ForStat<'a>> {
+    fn forstat(&mut self) -> ParseResult<ForStat> {
         let line = self.current_line();
         let for_ = self.next_and_skip_comment();
         let var = self.check_name()?;
@@ -201,12 +201,7 @@ impl<'a> Parser<'a> {
     }
 
     // fornum -> NAME = exp1,exp1[,exp1] forbody
-    fn forenum(
-        &mut self,
-        line: usize,
-        for_: &'a Token,
-        var: StringExpr<'a>,
-    ) -> ParseResult<ForStat<'a>> {
+    fn forenum(&mut self, line: usize, for_: Token, var: StringExpr) -> ParseResult<ForStat> {
         let equal = self.next_and_skip_comment();
         let init = self.expr()?;
         let init_commas = self.check_next(TokenType::Comma)?;
@@ -236,12 +231,7 @@ impl<'a> Parser<'a> {
     }
 
     // forlist -> NAME {,NAME} IN explist forbody
-    fn forlist(
-        &mut self,
-        line: usize,
-        for_: &'a Token,
-        var: StringExpr<'a>,
-    ) -> ParseResult<ForStat<'a>> {
+    fn forlist(&mut self, line: usize, for_: Token, var: StringExpr) -> ParseResult<ForStat> {
         let vars = self.varlist(TokenType::Comma, Some(var))?;
         let in_ = self.check_next(TokenType::In)?;
         self.skip_comment();
@@ -263,8 +253,8 @@ impl<'a> Parser<'a> {
     fn varlist(
         &mut self,
         delimiter: TokenType,
-        first_var: Option<StringExpr<'a>>,
-    ) -> ParseResult<VarList<'a>> {
+        first_var: Option<StringExpr>,
+    ) -> ParseResult<VarList> {
         let mut vars = VarList {
             vars: Vec::new(),
             delimiters: Vec::new(),
@@ -282,7 +272,7 @@ impl<'a> Parser<'a> {
     }
 
     // repeatstat -> REPEAT block UNTIL cond
-    fn repeatstat(&mut self) -> ParseResult<RepeatStat<'a>> {
+    fn repeatstat(&mut self) -> ParseResult<RepeatStat> {
         let line = self.current_line();
         let repeat = self.next();
         let block = self.block()?;
@@ -297,7 +287,7 @@ impl<'a> Parser<'a> {
     }
 
     // funcstat -> FUNCTION funcname body
-    fn funcstat(&mut self) -> ParseResult<FuncStat<'a>> {
+    fn funcstat(&mut self) -> ParseResult<FuncStat> {
         let function = self.next_and_skip_comment();
         let func_name = self.funcname()?;
         let body = self.funcbody()?;
@@ -310,7 +300,7 @@ impl<'a> Parser<'a> {
     }
 
     // funcname -> NAME {'.' NAME} [':' NAME]
-    fn funcname(&mut self) -> ParseResult<FuncName<'a>> {
+    fn funcname(&mut self) -> ParseResult<FuncName> {
         let fields = self.varlist(TokenType::Attr, None)?;
         let mut method = None;
         if let Some(colon) = self.test_next(TokenType::Colon) {
@@ -320,7 +310,7 @@ impl<'a> Parser<'a> {
     }
 
     // body ->  '(' parlist ')' block END
-    fn funcbody(&mut self) -> ParseResult<FuncBody<'a>> {
+    fn funcbody(&mut self) -> ParseResult<FuncBody> {
         let line = self.current_line();
         let lp = self.check_next(TokenType::Lp)?;
         self.skip_comment();
@@ -359,7 +349,7 @@ impl<'a> Parser<'a> {
     }
 
     // funcstat -> local FUNCTION funcname body
-    fn localfunc(&mut self, token: &'a Token) -> ParseResult<FuncStat<'a>> {
+    fn localfunc(&mut self, token: Token) -> ParseResult<FuncStat> {
         let function = self.current_token();
         self.next_and_skip_comment();
         let func_name = self.funcname()?;
@@ -373,7 +363,7 @@ impl<'a> Parser<'a> {
     }
 
     // stat -> LOCAL NAME {',' NAME} ['=' explist]
-    fn localstat(&mut self, local: &'a Token) -> ParseResult<LocalStat<'a>> {
+    fn localstat(&mut self, local: Token) -> ParseResult<LocalStat> {
         let names = self.varlist(TokenType::Comma, None)?;
         let equal = self.test_next(TokenType::Assign);
         let exprs = if let Some(_) = equal {
@@ -390,7 +380,7 @@ impl<'a> Parser<'a> {
     }
 
     // label -> '::' NAME '::'
-    fn labelstat(&mut self) -> ParseResult<LabelStat<'a>> {
+    fn labelstat(&mut self) -> ParseResult<LabelStat> {
         let ldc = self.next();
         self.skip_comment();
         let label = self.check_name()?;
@@ -400,7 +390,7 @@ impl<'a> Parser<'a> {
     }
 
     // stat -> RETURN [explist] [';']
-    fn retstat(&mut self) -> ParseResult<RetStat<'a>> {
+    fn retstat(&mut self) -> ParseResult<RetStat> {
         let return_ = self.next_and_skip_comment();
         let exprs = if !self.is_block_end() && self.current_token_type() != TokenType::Semi {
             Some(self.exprlist()?)
@@ -415,19 +405,19 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn breakstat(&mut self) -> ParseResult<BreakStat<'a>> {
+    fn breakstat(&mut self) -> ParseResult<BreakStat> {
         let token = self.next_and_skip_comment();
         Ok(BreakStat { token })
     }
 
-    fn gotostat(&mut self) -> ParseResult<GotoStat<'a>> {
+    fn gotostat(&mut self) -> ParseResult<GotoStat> {
         let goto = self.next_and_skip_comment();
         let label = self.check_name()?;
         Ok(GotoStat { goto, label })
     }
 
     // stat -> func call | assignment
-    fn exprstat(&mut self) -> ParseResult<Stat<'a>> {
+    fn exprstat(&mut self) -> ParseResult<Stat> {
         let expr = self.suffixedexpr()?;
         if self.test(TokenType::Assign) || self.test(TokenType::Comma) {
             Ok(Stat::AssignStat(self.assignment(expr.to_assignable())?))
@@ -440,7 +430,7 @@ impl<'a> Parser<'a> {
 
     // assignment -> ',' suffixedexp assignment
     // assignment -> '=' explist
-    fn assignment(&mut self, first: Assignable<'a>) -> ParseResult<AssignStat<'a>> {
+    fn assignment(&mut self, first: Assignable) -> ParseResult<AssignStat> {
         let mut left = AssignableList {
             assignables: Vec::new(),
             commas: Vec::new(),
@@ -457,7 +447,7 @@ impl<'a> Parser<'a> {
     }
 
     // exprlist -> expr { ',' expr }
-    fn exprlist(&mut self) -> ParseResult<ExprList<'a>> {
+    fn exprlist(&mut self) -> ParseResult<ExprList> {
         let mut exprs = ExprList::new();
         exprs.exprs.push(self.expr()?);
         while let Some(comma) = self.test_next(TokenType::Comma) {
@@ -467,27 +457,27 @@ impl<'a> Parser<'a> {
         Ok(exprs)
     }
 
-    fn expr(&mut self) -> ParseResult<Expr<'a>> {
+    fn expr(&mut self) -> ParseResult<Expr> {
         self.subexpr(0)
     }
 
-    fn get_unop(&self) -> UnOp<'a> {
+    fn get_unop(&self) -> UnOp {
         UnOp::from_token(self.current_token())
     }
 
-    fn get_binop(&self) -> BinOp<'a> {
+    fn get_binop(&self) -> BinOp {
         BinOp::from_token(self.current_token())
     }
 
     // subexpr -> (simpleexpr | unop subexpr) { binop subexpr }
     // where 'binop' is any binary operator with a priority higher than 'limit'
-    fn subexpr(&mut self, limit: u8) -> ParseResult<Expr<'a>> {
+    fn subexpr(&mut self, limit: u8) -> ParseResult<Expr> {
         let mut left;
         let unop = self.get_unop();
         if unop != UnOp::None {
             self.next_and_skip_comment();
             let expr = Box::new(self.subexpr(unop.priority())?);
-            left = Expr::UnExpr(UnExpr { op: unop, expr });
+            left = Expr::UnExpr(UnExpr { op: unop.clone(), expr });
         } else {
             left = self.simpleexpr()?;
         }
@@ -506,7 +496,7 @@ impl<'a> Parser<'a> {
     }
 
     // simpleexpr -> FLT | INT | STRING | NIL | TRUE | FALSE | ... | constructor | FUNCTION body | suffixedexp
-    fn simpleexpr(&mut self) -> ParseResult<Expr<'a>> {
+    fn simpleexpr(&mut self) -> ParseResult<Expr> {
         let token = self.current_token();
         let expr = match token.t {
             TokenType::Flt => Expr::Float(FloatExpr { token }),
@@ -528,7 +518,7 @@ impl<'a> Parser<'a> {
     }
 
     // suffixedexpr -> primaryexpr { '.' NAME | '[' exp ']' | ':' NAME funcargs | funcargs }
-    fn suffixedexpr(&mut self) -> ParseResult<Expr<'a>> {
+    fn suffixedexpr(&mut self) -> ParseResult<Expr> {
         let primary = self.primaryexpr()?;
         let mut suffixes: Vec<Suffix> = Vec::new();
         loop {
@@ -566,7 +556,7 @@ impl<'a> Parser<'a> {
     }
 
     // primaryexp -> NAME | '(' expr ')'
-    fn primaryexpr(&mut self) -> ParseResult<Expr<'a>> {
+    fn primaryexpr(&mut self) -> ParseResult<Expr> {
         let expr = match self.current_token_type() {
             TokenType::Name => Expr::Name(self.check_name()?),
             TokenType::Lp => {
@@ -588,7 +578,7 @@ impl<'a> Parser<'a> {
 
     // table constructor -> '{' [ field { sep field } [sep] ] '}'
     // sep -> ',' | ';'
-    fn table(&mut self) -> ParseResult<Table<'a>> {
+    fn table(&mut self) -> ParseResult<Table> {
         let line = self.current_line();
         let lb = self.check_next(TokenType::Lb)?;
         self.skip_comment();
@@ -601,7 +591,7 @@ impl<'a> Parser<'a> {
     }
 
     // field -> listfield | recfield
-    fn field(&mut self) -> ParseResult<Field<'a>> {
+    fn field(&mut self) -> ParseResult<Field> {
         let field = match self.current_token_type() {
             TokenType::Name => {
                 if self.next_token_type() == TokenType::Assign {
@@ -618,7 +608,7 @@ impl<'a> Parser<'a> {
     }
 
     // recfield -> (NAME | '['exp1']') = exp1 ','
-    fn recfield(&mut self) -> ParseResult<Field<'a>> {
+    fn recfield(&mut self) -> ParseResult<Field> {
         let key = match self.current_token_type() {
             TokenType::Name => FieldKey::Name(self.check_name()?),
             TokenType::Ls => {
@@ -644,12 +634,12 @@ impl<'a> Parser<'a> {
     }
 
     // listfield -> expr
-    fn listfield(&mut self) -> ParseResult<Field<'a>> {
+    fn listfield(&mut self) -> ParseResult<Field> {
         Ok(Field::ListField(self.expr()?))
     }
 
     // funcargs -> '(' [ explist ] ') | table constructor | STRING
-    fn funcargs(&mut self) -> ParseResult<FuncArgs<'a>> {
+    fn funcargs(&mut self) -> ParseResult<FuncArgs> {
         let func_args = match self.current_token_type() {
             TokenType::Lp => {
                 let line = self.current_line();
@@ -677,16 +667,16 @@ impl<'a> Parser<'a> {
         self.current = 0;
     }
 
-    fn current_token(&self) -> &'a Token {
-        &self.tokens.unwrap()[self.current]
+    fn current_token(&self) -> Token {
+        self.tokens[self.current].clone()
     }
 
     fn next_token(&self) -> &Token {
         let mut current = self.current + 1;
-        while self.tokens.unwrap()[current].is_comment() {
+        while self.tokens[current].is_comment() {
             current += 1;
         }
-        &self.tokens.unwrap()[current]
+        &self.tokens[current]
     }
 
     fn current_token_type(&self) -> TokenType {
@@ -709,14 +699,14 @@ impl<'a> Parser<'a> {
         token.t
     }
 
-    fn next_and_skip_comment(&mut self) -> &'a Token {
+    fn next_and_skip_comment(&mut self) -> Token {
         let token = self.current_token();
         self.current += 1;
         self.skip_comment();
         token
     }
 
-    fn next(&mut self) -> &'a Token {
+    fn next(&mut self) -> Token {
         let token = self.current_token();
         self.current += 1;
         token
@@ -743,12 +733,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check_match(
-        &mut self,
-        end: TokenType,
-        start: TokenType,
-        line: usize,
-    ) -> ParseResult<&'a Token> {
+    fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<Token> {
         self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {
@@ -767,7 +752,7 @@ impl<'a> Parser<'a> {
         self.current_token_type() == expected
     }
 
-    fn test_next(&mut self, expected: TokenType) -> Option<&'a Token> {
+    fn test_next(&mut self, expected: TokenType) -> Option<Token> {
         let origin = self.skip_comment();
         if self.test(expected) {
             Some(self.next())
@@ -777,7 +762,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check(&self, expected: TokenType) -> ParseResult<&Token> {
+    fn check(&self, expected: TokenType) -> ParseResult<Token> {
         if self.current_token_type() != expected {
             error_expected!(self, expected)
         } else {
@@ -785,13 +770,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn check_next(&mut self, expected: TokenType) -> ParseResult<&'a Token> {
+    fn check_next(&mut self, expected: TokenType) -> ParseResult<Token> {
         self.skip_comment();
         self.check(expected)?;
         Ok(self.next())
     }
 
-    fn check_name(&mut self) -> ParseResult<StringExpr<'a>> {
+    fn check_name(&mut self) -> ParseResult<StringExpr> {
         self.skip_comment();
         self.check(TokenType::Name)?;
         Ok(StringExpr { token: self.next() })
