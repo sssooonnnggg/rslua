@@ -477,7 +477,10 @@ impl Parser {
         if unop != UnOp::None {
             self.next_and_skip_comment();
             let expr = Box::new(self.subexpr(unop.priority())?);
-            left = Expr::UnExpr(UnExpr { op: unop.clone(), expr });
+            left = Expr::UnExpr(UnExpr {
+                op: unop.clone(),
+                expr,
+            });
         } else {
             left = self.simpleexpr()?;
         }

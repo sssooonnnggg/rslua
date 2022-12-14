@@ -187,8 +187,7 @@ mod lexer_tests {
                         line: 1,
                         col: 1
                     },
-                    offset: 0,
-                    comment_offset: 0
+                    comments: Vec::new(),
                 },
                 
                 Token {
@@ -200,8 +199,7 @@ mod lexer_tests {
                         line: 1,
                         col: 6
                     },
-                    offset: 1,
-                    comment_offset: 1
+                    comments: Vec::new(),
                 }
             ]
         )
@@ -222,8 +220,7 @@ mod lexer_tests {
                         line: 1,
                         col: 1,
                     },
-                    offset: 0,
-                    comment_offset: 0
+                    comments: Vec::new(),
                 },
                 Token {
                     t: TokenType::Eos,
@@ -234,8 +231,7 @@ mod lexer_tests {
                         line: 1,
                         col: 18
                     },
-                    offset: 1,
-                    comment_offset: 1
+                    comments: Vec::new(),
                 }
             ]
         )
@@ -256,8 +252,7 @@ mod lexer_tests {
                         line: 1,
                         col: 1,
                     },
-                    offset: 0,
-                    comment_offset: 0
+                    comments: Vec::new(),
                 },
                 Token {
                     t: TokenType::Eos,
@@ -268,8 +263,7 @@ mod lexer_tests {
                         line: 1,
                         col: 3,
                     },
-                    offset: 1,
-                    comment_offset: 1
+                    comments: Vec::new(),
                 },
             ],
         )
