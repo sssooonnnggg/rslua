@@ -148,15 +148,15 @@ impl AstVisitor for LuaWriter {
 
     fn for_num(&mut self, fornum: &ForNum) -> WriteResult<bool> {
         self.append_space("for");
-        self.append(&format!("{} = ", fornum.var));
+        self.append(&format!("{} = ", fornum.var.value()));
         Ok(false)
     }
 
     fn for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
         self.append_space("for");
-        for (n, var) in forlist.vars.iter().enumerate() {
-            self.append(var);
-            if n < forlist.vars.len() - 1 {
+        for (n, var) in forlist.vars.vars.iter().enumerate() {
+            self.append(&var.value());
+            if n < forlist.vars.vars.len() - 1 {
                 self.append(", ");
             }
         }
@@ -193,48 +193,48 @@ impl AstVisitor for LuaWriter {
 
     fn func(&mut self, funcstat: &FuncStat) {
         match funcstat.func_type {
-            FuncType::Local => self.append_space("local function"),
+            FuncType::Local(_) => self.append_space("local function"),
             FuncType::Global => self.append_space("function"),
         };
         let func_name = &funcstat.func_name;
-        let mut fields = func_name.fields.iter();
+        let mut fields = func_name.fields.vars.iter();
         if let Some(name) = fields.next() {
-            self.append(name);
+            self.append(&name.value());
             while let Some(name) = fields.next() {
                 self.append(".");
-                self.append(name);
+                self.append(&name.value());
             }
-            if let Some(method) = &func_name.method {
+            if let Some((_, method)) = &func_name.method {
                 self.append(":");
-                self.append(method);
+                self.append(&method.value());
             }
         }
     }
 
     fn local_stat(&mut self, stat: &LocalStat) -> WriteSuccess {
         self.append_space("local");
-        for (n, name) in stat.names.iter().enumerate() {
-            self.append(name);
-            if n < stat.names.len() - 1 {
+        for (n, name) in stat.names.vars.iter().enumerate() {
+            self.append(&name.value());
+            if n < stat.names.vars.len() - 1 {
                 self.append(", ");
             }
         }
         self.space();
-        if stat.exprs.len() > 0 {
+        if let Some(_) = stat.equal {
             self.append_space("=");
-            ast_walker::walk_exprlist(&stat.exprs, self)?;
+            ast_walker::walk_exprlist(stat.exprs.as_ref().unwrap(), self)?;
         }
         Ok(())
     }
 
     fn label_stat(&mut self, stat: &LabelStat) -> WriteSuccess {
-        self.append(&format!("::{}::", stat.label));
+        self.append(&format!("::{}::", stat.label.value()));
         Ok(())
     }
 
     fn ret_stat(&mut self, stat: &RetStat) -> WriteSuccess {
         self.append_space("return");
-        ast_walker::walk_exprlist(&stat.exprs, self)?;
+        ast_walker::walk_exprlist(stat.exprs.as_ref().unwrap(), self)?;
         Ok(())
     }
 
@@ -244,14 +244,14 @@ impl AstVisitor for LuaWriter {
     }
 
     fn goto_stat(&mut self, stat: &GotoStat) -> WriteSuccess {
-        self.append(&format!("goto {}", stat.label));
+        self.append(&format!("goto {}", stat.label.value()));
         Ok(())
     }
 
     fn assign_stat(&mut self, stat: &AssignStat) -> WriteSuccess {
-        for (n, suffix) in stat.left.iter().enumerate() {
+        for (n, suffix) in stat.left.assignables.iter().enumerate() {
             ast_walker::walk_assinable(suffix, self)?;
-            if n < stat.left.len() - 1 {
+            if n < stat.left.assignables.len() - 1 {
                 self.append_space(",");
             }
         }
@@ -281,21 +281,21 @@ impl AstVisitor for LuaWriter {
         self.append("false");
     }
 
-    fn float(&mut self, f: FloatType) {
-        let string = if f.fract() == 0.0 {
-            format!("{}.0", f)
+    fn float(&mut self, f: &FloatExpr) {
+        let string = if f.value().fract() == 0.0 {
+            format!("{}.0", f.value())
         } else {
-            f.to_string()
+            f.value().to_string()
         };
         self.append(&string);
     }
 
-    fn int(&mut self, i: IntType) {
-        self.append(&i.to_string());
+    fn int(&mut self, i: &IntExpr) {
+        self.append(&i.value().to_string());
     }
 
-    fn string(&mut self, s: &str) {
-        self.append(s);
+    fn string(&mut self, s: &StringExpr) {
+        self.append(&s.value());
     }
 
     fn vararg(&mut self) {
