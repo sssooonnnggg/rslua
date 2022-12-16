@@ -131,7 +131,7 @@ impl<'a> Lexer {
         self.config = config;
     }
 
-    pub fn run(&mut self, input: &'a str) -> Result<&Vec<Token>, LexError> {
+    pub fn run(&mut self, input: &'a str) -> Result<Vec<Token>, LexError> {
         self.reset();
         let mut ctx = Context::new(input);
         loop {
@@ -158,7 +158,7 @@ impl<'a> Lexer {
             } else {
                 // append eos and return tokens
                 self.add_token(&mut ctx, TokenType::Eos, TokenValue::None);
-                return Ok(&self.tokens);
+                return Ok(std::mem::replace(&mut self.tokens, Vec::new()));
             }
         }
     }

@@ -83,7 +83,7 @@ impl Proto {
         self.code.len() - 1
     }
 
-    pub fn code_bin_op(&mut self, op: BinOp, target: u32, left: u32, right: u32) -> usize {
+    pub fn code_bin_op(&mut self, op: &BinOp, target: u32, left: u32, right: u32) -> usize {
         let op_code = match op {
             BinOp::Add(_) => OpCode::Add,
             BinOp::Minus(_) => OpCode::Sub,
@@ -105,7 +105,7 @@ impl Proto {
         self.code.len() - 1
     }
 
-    pub fn code_comp(&mut self, op: BinOp, left: u32, right: u32) -> usize {
+    pub fn code_comp(&mut self, op: &BinOp, left: u32, right: u32) -> usize {
         let op_code = match op {
             BinOp::Lt(_) | BinOp::Gt(_) => OpCode::Lt,
             BinOp::Ne(_) | BinOp::Eq(_) => OpCode::Eq,
@@ -121,7 +121,7 @@ impl Proto {
         self.code.len() - 1
     }
 
-    pub fn code_un_op(&mut self, op: UnOp, target: u32, src: u32) -> usize {
+    pub fn code_un_op(&mut self, op: &UnOp, target: u32, src: u32) -> usize {
         let op_code = match op {
             UnOp::Minus(_) => OpCode::Unm,
             UnOp::BNot(_) => OpCode::BNot,

@@ -114,13 +114,13 @@ pub trait AstVisitor<E = ()> {
     fn begin_bin_expr(&mut self, _expr: &BinExpr) -> Result<bool, E> {
         Ok(false)
     }
-    fn binop(&mut self, _op: BinOp) {}
+    fn binop(&mut self, _op: &BinOp) {}
     fn end_bin_expr(&mut self) {}
 
     fn begin_un_expr(&mut self, _expr: &UnExpr) -> Result<bool, E> {
         Ok(false)
     }
-    fn unop(&mut self, _op: UnOp) {}
+    fn unop(&mut self, _op: &UnOp) {}
     fn end_un_expr(&mut self) {}
 
     fn begin_suffixed_expr(&mut self, _expr: &SuffixedExpr) -> Result<bool, E> {
@@ -363,7 +363,7 @@ pub mod ast_walker {
     pub fn walk_binexpr<T: AstVisitor<E>, E>(expr: &BinExpr, visitor: &mut T) -> Result<(), E> {
         if !visitor.begin_bin_expr(expr)? {
             walk_expr(&expr.left, visitor)?;
-            visitor.binop(expr.op);
+            visitor.binop(&expr.op);
             walk_expr(&expr.right, visitor)?;
         }
         visitor.end_bin_expr();
@@ -372,7 +372,7 @@ pub mod ast_walker {
 
     pub fn walk_unexpr<T: AstVisitor<E>, E>(expr: &UnExpr, visitor: &mut T) -> Result<(), E> {
         if !visitor.begin_un_expr(expr)? {
-            visitor.unop(expr.op);
+            visitor.unop(&expr.op);
             walk_expr(&expr.expr, visitor)?;
         }
         visitor.end_un_expr();
@@ -388,9 +388,9 @@ pub mod ast_walker {
             for suf in expr.suffixes.iter() {
                 if !visitor.suffix(suf)? {
                     match suf {
-                        Suffix::Attr(token, attr) => visitor.attr(attr),
-                        Suffix::Method(token, method) => visitor.method(method),
-                        Suffix::Index(ls, index, rs) => walk_index(index, visitor)?,
+                        Suffix::Attr(_, attr) => visitor.attr(attr),
+                        Suffix::Method(_, method) => visitor.method(method),
+                        Suffix::Index(_, index, _) => walk_index(index, visitor)?,
                         Suffix::FuncArgs(args) => walk_funcargs(args, visitor)?,
                     }
                 }
@@ -424,7 +424,7 @@ pub mod ast_walker {
             match args {
                 FuncArgs::String(s) => visitor.string(s),
                 FuncArgs::Table(t) => walk_table(t, visitor)?,
-                FuncArgs::Exprs(lp, exprs, rp) => walk_exprlist(exprs, visitor)?,
+                FuncArgs::Exprs(_, exprs, _) => walk_exprlist(exprs, visitor)?,
             }
         }
         visitor.end_func_args();
@@ -476,7 +476,7 @@ pub mod ast_walker {
         if !visitor.begin_field_key(key)? {
             match key {
                 FieldKey::Name(s) => visitor.name(s),
-                FieldKey::Expr(ls, expr, rs) => walk_expr(expr, visitor)?,
+                FieldKey::Expr(_, expr, _) => walk_expr(expr, visitor)?,
             };
         }
         visitor.end_field_key(key);

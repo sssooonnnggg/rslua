@@ -226,7 +226,7 @@ impl Compiler {
 
     fn adjust_assign(&mut self, num_left: usize, right_exprs: Option<&ExprList>) -> i32 {
         let extra = num_left as i32 - right_exprs.map_or(0, |v| v.exprs.len()) as i32;
-        if let Some(last_expr) = right_exprs.and_then(|v| v.exprs.last()) {
+        if let Some(_) = right_exprs.and_then(|v| v.exprs.last()) {
             // TODO : process multi return value
         }
 
@@ -305,7 +305,7 @@ impl Compiler {
                         self.try_const_folding(&bin.left)?,
                         self.try_const_folding(&bin.right)?,
                     ) {
-                        if let Some(k) = self.const_folding_bin_op(bin.op, l, r)? {
+                        if let Some(k) = self.const_folding_bin_op(&bin.op, l, r)? {
                             return success!(k);
                         }
                     }
@@ -315,7 +315,7 @@ impl Compiler {
             Expr::UnExpr(un) => match un.op {
                 UnOp::BNot(_) | UnOp::Minus(_) => {
                     if let Some(k) = self.try_const_folding(&un.expr)? {
-                        if let Some(k) = self.const_folding_un_op(un.op, k)? {
+                        if let Some(k) = self.const_folding_un_op(&un.op, k)? {
                             return success!(k);
                         }
                     }
@@ -332,14 +332,14 @@ impl Compiler {
         match expr {
             Expr::BinExpr(bin) => match bin.op {
                 BinOp::And(_) => self.code_and(reg, &bin.left, &bin.right),
-                _ => self.code_bin_op(bin.op, reg, &bin.left, &bin.right),
+                _ => self.code_bin_op(&bin.op, reg, &bin.left, &bin.right),
             },
             Expr::UnExpr(un) => {
                 if let UnOp::Not(_) = un.op {
-                    self.code_not(un.op, reg, &un.expr)
+                    self.code_not(&un.op, reg, &un.expr)
                 } else {
                     let result = self.expr(&un.expr, reg)?;
-                    self.code_un_op(un.op, reg, result)
+                    self.code_un_op(&un.op, reg, result)
                 }
             }
             _ => unreachable!(),
@@ -348,7 +348,7 @@ impl Compiler {
 
     fn const_folding_bin_op(
         &self,
-        op: BinOp,
+        op: &BinOp,
         l: Const,
         r: Const,
     ) -> Result<Option<Const>, CompileError> {
@@ -370,7 +370,7 @@ impl Compiler {
         Ok(result)
     }
 
-    fn const_folding_un_op(&self, op: UnOp, k: Const) -> Result<Option<Const>, CompileError> {
+    fn const_folding_un_op(&self, op: &UnOp, k: Const) -> Result<Option<Const>, CompileError> {
         let result = match op {
             UnOp::Minus(_) => k.minus()?,
             UnOp::BNot(_) => k.bnot()?,
@@ -403,7 +403,7 @@ impl Compiler {
 
     fn code_bin_op(
         &mut self,
-        op: BinOp,
+        op: &BinOp,
         input: Option<u32>,
         left_expr: &Expr,
         right_expr: &Expr,
@@ -437,18 +437,18 @@ impl Compiler {
         match op {
             _ if op.is_comp() => {
                 let (left_rk, right_rk) = get_rk();
-                result = self.code_comp(op, result, left_rk, right_rk);
+                result = self.code_comp(&op, result, left_rk, right_rk);
             }
             _ => {
                 let (left_rk, right_rk) = get_rk();
-                self.proto().code_bin_op(op, reg, left_rk, right_rk);
+                self.proto().code_bin_op(&op, reg, left_rk, right_rk);
             }
         };
 
         Ok(result)
     }
 
-    fn code_comp(&mut self, op: BinOp, target: ExprResult, left: u32, right: u32) -> ExprResult {
+    fn code_comp(&mut self, op: &BinOp, target: ExprResult, left: u32, right: u32) -> ExprResult {
         match target {
             ExprResult::Reg(reg) => {
                 // covert >= to <=, > to <
@@ -458,7 +458,7 @@ impl Compiler {
                 };
 
                 let proto = self.proto();
-                proto.code_comp(op, left, right);
+                proto.code_comp(&op, left, right);
                 let jump = proto.code_jmp(NO_JUMP, 0);
                 ExprResult::new_jump(reg, jump)
             }
@@ -517,7 +517,7 @@ impl Compiler {
 
     fn code_un_op(
         &mut self,
-        op: UnOp,
+        op: &UnOp,
         input: Option<u32>,
         expr: ExprResult,
     ) -> Result<ExprResult, CompileError> {
@@ -537,7 +537,7 @@ impl Compiler {
         Ok(result)
     }
 
-    fn code_not(&mut self, op: UnOp, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
+    fn code_not(&mut self, op: &UnOp, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
             Ok(ExprResult::False)
         } else {

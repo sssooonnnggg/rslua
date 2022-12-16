@@ -308,12 +308,12 @@ impl AstVisitor for LuaWriter {
 
     fn begin_func_body(&mut self, body: &FuncBody) -> WriteResult<bool> {
         self.append("(");
-        for (n, param) in body.params.iter().enumerate() {
+        for (n, param) in body.params.params.iter().enumerate() {
             match param {
-                Param::VarArg => self.append("..."),
-                Param::Name(s) => self.append(s),
+                Param::VarArg(_) => self.append("..."),
+                Param::Name(s) => self.append(&s.value()),
             }
-            if n < body.params.len() - 1 {
+            if n < body.params.params.len() - 1 {
                 self.append(", ");
             }
         }
@@ -353,7 +353,7 @@ impl AstVisitor for LuaWriter {
 
     fn begin_field_key(&mut self, key: &FieldKey) -> WriteResult<bool> {
         match key {
-            FieldKey::Expr(_) => self.append_space("["),
+            FieldKey::Expr(_, _, _) => self.append_space("["),
             _ => (),
         }
         Ok(false)
@@ -361,61 +361,61 @@ impl AstVisitor for LuaWriter {
 
     fn end_field_key(&mut self, key: &FieldKey) {
         match key {
-            FieldKey::Expr(_) => self.space_append("]"),
+            FieldKey::Expr(_, _, _) => self.space_append("]"),
             _ => (),
         }
     }
 
-    fn binop(&mut self, op: BinOp) {
+    fn binop(&mut self, op: &BinOp) {
         let string = match op {
-            BinOp::Or => "or",
-            BinOp::And => "and",
-            BinOp::Eq => "==",
-            BinOp::Ne => "~=",
-            BinOp::Lt => "<",
-            BinOp::Gt => ">",
-            BinOp::Le => "<=",
-            BinOp::Ge => ">=",
-            BinOp::BOr => "|",
-            BinOp::BXor => "~",
-            BinOp::BAnd => "&",
-            BinOp::Shl => "<<",
-            BinOp::Shr => ">>",
-            BinOp::Concat => "..",
-            BinOp::Add => "+",
-            BinOp::Minus => "-",
-            BinOp::Mul => "*",
-            BinOp::Mod => "%",
-            BinOp::Div => "/",
-            BinOp::IDiv => "//",
-            BinOp::Pow => "^",
+            BinOp::Or(_) => "or",
+            BinOp::And(_) => "and",
+            BinOp::Eq(_) => "==",
+            BinOp::Ne(_) => "~=",
+            BinOp::Lt(_) => "<",
+            BinOp::Gt(_) => ">",
+            BinOp::Le(_) => "<=",
+            BinOp::Ge(_) => ">=",
+            BinOp::BOr(_) => "|",
+            BinOp::BXor(_) => "~",
+            BinOp::BAnd(_) => "&",
+            BinOp::Shl(_) => "<<",
+            BinOp::Shr(_) => ">>",
+            BinOp::Concat(_) => "..",
+            BinOp::Add(_) => "+",
+            BinOp::Minus(_) => "-",
+            BinOp::Mul(_) => "*",
+            BinOp::Mod(_) => "%",
+            BinOp::Div(_) => "/",
+            BinOp::IDiv(_) => "//",
+            BinOp::Pow(_) => "^",
             _ => unreachable!(),
         };
         self.space_append_space(string);
     }
 
-    fn unop(&mut self, op: UnOp) {
+    fn unop(&mut self, op: &UnOp) {
         match op {
-            UnOp::Minus => self.append("-"),
-            UnOp::BNot => self.append("~"),
-            UnOp::Not => self.append_space("not"),
-            UnOp::Len => self.append("#"),
+            UnOp::Minus(_) => self.append("-"),
+            UnOp::BNot(_) => self.append("~"),
+            UnOp::Not(_) => self.append_space("not"),
+            UnOp::Len(_) => self.append("#"),
             _ => unreachable!(),
         }
     }
 
-    fn name(&mut self, name: &str) {
-        self.append(name);
+    fn name(&mut self, name: &StringExpr) {
+        self.append(&name.value());
     }
 
-    fn attr(&mut self, attr: &str) {
+    fn attr(&mut self, attr: &StringExpr) {
         self.append(".");
-        self.append(attr);
+        self.append(&attr.value());
     }
 
-    fn method(&mut self, method: &str) {
+    fn method(&mut self, method: &StringExpr) {
         self.append(":");
-        self.append(method);
+        self.append(&method.value());
     }
 
     fn begin_index(&mut self, _expr: &Expr) -> WriteResult<bool> {
@@ -446,7 +446,7 @@ impl AstVisitor for LuaWriter {
     }
 
     fn comment(&mut self, comment: &CommentStat) {
-        self.append(&format!("--{}", comment.comment));
+        self.append(&format!("--{}", &comment.comment.value()));
     }
 }
 
