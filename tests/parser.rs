@@ -1,12 +1,12 @@
 #[allow(unused_must_use)]
 mod parser_tests {
-    use rslua::ast::*;
     use rslua::lexer::Lexer;
     use rslua::parser::Parser;
+    use rslua::ast::*;
     use std::fs::File;
     use std::io::prelude::*;
 
-    fn try_parse(input: &str) {
+    fn try_parse(input: &str) -> Block {
         let mut lexer = Lexer::new();
         lexer.set_debug(true);
         if let Ok(tokens) = lexer.run(input) {
@@ -14,8 +14,10 @@ mod parser_tests {
             parser.set_debug(true);
             if let Ok(ast) = parser.run(tokens) {
                 println!("{:#?}", ast);
+                return ast;
             }
         }
+        unreachable!()
     }
 
     #[test]
@@ -27,10 +29,10 @@ mod parser_tests {
         Ok(())
     }
 
-    // #[test]
-    // fn empty_stat() {
-    //     assert_eq!(try_parse(";;;;"), Block { stats: vec![] });
-    // }
+    #[test]
+    fn empty_stat() {
+        assert_eq!(try_parse(";;;;"), Block { stats: vec![] });
+    }
 
     #[test]
     fn ifstat() {
@@ -40,25 +42,25 @@ mod parser_tests {
         elseif true then 
         else end"#,
         );
-        // assert_eq!(
-        //     ast,
-        //     Block {
-        //         stats: vec![Stat::IfStat(IfStat {
-        //             cond_blocks: vec![
-        //                 CondBlock {
-        //                     cond: Expr::True,
-        //                     block: Block { stats: vec![] },
-        //                 },
-        //                 CondBlock {
-        //                     cond: Expr::True,
-        //                     block: Block { stats: vec![] },
-        //                 },
-        //             ],
-        //             else_block: Some(Block { stats: vec![] }),
-        //         })
-        //         .to_stat_info()],
-        //     }
-        // )
+        assert_eq!(
+            ast,
+            Block {
+                stats: vec![Stat::IfStat(IfStat {
+                    cond_blocks: vec![
+                        CondBlock {
+                            cond: Expr::True,
+                            block: Block { stats: vec![] },
+                        },
+                        CondBlock {
+                            cond: Expr::True,
+                            block: Block { stats: vec![] },
+                        },
+                    ],
+                    else_block: Some(Block { stats: vec![] }),
+                })
+                .to_stat_info()],
+            }
+        )
     }
 
     // #[test]

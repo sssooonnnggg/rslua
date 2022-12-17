@@ -857,7 +857,9 @@ impl<'a> Lexer {
     fn add_token(&mut self, ctx: &mut Context, t: TokenType, value: TokenValue) {
         let source = ctx.get_saved_source();
         let mut comments: Vec<Token> = Vec::new();
-        comments.clone_from_slice(&self.tokens[ctx.comment_offset..ctx.offset]);
+        for comment in &mut self.tokens[ctx.comment_offset..ctx.offset].iter() {
+            comments.push(comment.clone());
+        }
         self.tokens.push(Token {
             t,
             value,

@@ -2,7 +2,6 @@ use rslua::ast::*;
 use rslua::ast_walker::*;
 use rslua::lexer::{Lexer, LexerConfig};
 use rslua::parser::Parser;
-use rslua::types::*;
 use std::fs::File;
 use std::fs::{create_dir, read_dir};
 use std::io::prelude::*;
