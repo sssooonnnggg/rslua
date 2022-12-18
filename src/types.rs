@@ -8,31 +8,17 @@ pub enum Number {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Source {
-    pub pos: usize,
-    pub length: usize,
     pub line: usize,
     pub col: usize,
+    pub length: usize,
 }
 
 impl Source {
     pub fn new() -> Self {
         Source {
-            pos: 0,
             length: 0,
             line: 0,
             col: 0,
-        }
-    }
-}
-use std::ops;
-impl ops::Sub<Source> for Source {
-    type Output = Source;
-    fn sub(self, rhs: Source) -> Source {
-        Source {
-            pos: rhs.pos,
-            length: self.pos + self.length - rhs.pos,
-            line: rhs.line,
-            col: rhs.col,
         }
     }
 }

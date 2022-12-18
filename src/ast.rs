@@ -483,37 +483,7 @@ pub enum Stat {
     CommentStat(CommentStat),
 }
 
-impl Stat {
-    pub fn to_stat_info(self) -> StatInfo {
-        StatInfo {
-            stat: self,
-            source: Source::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct StatInfo {
-    pub stat: Stat,
-    pub source: Source,
-}
-
-impl StatInfo {
-    pub fn from_stat(stat: Stat) -> Self {
-        StatInfo {
-            stat,
-            source: Source::new(),
-        }
-    }
-}
-
-impl PartialEq for StatInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.stat == other.stat
-    }
-}
-
 #[derive(Clone, PartialEq, Debug)]
 pub struct Block {
-    pub stats: Vec<StatInfo>,
+    pub stats: Vec<Stat>,
 }

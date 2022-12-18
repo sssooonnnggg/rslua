@@ -53,17 +53,16 @@ impl Parser {
 
     // block -> { stat [';'] }
     fn block(&mut self) -> ParseResult<Block> {
-        let mut stats: Vec<StatInfo> = Vec::new();
+        let mut stats: Vec<Stat> = Vec::new();
         let saved = self.current_source();
         while !self.is_block_end() {
             let stat = self.stat()?;
             if let Some(stat) = stat {
-                let source = self.current_source() - saved;
                 let should_break = match stat {
                     Stat::RetStat(_) => true,
                     _ => false,
                 };
-                stats.push(StatInfo { source, stat });
+                stats.push(stat);
                 if should_break {
                     break;
                 }

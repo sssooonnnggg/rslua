@@ -1,8 +1,10 @@
 #[allow(unused_must_use)]
 mod parser_tests {
+    use rslua::ast::*;
+    use rslua::tokens::*;
     use rslua::lexer::Lexer;
     use rslua::parser::Parser;
-    use rslua::ast::*;
+    use rslua::types::Source;
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -42,25 +44,16 @@ mod parser_tests {
         elseif true then 
         else end"#,
         );
-        assert_eq!(
-            ast,
-            Block {
-                stats: vec![Stat::IfStat(IfStat {
-                    cond_blocks: vec![
-                        CondBlock {
-                            cond: Expr::True,
-                            block: Block { stats: vec![] },
-                        },
-                        CondBlock {
-                            cond: Expr::True,
-                            block: Block { stats: vec![] },
-                        },
-                    ],
-                    else_block: Some(Block { stats: vec![] }),
-                })
-                .to_stat_info()],
-            }
-        )
+        let stat = &ast.stats[0];
+        match stat {
+            Stat::IfStat(if_) => {
+                assert_eq!(if_.cond_blocks.len(), 2);
+                assert!(matches!(if_.else_, Some(..)));
+                assert!(matches!(if_.cond_blocks[0].cond, Expr::True(..)));
+                assert!(matches!(if_.cond_blocks[1].cond, Expr::True(..)));
+            },
+            _ => unreachable!()
+        }
     }
 
     // #[test]

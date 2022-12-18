@@ -39,10 +39,9 @@ impl<'a> Context<'a> {
 
     pub fn get_saved_source(&self) -> Source {
         Source {
-            pos: self.old_pos,
-            length: self.current - self.old_pos,
             line: self.old_line,
             col: self.old_col,
+            length: self.current - self.old_pos,
         }
     }
 

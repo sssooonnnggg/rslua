@@ -3,7 +3,7 @@ use crate::types::*;
 
 // if visitor return `Ok(true)`, walker will not travel its children
 // if visitor return `Ok(false)`, walker will travel its children recursively.
-// if visitor return `Err(E)`, walker will stop travelling.
+// if visitor return `Err(E)`, walker will stop traveling.
 pub trait AstVisitor<E = ()> {
     fn stat_sep(&mut self) {}
 
@@ -153,17 +153,28 @@ pub trait AstVisitor<E = ()> {
 
     fn comment(&mut self, _comment: &CommentStat) {}
 
-    fn error(&mut self, e: E, _source: &Source) -> Result<(), E> { Err(e) }
+    fn error(&mut self, e: E, _source: &Source) -> Result<(), E> {
+        Err(e)
+    }
 }
 
 pub mod ast_walker {
     use super::AstVisitor;
-    use crate::ast::*;
+    use crate::{ast::*, types::Source};
 
     pub fn walk_block<T: AstVisitor<E>, E>(block: &Block, visitor: &mut T) -> Result<(), E> {
-        for StatInfo { source, stat } in block.stats.iter() {
+        for stat in block.stats.iter() {
             match walk_stat(stat, visitor) {
-                Err(e) => return visitor.error(e, source),
+                Err(e) => {
+                    return visitor.error(
+                        e,
+                        &Source {
+                            line: 0,
+                            col: 0,
+                            length: 0,
+                        },
+                    )
+                }
                 _ => (),
             };
             visitor.stat_sep();
@@ -406,7 +417,7 @@ pub mod ast_walker {
     ) -> Result<(), E> {
         match assignable {
             Assignable::SuffixedExpr(s) => walk_suffixedexpr(s, visitor)?,
-            Assignable::Name(s) => visitor.name(s)
+            Assignable::Name(s) => visitor.name(s),
         };
         Ok(())
     }
