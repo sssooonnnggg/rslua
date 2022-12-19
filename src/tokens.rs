@@ -118,6 +118,13 @@ impl TokenType {
             _ => None,
         }
     }
+
+    pub fn is_comment(&self) -> bool {
+        match &self {
+            TokenType::SComment | TokenType::MComment => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -156,6 +163,6 @@ impl Token {
         }
     }
     pub fn is_comment(&self) -> bool {
-        self.t == TokenType::SComment || self.t == TokenType::MComment
+        self.t.is_comment()
     }
 }
