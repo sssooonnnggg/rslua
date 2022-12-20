@@ -469,7 +469,7 @@ pub mod ast_walker {
     pub fn walk_field<T: AstVisitor<E>, E>(field: &Field, visitor: &mut T) -> Result<(), E> {
         match field {
             Field::RecField(field) => walk_recfield(field, visitor),
-            Field::ListField(field) => walk_expr(field, visitor),
+            Field::ListField(field) => walk_listfield(field, visitor),
         }
     }
 
@@ -482,6 +482,11 @@ pub mod ast_walker {
         visitor.end_rec_field();
         Ok(())
     }
+
+    pub fn walk_listfield<T: AstVisitor<E>, E>(field: &ListField, visitor: &mut T) -> Result<(), E> {
+        walk_expr(&field.value, visitor)?;
+        Ok(())
+    } 
 
     pub fn walk_fieldkey<T: AstVisitor<E>, E>(key: &FieldKey, visitor: &mut T) -> Result<(), E> {
         if !visitor.begin_field_key(key)? {

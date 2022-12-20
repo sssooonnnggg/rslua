@@ -181,7 +181,6 @@ mod lexer_tests {
                     t: TokenType::Flt,
                     value: TokenValue::Float(0.13),
                     source: Source {
-                        pos: 0,
                         length: 5,
                         line: 1,
                         col: 1
@@ -193,7 +192,6 @@ mod lexer_tests {
                     t: TokenType::Eos,
                     value: TokenValue::None,
                     source: Source {
-                        pos: 5,
                         length: 0,
                         line: 1,
                         col: 6
@@ -214,7 +212,6 @@ mod lexer_tests {
                     t: TokenType::Name,
                     value: TokenValue::Str("codepoint_to_utf8".to_string()),
                     source: Source {
-                        pos: 0,
                         length: 17,
                         line: 1,
                         col: 1,
@@ -225,7 +222,6 @@ mod lexer_tests {
                     t: TokenType::Eos,
                     value: TokenValue::None,
                     source: Source {
-                        pos: 17,
                         length: 0,
                         line: 1,
                         col: 18
@@ -246,7 +242,6 @@ mod lexer_tests {
                     t: TokenType::IDiv,
                     value: TokenValue::None,
                     source: Source {
-                        pos: 0,
                         length: 2,
                         line: 1,
                         col: 1,
@@ -257,7 +252,6 @@ mod lexer_tests {
                     t: TokenType::Eos,
                     value: TokenValue::None,
                     source: Source {
-                        pos: 2,
                         length: 0,
                         line: 1,
                         col: 3,

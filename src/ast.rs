@@ -1,5 +1,5 @@
 use crate::tokens::{Token, TokenType};
-use crate::types::{FloatType, IntType, Source};
+use crate::types::{FloatType, IntType};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum UnOp {
@@ -247,7 +247,7 @@ pub struct Table {
 #[derive(Clone, PartialEq, Debug)]
 pub enum Field {
     RecField(RecField),
-    ListField(Expr),
+    ListField(ListField),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -255,7 +255,13 @@ pub struct RecField {
     pub key: FieldKey,
     pub equal: Token,
     pub value: Expr,
-    pub comma: Option<Token>,
+    pub sep: Option<Token>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ListField {
+    pub value: Expr,
+    pub sep: Option<Token>,
 }
 
 #[derive(Clone, PartialEq, Debug)]

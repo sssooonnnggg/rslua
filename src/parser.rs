@@ -2,7 +2,6 @@ use crate::{debuggable, error};
 
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
-use crate::types::Source;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -54,7 +53,6 @@ impl Parser {
     // block -> { stat [';'] }
     fn block(&mut self) -> ParseResult<Block> {
         let mut stats: Vec<Stat> = Vec::new();
-        let saved = self.current_source();
         while !self.is_block_end() {
             let stat = self.stat()?;
             if let Some(stat) = stat {
@@ -532,8 +530,7 @@ impl Parser {
                 TokenType::Ls => {
                     let line = self.current_line();
                     let ls = self.next_and_skip_comment();
-                    let rs = self.check_match(TokenType::Rs, TokenType::Ls, line)?;
-                    suffixes.push(Suffix::Index(ls, self.expr()?, rs));
+                    suffixes.push(Suffix::Index(ls, self.expr()?, self.check_match(TokenType::Rs, TokenType::Ls, line)?));
                 }
                 TokenType::Colon => {
                     let colon = self.next_and_skip_comment();
@@ -626,18 +623,20 @@ impl Parser {
         self.skip_comment();
         let value = self.expr()?;
         self.skip_comment();
-        let comma = Some(self.check_next(TokenType::Comma)?);
+        let sep = self.test_next(TokenType::Comma).or_else(|| self.test_next(TokenType::Semi));
         Ok(Field::RecField(RecField {
             key,
             equal,
             value,
-            comma,
+            sep,
         }))
     }
 
     // listfield -> expr
     fn listfield(&mut self) -> ParseResult<Field> {
-        Ok(Field::ListField(self.expr()?))
+        let expr = self.expr()?;
+        let sep = self.test_next(TokenType::Comma).or_else(|| self.test_next(TokenType::Semi));
+        Ok(Field::ListField(ListField { value: expr, sep }))
     }
 
     // funcargs -> '(' [ explist ] ') | table constructor | STRING
@@ -684,11 +683,6 @@ impl Parser {
     fn current_token_type(&self) -> TokenType {
         let token = self.current_token();
         token.t
-    }
-
-    fn current_source(&self) -> Source {
-        let token = self.current_token();
-        token.source
     }
 
     fn current_line(&self) -> usize {

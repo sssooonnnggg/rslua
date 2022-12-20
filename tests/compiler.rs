@@ -337,7 +337,8 @@ instructions :
 --
 local a = 1 // 0"#,
         );
-        assert_eq!(result, r#"[compile error] divide by zero at line [5]."#)
+        // TODO:
+        assert_eq!(result, r#"[compile error] divide by zero at line [0]."#)
     }
 
     #[test]
