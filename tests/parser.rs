@@ -56,50 +56,54 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn whilestat() {
-    //     let ast = try_parse(r#"while true do end"#);
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::WhileStat(WhileStat {
-    //                 cond: Expr::True,
-    //                 block: Block { stats: vec![] },
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn whilestat() {
+        let ast = try_parse(r#"while true do end"#);
+        let stat = &ast.stats[0];
+        match stat {
+            Stat::WhileStat(while_) => {
+                assert!(matches!(while_.cond, Expr::True(..)));
+            },
+            _ => unreachable!()
+        }
+    }
 
-    // #[test]
-    // fn forstat() {
-    //     let forenum = try_parse("for i = 1, 10, 1 do end");
-    //     let forlist = try_parse("for a, b in c, d do end");
-    //     assert_eq!(
-    //         forenum,
-    //         Block {
-    //             stats: vec![Stat::ForStat(ForStat::ForNum(ForNum {
-    //                 var: String::from("i"),
-    //                 init: Expr::Int(1),
-    //                 limit: Expr::Int(10),
-    //                 step: Some(Expr::Int(1)),
-    //                 body: Block { stats: vec![] },
-    //             }))
-    //             .to_stat_info()],
-    //         }
-    //     );
-    //     assert_eq!(
-    //         forlist,
-    //         Block {
-    //             stats: vec![Stat::ForStat(ForStat::ForList(ForList {
-    //                 vars: vec![String::from("a"), String::from("b"),],
-    //                 exprs: vec![Expr::Name("c".to_string()), Expr::Name("d".to_string())],
-    //                 body: Block { stats: vec![] },
-    //             },),)
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn forstat() {
+        let fornum = try_parse("for i = 1, 10, 1 do end");
+        let fornum_stat = &fornum.stats[0];
+        match fornum_stat {
+            Stat::ForStat(for_) => {
+                match &for_ {
+                    ForStat::ForNum(for_num) => {
+                        assert_eq!(for_num.var.value(), "i");
+                        assert_eq!(for_num.init.unwrap_as_int(), 1);
+                        assert_eq!(for_num.limit.unwrap_as_int(), 10);
+                        assert_eq!(for_num.step.as_ref().unwrap().unwrap_as_int(), 1);
+                    },
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+
+        let forlist = try_parse("for a, b in c, d do end");
+        let forlist_stat = &forlist.stats[0];
+        match forlist_stat {
+            Stat::ForStat(for_) => {
+                match &for_ {
+                    ForStat::ForList(for_list) => {
+                        assert_eq!(for_list.vars.vars[0].value(), "a");
+                        assert_eq!(for_list.vars.vars[1].value(), "b");
+                        assert_eq!(for_list.exprs.exprs[0].unwrap_as_name().value(), "c");
+                        assert_eq!(for_list.exprs.exprs[1].unwrap_as_name().value(), "d");
+                    },
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn doblock() {

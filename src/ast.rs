@@ -162,6 +162,20 @@ impl Expr {
             _ => unreachable!(),
         }
     }
+
+    pub fn unwrap_as_int(&self) -> IntType {
+        match &self {
+            Expr::Int(expr) => expr.value(),
+            _ => unreachable!()
+        }
+    }
+
+    pub fn unwrap_as_name(&self) -> &StringExpr {
+        match &self {
+            Expr::Name(expr) => expr,
+            _ => unreachable!()
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
