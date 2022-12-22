@@ -419,6 +419,15 @@ pub enum Param {
     Name(StringExpr),
 }
 
+impl Param {
+    pub fn unwrap_as_name(&self) -> String {
+        match self {
+            Param::Name(expr) => expr.value(),
+            _ => unreachable!()
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct LocalStat {
     pub local: Token,

@@ -105,119 +105,89 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn doblock() {
-    //     let ast = try_parse("do end");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::DoBlock(DoBlock {
-    //                 block: Block { stats: vec![] },
-    //             },)
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn doblock() {
+        let ast = try_parse("do end");
+        let stat = &ast.stats[0];
+        assert!(matches!(stat, Stat::DoBlock(..)));
+    }
 
-    // #[test]
-    // fn repeatstat() {
-    //     let ast = try_parse("repeat until a > 0");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::RepeatStat(RepeatStat {
-    //                 cond: Expr::BinExpr(BinExpr {
-    //                     left: Box::new(Expr::Name("a".to_string())),
-    //                     op: BinOp::Gt,
-    //                     right: Box::new(Expr::Int(0))
-    //                 }),
-    //                 block: Block { stats: vec![] },
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn repeatstat() {
+        let ast = try_parse("repeat until a > 0");
+        match &ast.stats[0] {
+            Stat::RepeatStat(repeat) => {
+                match &repeat.cond {
+                    Expr::BinExpr(expr) => {
+                        assert_eq!(expr.left.unwrap_as_name().value(), "a");
+                        assert!(matches!(expr.op, BinOp::Gt(..)));
+                        assert_eq!(expr.right.unwrap_as_int(), 0);
+                    },
+                    _ => unreachable!(),
+                }
+            },
+            _ => unreachable!(),
+        };
+    }
 
-    // #[test]
-    // fn funcstat() {
-    //     let ast = try_parse("function foo(a, b, c) end");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::FuncStat(FuncStat {
-    //                 func_type: FuncType::Global,
-    //                 func_name: FuncName {
-    //                     fields: vec!["foo".to_string()],
-    //                     method: None,
-    //                 },
-    //                 body: FuncBody {
-    //                     params: vec![
-    //                         Param::Name(String::from("a")),
-    //                         Param::Name(String::from("b")),
-    //                         Param::Name(String::from("c"))
-    //                     ],
-    //                     block: Block { stats: vec![] },
-    //                 },
-    //             })
-    //             .to_stat_info()]
-    //         }
-    //     )
-    // }
+    #[test]
+    fn funcstat() {
+        let ast = try_parse("function foo(a, b, c) end");
+        match &ast.stats[0] {
+            Stat::FuncStat(stat) => {
+                assert_eq!(stat.func_type, FuncType::Global);
+                assert_eq!(stat.func_name.fields.vars.len(), 1);
+                assert_eq!(stat.func_name.fields.vars[0].value(), "foo");
+                assert_eq!(stat.body.params.params.len(), 3);
+                assert_eq!(stat.body.params.params[0].unwrap_as_name(), "a");
+                assert_eq!(stat.body.params.params[1].unwrap_as_name(), "b");
+                assert_eq!(stat.body.params.params[2].unwrap_as_name(), "c");
+            },
+            _ => unreachable!()
+        };
+    }
 
-    // #[test]
-    // fn localfunc() {
-    //     let ast = try_parse("local function foo(a, b, c) end");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::FuncStat(FuncStat {
-    //                 func_type: FuncType::Local,
-    //                 func_name: FuncName {
-    //                     fields: vec!["foo".to_string()],
-    //                     method: None,
-    //                 },
-    //                 body: FuncBody {
-    //                     params: vec![
-    //                         Param::Name(String::from("a")),
-    //                         Param::Name(String::from("b")),
-    //                         Param::Name(String::from("c"))
-    //                     ],
-    //                     block: Block { stats: vec![] },
-    //                 },
-    //             })
-    //             .to_stat_info()]
-    //         }
-    //     )
-    // }
+    #[test]
+    fn localfunc() {
+        let ast = try_parse("local function foo(a, b, c) end");
+        match &ast.stats[0] {
+            Stat::FuncStat(stat) => {
+                assert!(matches!(stat.func_type, FuncType::Local(..)));
+                assert_eq!(stat.func_name.fields.vars.len(), 1);
+                assert_eq!(stat.func_name.fields.vars[0].value(), "foo");
+                assert_eq!(stat.body.params.params.len(), 3);
+                assert_eq!(stat.body.params.params[0].unwrap_as_name(), "a");
+                assert_eq!(stat.body.params.params[1].unwrap_as_name(), "b");
+                assert_eq!(stat.body.params.params[2].unwrap_as_name(), "c");
+            },
+            _ => unreachable!()
+        };
+    }
 
-    // #[test]
-    // fn localstat() {
-    //     let ast = try_parse("local a, b, c = 1, 2, 3");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::LocalStat(LocalStat {
-    //                 names: vec!["a".to_string(), "b".to_string(), "c".to_string()],
-    //                 exprs: vec![Expr::Int(1), Expr::Int(2), Expr::Int(3),],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn localstat() {
+        let ast = try_parse("local a, b, c = 1, 2, 3");
+        match &ast.stats[0] {
+            Stat::LocalStat(stat) => {
+                assert_eq!(stat.names.vars[0].value(), "a");
+                assert_eq!(stat.names.vars[1].value(), "b");
+                assert_eq!(stat.names.vars[2].value(), "c");
+                assert_eq!(stat.exprs.as_ref().unwrap().exprs[0].unwrap_as_int(), 1);
+                assert_eq!(stat.exprs.as_ref().unwrap().exprs[1].unwrap_as_int(), 2);
+                assert_eq!(stat.exprs.as_ref().unwrap().exprs[2].unwrap_as_int(), 3);
+            },
+            _ => unreachable!()
+        };
+    }
 
-    // #[test]
-    // fn labelstat() {
-    //     let ast = try_parse("::LABEL::");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::LabelStat(LabelStat {
-    //                 label: "LABEL".to_string()
-    //             })
-    //             .to_stat_info()]
-    //         }
-    //     )
-    // }
+    #[test]
+    fn labelstat() {
+        let ast = try_parse("::LABEL::");
+        match &ast.stats[0] {
+            Stat::LabelStat(label) => assert_eq!(label.label.value(), "LABEL"),
+            _ => unreachable!()
+        };
+    }
 
     // #[test]
     // fn retstat() {
