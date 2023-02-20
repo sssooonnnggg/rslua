@@ -189,27 +189,26 @@ mod parser_tests {
         };
     }
 
-    // #[test]
-    // fn retstat() {
-    //     let ast = try_parse("return 1 + a, b, c");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::RetStat(RetStat {
-    //                 exprs: vec![
-    //                     Expr::BinExpr(BinExpr {
-    //                         left: Box::new(Expr::Int(1)),
-    //                         op: BinOp::Add,
-    //                         right: Box::new(Expr::Name("a".to_string()))
-    //                     }),
-    //                     Expr::Name("b".to_string()),
-    //                     Expr::Name("c".to_string()),
-    //                 ],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn retstat() {
+        let ast = try_parse("return 1 + a, b, c");
+        match &ast.stats[0] {
+            Stat::RetStat(ret) => {
+                let expr = &ret.exprs.as_ref().unwrap().exprs[0];
+                match expr {
+                    Expr::BinExpr(bin) => {
+                        assert!(matches!(bin.op, BinOp::Add(..)));
+                        assert_eq!(bin.left.unwrap_as_int(), 1);
+                        assert_eq!(bin.right.unwrap_as_name().value(), "a");
+                    },
+                    _ => unreachable!()
+                }
+                assert_eq!(ret.exprs.as_ref().unwrap().exprs[1].unwrap_as_name().value(), "b");
+                assert_eq!(ret.exprs.as_ref().unwrap().exprs[2].unwrap_as_name().value(), "c");
+            },
+            _ => unreachable!()
+        };
+    }
 
     // #[test]
     // fn gotostat() {
