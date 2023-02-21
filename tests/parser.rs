@@ -210,38 +210,43 @@ mod parser_tests {
         };
     }
 
-    // #[test]
-    // fn gotostat() {
-    //     let ast = try_parse("goto LABEL");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::GotoStat(GotoStat {
-    //                 label: "LABEL".to_string()
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn gotostat() {
+        let ast = try_parse("goto LABEL");
+        match &ast.stats[0] {
+            Stat::GotoStat(goto) => {
+                assert_eq!(goto.label.value(), "LABEL");
+            }
+            _ => unreachable!()
+        }
+    }
 
-    // #[test]
-    // fn assignstat() {
-    //     let ast = try_parse("a, b, c = 1, 2, 3");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::AssignStat(AssignStat {
-    //                 left: vec![
-    //                     Assignable::Name("a".to_string()),
-    //                     Assignable::Name("b".to_string()),
-    //                     Assignable::Name("c".to_string()),
-    //                 ],
-    //                 right: vec![Expr::Int(1), Expr::Int(2), Expr::Int(3),],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn assignstat() {
+        let ast = try_parse("a, b, c = 1, 2, 3");
+        match &ast.stats[0] {
+            Stat::AssignStat(stat) => {
+                match &stat.left.assignables[0] {
+                    Assignable::Name(name) => assert_eq!(name.value(), "a"),
+                    _ => unreachable!()
+                };
+                match &stat.left.assignables[1] {
+                    Assignable::Name(name) => assert_eq!(name.value(), "b"),
+                    _ => unreachable!()
+                };
+                match &stat.left.assignables[2] {
+                    Assignable::Name(name) => assert_eq!(name.value(), "c"),
+                    _ => unreachable!()
+                };
+
+                assert_eq!(stat.right.exprs[0].unwrap_as_int(), 1);
+                assert_eq!(stat.right.exprs[1].unwrap_as_int(), 2);
+                assert_eq!(stat.right.exprs[2].unwrap_as_int(), 3);
+                    
+            },
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn callstat() {
