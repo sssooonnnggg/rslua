@@ -248,26 +248,30 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn callstat() {
-    //     let ast = try_parse("foo(1, 2, 3)");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::CallStat(CallStat {
-    //                 call: Assignable::SuffixedExpr(SuffixedExpr {
-    //                     primary: Box::new(Expr::Name("foo".to_string())),
-    //                     suffixes: vec![Suffix::FuncArgs(FuncArgs::Exprs(vec![
-    //                         Expr::Int(1),
-    //                         Expr::Int(2),
-    //                         Expr::Int(3),
-    //                     ]))],
-    //                 }),
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn callstat() {
+        let ast = try_parse("foo(1, 2, 3)");
+        match &ast.stats[0] {
+            Stat::CallStat(call) => {
+                match &call.call {
+                    Assignable::SuffixedExpr(expr) => {
+                        assert_eq!(expr.primary.unwrap_as_name().value(), "foo");
+                        let func_args = expr.suffixes[0].unwrap_as_func_args();
+                        match func_args {
+                            FuncArgs::Exprs(_, args, _) => {
+                                assert_eq!(args.exprs[0].unwrap_as_int(), 1);
+                                assert_eq!(args.exprs[1].unwrap_as_int(), 2);
+                                assert_eq!(args.exprs[2].unwrap_as_int(), 3);
+                            },
+                            _ => unreachable!()
+                        }
+                    }
+                    _ => unreachable!()
+                }
+            }
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn exprlist() {

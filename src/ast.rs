@@ -228,6 +228,15 @@ pub enum Suffix {
     FuncArgs(FuncArgs),
 }
 
+impl Suffix {
+    pub fn unwrap_as_func_args(&self) -> &FuncArgs {
+        match &self {
+            Suffix::FuncArgs(args) => args,
+            _ => unreachable!()
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum FuncArgs {
     // '(' [ exprlist ] ')'
