@@ -265,7 +265,7 @@ mod parser_tests {
                             },
                             _ => unreachable!()
                         }
-                    }
+                    },
                     _ => unreachable!()
                 }
             }
@@ -273,26 +273,30 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn exprlist() {
-    //     let ast = try_parse("a(a, b, c)");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::CallStat(CallStat {
-    //                 call: Assignable::SuffixedExpr(SuffixedExpr {
-    //                     primary: Box::new(Expr::Name("a".to_string())),
-    //                     suffixes: vec![Suffix::FuncArgs(FuncArgs::Exprs(vec![
-    //                         Expr::Name("a".to_string()),
-    //                         Expr::Name("b".to_string()),
-    //                         Expr::Name("c".to_string()),
-    //                     ]))],
-    //                 }),
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn exprlist() {
+        let ast = try_parse("a(a, b, c)");
+        match &ast.stats[0] {
+            Stat::CallStat(call) => {
+                match &call.call {
+                    Assignable::SuffixedExpr(expr) => {
+                        assert_eq!(expr.primary.unwrap_as_name().value(), "a");
+                        let func_args = expr.suffixes[0].unwrap_as_func_args();
+                        match func_args {
+                            FuncArgs::Exprs(_, args, _) => {
+                                assert_eq!(args.exprs[0].unwrap_as_name().value(), "a");
+                                assert_eq!(args.exprs[1].unwrap_as_name().value(), "b");
+                                assert_eq!(args.exprs[2].unwrap_as_name().value(), "c");
+                            },
+                            _ => unreachable!()
+                        }
+                    }
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn table() {
