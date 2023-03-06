@@ -154,6 +154,15 @@ pub enum Assignable {
     SuffixedExpr(SuffixedExpr),
 }
 
+impl Assignable {
+    pub fn unwrap_as_name(&self) -> &StringExpr {
+        match &self {
+            Assignable::Name(name) => name,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl Expr {
     pub fn to_assignable(self) -> Assignable {
         match self {
@@ -166,14 +175,28 @@ impl Expr {
     pub fn unwrap_as_int(&self) -> IntType {
         match &self {
             Expr::Int(expr) => expr.value(),
-            _ => unreachable!()
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn unwrap_as_float(&self) -> FloatType {
+        match &self {
+            Expr::Float(expr) => expr.value(),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn unwrap_as_string(&self) -> String {
+        match &self {
+            Expr::String(expr) => expr.value(),
+            _ => unreachable!(),
         }
     }
 
     pub fn unwrap_as_name(&self) -> &StringExpr {
         match &self {
             Expr::Name(expr) => expr,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -232,7 +255,7 @@ impl Suffix {
     pub fn unwrap_as_func_args(&self) -> &FuncArgs {
         match &self {
             Suffix::FuncArgs(args) => args,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -273,6 +296,21 @@ pub enum Field {
     ListField(ListField),
 }
 
+impl Field {
+    pub fn unwrap_as_list_field(&self) -> &ListField {
+        match &self {
+            Field::ListField(field) => field,
+            _ => unreachable!(),
+        }
+    }
+    pub fn unwrap_as_rec_field(&self) -> &RecField {
+        match &self {
+            Field::RecField(field) => field,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct RecField {
     pub key: FieldKey,
@@ -292,6 +330,21 @@ pub enum FieldKey {
     Name(StringExpr),
     // '[' expr ']'
     Expr(Token, Expr, Token),
+}
+
+impl FieldKey {
+    pub fn unwrap_as_name(&self) -> &StringExpr {
+        match &self {
+            FieldKey::Name(name) => name,
+            _ => unreachable!(),
+        }
+    }
+    pub fn unwrap_as_expr(&self) -> &Expr {
+        match &self {
+            FieldKey::Expr(_, expr, _) => expr,
+            _ => unreachable!(),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -432,7 +485,7 @@ impl Param {
     pub fn unwrap_as_name(&self) -> String {
         match self {
             Param::Name(expr) => expr.value(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }

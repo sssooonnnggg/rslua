@@ -298,56 +298,53 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn table() {
-    //     let ast1 = try_parse("local t = {1, 1.5, [[2]]}");
-    //     let ast2 = try_parse("local t = {a = '1', ['b'] = 2, [a-1] = 3}");
-    //     assert_eq!(
-    //         ast1,
-    //         Block {
-    //             stats: vec![Stat::LocalStat(LocalStat {
-    //                 names: vec!["t".to_string()],
-    //                 exprs: vec![Expr::Table(Table {
-    //                     fields: vec![
-    //                         Field::ListField(Expr::Int(1)),
-    //                         Field::ListField(Expr::Float(1.5)),
-    //                         Field::ListField(Expr::String("2".to_string()))
-    //                     ]
-    //                 })]
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     );
-    //     assert_eq!(
-    //         ast2,
-    //         Block {
-    //             stats: vec![Stat::LocalStat(LocalStat {
-    //                 names: vec!["t".to_string()],
-    //                 exprs: vec![Expr::Table(Table {
-    //                     fields: vec![
-    //                         Field::RecField(RecField {
-    //                             key: FieldKey::Name("a".to_string()),
-    //                             value: Expr::String("1".to_string()),
-    //                         }),
-    //                         Field::RecField(RecField {
-    //                             key: FieldKey::Expr(Expr::String("b".to_string())),
-    //                             value: Expr::Int(2),
-    //                         }),
-    //                         Field::RecField(RecField {
-    //                             key: FieldKey::Expr(Expr::BinExpr(BinExpr {
-    //                                 op: BinOp::Minus,
-    //                                 left: Box::new(Expr::Name("a".to_string())),
-    //                                 right: Box::new(Expr::Int(1)),
-    //                             })),
-    //                             value: Expr::Int(3),
-    //                         }),
-    //                     ],
-    //                 })],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     );
-    // }
+    #[test]
+    fn table() {
+        let ast1 = try_parse("local t = {1, 1.5, [[2]]}");
+        let ast2 = try_parse("local t = {a = '1', ['b'] = 2, [a-1] = 3}");
+        match &ast1.stats[0] {
+            Stat::LocalStat(local) => {
+                assert_eq!(local.names.vars[0].value(), "t");
+                match &local.exprs.as_ref().unwrap().exprs[0] {
+                    Expr::Table(table) => {
+                        let field = &table.fields;
+                        assert_eq!(field[0].unwrap_as_list_field().value.unwrap_as_int(), 1);
+                        assert_eq!(field[1].unwrap_as_list_field().value.unwrap_as_float().to_ne_bytes(), 1.5_f64.to_ne_bytes());
+                        assert_eq!(field[2].unwrap_as_list_field().value.unwrap_as_string(), "2");
+                    }
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+
+        match &ast2.stats[0] {
+            Stat::LocalStat(local) => {
+                assert_eq!(local.names.vars[0].value(), "t");
+                match &local.exprs.as_ref().unwrap().exprs[0] {
+                    Expr::Table(table) => {
+                        let field = &table.fields;
+                        assert_eq!(field[0].unwrap_as_rec_field().key.unwrap_as_name().value(), "a");
+                        assert_eq!(field[0].unwrap_as_rec_field().value.unwrap_as_string(), "1");
+                        assert_eq!(field[1].unwrap_as_rec_field().key.unwrap_as_expr().unwrap_as_string(), "b");
+                        assert_eq!(field[1].unwrap_as_rec_field().value.unwrap_as_int(), 2);
+                        let expr = field[2].unwrap_as_rec_field().key.unwrap_as_expr();
+                        match &expr {
+                            Expr::BinExpr(bin) => {
+                                assert!(matches!(bin.op, BinOp::Minus(..)));
+                                assert_eq!(bin.left.clone().to_assignable().unwrap_as_name().value(), "a");
+                                assert_eq!(bin.right.unwrap_as_int(), 1);
+                            },
+                            _ => unreachable!()
+                        }
+                        assert_eq!(field[2].unwrap_as_rec_field().value.unwrap_as_int(), 3);
+                    }
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn callfunc() {
