@@ -346,27 +346,49 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn callfunc() {
-    //     let ast = try_parse("a:b {} 'literal' ()");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::CallStat(CallStat {
-    //                 call: Assignable::SuffixedExpr(SuffixedExpr {
-    //                     primary: Box::new(Expr::Name("a".to_string())),
-    //                     suffixes: vec![
-    //                         Suffix::Method("b".to_string()),
-    //                         Suffix::FuncArgs(FuncArgs::Table(Table { fields: vec![] })),
-    //                         Suffix::FuncArgs(FuncArgs::String("literal".to_string())),
-    //                         Suffix::FuncArgs(FuncArgs::Exprs(vec![])),
-    //                     ],
-    //                 }),
-    //             })
-    //             .to_stat_info()],
-    //         },
-    //     );
-    // }
+    #[test]
+    fn callfunc() {
+        let ast = try_parse("a:b {} 'literal' ()");
+        match &ast.stats[0] {
+            Stat::CallStat(call) => {
+                let suffix_expr = call.call.unwrap_as_suffix();
+                assert_eq!(suffix_expr.primary.unwrap_as_name().value(), "a");
+                let suffixes = &suffix_expr.suffixes;
+                match &suffixes[0] {
+                    Suffix::Method(_, str) => assert_eq!(str.value(), "b"),
+                    _ => unreachable!()
+                }
+                match &suffixes[1] {
+                    Suffix::FuncArgs(args) => {
+                        assert!(matches!(args, FuncArgs::Table(_)));
+                        if let FuncArgs::Table(table) = args {
+                            assert_eq!(table.fields.len(), 0)
+                        }
+                    }
+                    _ => unreachable!()
+                }
+                match &suffixes[2] {
+                    Suffix::FuncArgs(args) => {
+                        assert!(matches!(args, FuncArgs::String(_)));
+                        if let FuncArgs::String(str) = args {
+                            assert_eq!(str.value(), "literal")
+                        }
+                    }
+                    _ => unreachable!()
+                }
+                match &suffixes[3] {
+                    Suffix::FuncArgs(args) => {
+                        assert!(matches!(args, FuncArgs::Exprs(..)));
+                        if let FuncArgs::Exprs(_, exprs, _) = args {
+                            assert_eq!(exprs.exprs.len(), 0)
+                        }
+                    }
+                    _ => unreachable!()
+                }
+            },
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn binop() {

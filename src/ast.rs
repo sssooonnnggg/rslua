@@ -161,6 +161,12 @@ impl Assignable {
             _ => unreachable!(),
         }
     }
+    pub fn unwrap_as_suffix(&self) -> &SuffixedExpr {
+        match &self {
+            Assignable::SuffixedExpr(suffix) => suffix,
+            _ => unreachable!(),
+        }
+    }
 }
 
 impl Expr {
