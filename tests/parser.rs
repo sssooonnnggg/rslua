@@ -390,45 +390,49 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn binop() {
-    //     let ast1 = try_parse("return 1 .. 2 .. 3");
-    //     let ast2 = try_parse("return 1 + 2 + 3");
-    //     assert_eq!(
-    //         ast1,
-    //         Block {
-    //             stats: vec![Stat::RetStat(RetStat {
-    //                 exprs: vec![Expr::BinExpr(BinExpr {
-    //                     op: BinOp::Concat,
-    //                     left: Box::new(Expr::Int(1)),
-    //                     right: Box::new(Expr::BinExpr(BinExpr {
-    //                         op: BinOp::Concat,
-    //                         left: Box::new(Expr::Int(2)),
-    //                         right: Box::new(Expr::Int(3)),
-    //                     })),
-    //                 })],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     );
-    //     assert_eq!(
-    //         ast2,
-    //         Block {
-    //             stats: vec![Stat::RetStat(RetStat {
-    //                 exprs: vec![Expr::BinExpr(BinExpr {
-    //                     op: BinOp::Add,
-    //                     left: Box::new(Expr::BinExpr(BinExpr {
-    //                         op: BinOp::Add,
-    //                         left: Box::new(Expr::Int(1)),
-    //                         right: Box::new(Expr::Int(2)),
-    //                     })),
-    //                     right: Box::new(Expr::Int(3)),
-    //                 })],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     );
-    // }
+    #[test]
+    fn binop() {
+        let ast1 = try_parse("return 1 .. 2 .. 3");
+        let ast2 = try_parse("return 1 + 2 + 3");
+
+        // concat is right associative
+        match &ast1.stats[0] {
+            Stat::RetStat(stat) => {
+                let expr = &stat.exprs.as_ref().unwrap().exprs[0];
+                assert!(matches!(expr, Expr::BinExpr(_)));
+                if let Expr::BinExpr(binop) = expr {
+                    assert!(matches!(binop.op, BinOp::Concat(_)));
+                    assert_eq!(binop.left.unwrap_as_int(), 1);
+                    assert!(matches!(*binop.right, Expr::BinExpr(..)));
+                    if let Expr::BinExpr(binExpr) = &*binop.right {
+                        assert!(matches!(binExpr.op, BinOp::Concat(..)));
+                        assert_eq!(binExpr.left.unwrap_as_int(), 2);
+                        assert_eq!(binExpr.right.unwrap_as_int(), 3);
+                    }
+                }
+            }
+            _ => unreachable!()
+        }
+
+        // add is left associative
+        match &ast2.stats[0] {
+            Stat::RetStat(stat) => {
+                let expr = &stat.exprs.as_ref().unwrap().exprs[0];
+                assert!(matches!(expr, Expr::BinExpr(_)));
+                if let Expr::BinExpr(binop) = expr {
+                    assert!(matches!(*binop.left, Expr::BinExpr(..)));
+                    if let Expr::BinExpr(binExpr) = &*binop.left {
+                        assert!(matches!(binExpr.op, BinOp::Add(..)));
+                        assert_eq!(binExpr.left.unwrap_as_int(), 1);
+                        assert_eq!(binExpr.right.unwrap_as_int(), 2);
+                    }
+                    assert!(matches!(binop.op, BinOp::Add(_)));
+                    assert_eq!(binop.right.unwrap_as_int(), 3);
+                }
+            }
+            _ => unreachable!()
+        }
+    }
 
     // #[test]
     // fn method_call() {
