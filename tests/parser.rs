@@ -404,10 +404,10 @@ mod parser_tests {
                     assert!(matches!(binop.op, BinOp::Concat(_)));
                     assert_eq!(binop.left.unwrap_as_int(), 1);
                     assert!(matches!(*binop.right, Expr::BinExpr(..)));
-                    if let Expr::BinExpr(binExpr) = &*binop.right {
-                        assert!(matches!(binExpr.op, BinOp::Concat(..)));
-                        assert_eq!(binExpr.left.unwrap_as_int(), 2);
-                        assert_eq!(binExpr.right.unwrap_as_int(), 3);
+                    if let Expr::BinExpr(bin_expr) = &*binop.right {
+                        assert!(matches!(bin_expr.op, BinOp::Concat(..)));
+                        assert_eq!(bin_expr.left.unwrap_as_int(), 2);
+                        assert_eq!(bin_expr.right.unwrap_as_int(), 3);
                     }
                 }
             }
@@ -421,10 +421,10 @@ mod parser_tests {
                 assert!(matches!(expr, Expr::BinExpr(_)));
                 if let Expr::BinExpr(binop) = expr {
                     assert!(matches!(*binop.left, Expr::BinExpr(..)));
-                    if let Expr::BinExpr(binExpr) = &*binop.left {
-                        assert!(matches!(binExpr.op, BinOp::Add(..)));
-                        assert_eq!(binExpr.left.unwrap_as_int(), 1);
-                        assert_eq!(binExpr.right.unwrap_as_int(), 2);
+                    if let Expr::BinExpr(bin_expr) = &*binop.left {
+                        assert!(matches!(bin_expr.op, BinOp::Add(..)));
+                        assert_eq!(bin_expr.left.unwrap_as_int(), 1);
+                        assert_eq!(bin_expr.right.unwrap_as_int(), 2);
                     }
                     assert!(matches!(binop.op, BinOp::Add(_)));
                     assert_eq!(binop.right.unwrap_as_int(), 3);
