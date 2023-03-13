@@ -434,52 +434,85 @@ mod parser_tests {
         }
     }
 
-    // #[test]
-    // fn method_call() {
-    //     let ast = try_parse("str:sub(i,i)");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::CallStat(CallStat {
-    //                 call: Assignable::SuffixedExpr(SuffixedExpr {
-    //                     primary: Box::new(Expr::Name("str".to_string())),
-    //                     suffixes: vec![
-    //                         Suffix::Method("sub".to_string()),
-    //                         Suffix::FuncArgs(FuncArgs::Exprs(vec![
-    //                             Expr::Name("i".to_string()),
-    //                             Expr::Name("i".to_string()),
-    //                         ])),
-    //                     ]
-    //                 }),
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     )
-    // }
+    #[test]
+    fn method_call() {
+        let ast = try_parse("str:sub(i,i)");
+        match &ast.stats[0] {
+            Stat::CallStat(call) => {
+                match &call.call {
+                    Assignable::SuffixedExpr(suffixed_expr) => {
+                        assert_eq!(suffixed_expr.primary.unwrap_as_name().value(), "str");
+                        let suffixes = &suffixed_expr.suffixes;
+                        match &suffixes[0] {
+                            Suffix::Method(_, name) => assert_eq!(name.value(), "sub"),
+                            _ => unreachable!()
+                        }
 
-    // #[test]
-    // fn and() {
-    //     let ast = try_parse("return a == 1 and b == 2");
-    //     assert_eq!(
-    //         ast,
-    //         Block {
-    //             stats: vec![Stat::RetStat(RetStat {
-    //                 exprs: vec![Expr::BinExpr(BinExpr {
-    //                     op: BinOp::And,
-    //                     left: Box::new(Expr::BinExpr(BinExpr {
-    //                         op: BinOp::Eq,
-    //                         left: Box::new(Expr::Name("a".to_string())),
-    //                         right: Box::new(Expr::Int(1)),
-    //                     },)),
-    //                     right: Box::new(Expr::BinExpr(BinExpr {
-    //                         op: BinOp::Eq,
-    //                         left: Box::new(Expr::Name("b".to_string())),
-    //                         right: Box::new(Expr::Int(2)),
-    //                     })),
-    //                 })],
-    //             })
-    //             .to_stat_info()],
-    //         }
-    //     );
-    // }
+                        match &suffixes[1] {
+                            Suffix::FuncArgs(args) => {
+                                match args {
+                                    FuncArgs::Exprs(_, exprs, _) => {
+                                        assert_eq!(exprs.exprs[0].unwrap_as_name().value(), "i");
+                                        assert_eq!(exprs.exprs[1].unwrap_as_name().value(), "i");
+                                    }
+                                    _ => unreachable!()
+                                }
+                            }
+                            _ => unreachable!()
+                        }
+                    }
+                    _ => unreachable!()
+                }
+            }
+            _ => unreachable!()
+        }
+    }
+
+    #[test]
+    fn and() {
+        let ast = try_parse("return a == 1 and b == 2");
+        match &ast.stats[0] {
+            Stat::RetStat(ret) => {
+                let exprs = &ret.exprs;
+                match &exprs.as_ref().unwrap().exprs[0] {
+                    Expr::BinExpr(bin) => {
+                        assert!(matches!(bin.op, BinOp::And(_)));
+                        match &*bin.left {
+                            Expr::BinExpr(bin) => {
+                                assert!(matches!(bin.op, BinOp::Eq(_)));
+                                assert!(matches!(&*bin.left, Expr::Name(..)));
+                                assert!(matches!(&*bin.right, Expr::Int(..)));
+                                if let Expr::Name(name) = &*bin.left {
+                                    assert_eq!(name.value(), "a");
+                                }
+
+                                if let Expr::Int(value) = &*bin.left {
+                                    assert_eq!(value.value(), 1);
+                                }
+                            }
+                            _ => unreachable!()
+                        }
+
+                        match &*bin.right {
+                            Expr::BinExpr(bin) => {
+                                assert!(matches!(bin.op, BinOp::Eq(_)));
+                                assert!(matches!(&*bin.left, Expr::Name(..)));
+                                assert!(matches!(&*bin.right, Expr::Int(..)));
+                                if let Expr::Name(name) = &*bin.left {
+                                    assert_eq!(name.value(), "b");
+                                }
+
+                                if let Expr::Int(value) = &*bin.left {
+                                    assert_eq!(value.value(), 2);
+                                }
+                            }
+                            _ => unreachable!()
+                        }
+                    },
+                    _ => unreachable!()
+                }
+            }
+            _ => unreachable!()
+        }
+    }
 }
