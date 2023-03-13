@@ -151,8 +151,6 @@ pub trait AstVisitor<E = ()> {
         Ok(false)
     }
 
-    fn comment(&mut self, _comment: &CommentStat) {}
-
     fn error(&mut self, e: E, _source: &Source) -> Result<(), E> {
         Err(e)
     }
@@ -197,7 +195,6 @@ pub mod ast_walker {
             Stat::GotoStat(gotostat) => walk_gotostat(gotostat, visitor),
             Stat::AssignStat(assignstat) => walk_assignstat(assignstat, visitor),
             Stat::CallStat(callstat) => walk_callstat(callstat, visitor),
-            Stat::CommentStat(comment) => walk_comment(comment, visitor),
         }
     }
 
@@ -331,11 +328,6 @@ pub mod ast_walker {
 
     pub fn walk_callstat<T: AstVisitor<E>, E>(stat: &CallStat, visitor: &mut T) -> Result<(), E> {
         visitor.call_stat(stat)
-    }
-
-    pub fn walk_comment<T: AstVisitor<E>, E>(stat: &CommentStat, visitor: &mut T) -> Result<(), E> {
-        visitor.comment(stat);
-        Ok(())
     }
 
     pub fn walk_expr<T: AstVisitor<E>, E>(expr: &Expr, visitor: &mut T) -> Result<(), E> {

@@ -72,12 +72,10 @@ impl Parser {
     fn stat(&mut self) -> ParseResult<Option<Stat>> {
         let stat = match self.current_token_type() {
             // stat -> ';' (empty stat)
-            TokenType::Semi => {
+            TokenType::Semi | TokenType::SComment | TokenType::MComment => {
                 self.next();
                 return Ok(None);
             }
-            // stat -> comment
-            TokenType::SComment | TokenType::MComment => Stat::CommentStat(self.commentstat()?),
             // stat -> if stat
             TokenType::If => Stat::IfStat(self.ifstat()?),
             // stat -> while stat

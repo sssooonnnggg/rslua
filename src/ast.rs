@@ -577,7 +577,6 @@ pub enum Stat {
     GotoStat(GotoStat),
     AssignStat(AssignStat),
     CallStat(CallStat),
-    CommentStat(CommentStat),
 }
 
 #[derive(Clone, PartialEq, Debug)]
