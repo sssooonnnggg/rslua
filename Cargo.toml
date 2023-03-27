@@ -12,4 +12,4 @@ categories = ["parsing"]
 
 [dependencies]
 num-traits = "0.2.12"
-rslua_derive = "0.1.0"
+rslua_derive = {path = "rslua_derive"}
