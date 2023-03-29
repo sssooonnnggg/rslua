@@ -1,8 +1,10 @@
-use crate::{debuggable, error};
+use crate::error;
 
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
+use rslua_derive::Debugable;
 
+#[derive(Debugable)]
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -775,6 +777,4 @@ impl Parser {
         self.check(TokenType::Name)?;
         Ok(StringExpr { token: self.next() })
     }
-
-    debuggable!();
 }

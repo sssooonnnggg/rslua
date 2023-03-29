@@ -1,7 +1,8 @@
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
-use crate::{debuggable, error, success};
+use crate::{error, success};
 use std::str;
+use rslua_derive::Debugable;
 
 // context for lexer
 struct Context<'a> {
@@ -96,6 +97,7 @@ impl LexerConfig {
     }
 }
 
+#[derive(Debugable)]
 pub struct Lexer {
     debug: bool,
     config: LexerConfig,
@@ -874,6 +876,4 @@ impl<'a> Lexer {
             ctx.comment_offset = ctx.offset;
         }
     }
-
-    debuggable!();
 }

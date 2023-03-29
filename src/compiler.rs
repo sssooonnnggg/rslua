@@ -4,8 +4,10 @@ use crate::consts::Const;
 use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
-use crate::{debuggable, error, success};
+use crate::{error, success};
+use rslua_derive::Debugable;
 
+#[derive(Debugable)]
 pub struct Compiler {
     debug: bool,
     proto_contexts: Vec<ProtoContext>,
@@ -596,8 +598,6 @@ impl Compiler {
             Assignable::SuffixedExpr(_) => todo!(),
         }
     }
-
-    debuggable!();
 }
 
 impl AstVisitor<CompileError> for Compiler {

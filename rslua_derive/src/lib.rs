@@ -1,13 +1,22 @@
-// use proc_macro::TokenStream;
-// use quote::quote;
-// use syn;
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, DeriveInput};
 
-// #[proc_macro_derive(HelloMacro)]
-// pub fn hello_macro_derive(input: TokenStream) -> TokenStream {
-//     // Construct a representation of Rust code as a syntax tree
-//     // that we can manipulate
-//     let ast = syn::parse(input).unwrap();
+#[proc_macro_derive(Debugable)]
+pub fn debugable_macro(input: TokenStream) -> TokenStream {
+    // Parse the input tokens into a syntax tree
+    let ast = parse_macro_input!(input as DeriveInput);
+    let struct_name = ast.ident;
 
-//     // Build the trait implementation
-//     impl_hello_macro(&ast)
-// }
+    quote! {
+        impl #struct_name {
+            pub fn set_debug(&mut self, debug: bool) {
+                self.debug = debug;
+            }
+            pub fn is_debug(&self) -> bool {
+                self.debug
+            }
+        };
+    }
+    .into()
+}
