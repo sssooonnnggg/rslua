@@ -1,6 +1,7 @@
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
-use crate::{error, success};
+use crate::{error};
+use crate::utils::success;
 use std::str;
 use rslua_derive::Debugable;
 
@@ -192,7 +193,7 @@ impl<'a> Lexer {
         if sep_count >= 0 {
             let comment = self.read_long_string_impl(ctx, sep_count as usize, "comment")?;
             if self.config.reserve_comments {
-                success!((TokenType::MComment, TokenValue::Str(comment)))
+                success((TokenType::MComment, TokenValue::Str(comment)))
             } else {
                 Ok(None)
             }
@@ -211,7 +212,7 @@ impl<'a> Lexer {
         }
         if let Ok(comment) = str::from_utf8(&bytes) {
             if self.config.reserve_comments {
-                success!((TokenType::SComment, TokenValue::Str(comment.to_string())))
+                success((TokenType::SComment, TokenValue::Str(comment.to_string())))
             } else {
                 Ok(None)
             }
@@ -231,9 +232,9 @@ impl<'a> Lexer {
         ctx.next();
         if self.check_current(ctx, c) {
             ctx.next();
-            return success!((t1, TokenValue::None));
+            return success((t1, TokenValue::None));
         }
-        success!((t2, TokenValue::None))
+        success((t2, TokenValue::None))
     }
 
     // if next char equals c1, return t1, else if equals t2, return t2, else return t3
@@ -249,12 +250,12 @@ impl<'a> Lexer {
         ctx.next();
         if self.check_current(ctx, c1) {
             ctx.next();
-            success!((t1, TokenValue::None))
+            success((t1, TokenValue::None))
         } else if self.check_current(ctx, c2) {
             ctx.next();
-            success!((t2, TokenValue::None))
+            success((t2, TokenValue::None))
         } else {
-            success!((t3, TokenValue::None))
+            success((t3, TokenValue::None))
         }
     }
 
@@ -272,7 +273,7 @@ impl<'a> Lexer {
 
     fn read_idiv(&mut self, ctx: &mut Context) -> LexResult {
         ctx.skip(2);
-        success!((TokenType::IDiv, TokenValue::None))
+        success((TokenType::IDiv, TokenValue::None))
     }
 
     fn read_ne_xor(&mut self, ctx: &mut Context) -> LexResult {
@@ -288,10 +289,10 @@ impl<'a> Lexer {
             ctx.next();
             if self.check_next(ctx, '.') {
                 ctx.skip(2);
-                return success!((TokenType::Dots, TokenValue::None));
+                return success((TokenType::Dots, TokenValue::None));
             } else {
                 ctx.next();
-                return success!((TokenType::Concat, TokenValue::None));
+                return success((TokenType::Concat, TokenValue::None));
             }
         }
         if let Some(c) = ctx.get_next() {
@@ -300,7 +301,7 @@ impl<'a> Lexer {
             }
         }
         ctx.next();
-        success!((TokenType::Attr, TokenValue::None))
+        success((TokenType::Attr, TokenValue::None))
     }
 
     fn read_number(&mut self, ctx: &mut Context) -> LexResult {
@@ -330,8 +331,8 @@ impl<'a> Lexer {
         if let Ok(string) = str::from_utf8(&num_str) {
             let num = Lexer::str_to_num(string);
             match num {
-                Number::Int(n) => success!((TokenType::Int, TokenValue::Int(n))),
-                Number::Float(n) => success!((TokenType::Flt, TokenValue::Float(n))),
+                Number::Int(n) => success((TokenType::Int, TokenValue::Int(n))),
+                Number::Float(n) => success((TokenType::Flt, TokenValue::Float(n))),
                 _ => lex_error!(self, ctx, "malformed number"),
             }
         } else {
@@ -489,7 +490,7 @@ impl<'a> Lexer {
         }
         if let Ok(string) = String::from_utf8(bytes) {
             ctx.next();
-            success!((TokenType::String, TokenValue::Str(string)))
+            success((TokenType::String, TokenValue::Str(string)))
         } else {
             lex_error!(self, ctx, "invalid utf8 string")
         }
@@ -572,7 +573,7 @@ impl<'a> Lexer {
         let sep_count = self.try_read_long_string_boundary(ctx, b'[');
         if sep_count >= 0 {
             let string = self.read_long_string_impl(ctx, sep_count as usize, "string")?;
-            return success!((TokenType::String, TokenValue::Str(string)));
+            return success((TokenType::String, TokenValue::Str(string)));
         }
         unreachable!()
     }
@@ -602,7 +603,7 @@ impl<'a> Lexer {
 
             if let Some(t) = token_type {
                 ctx.next();
-                return success!((t, TokenValue::None));
+                return success((t, TokenValue::None));
             } else if self.check_current_if(ctx, |c| Lexer::is_valid_name_start(c)) {
                 let mut word: Vec<u8> = Vec::new();
                 ctx.write_into(1, &mut word);
@@ -611,9 +612,9 @@ impl<'a> Lexer {
                 }
                 if let Ok(s) = str::from_utf8(&word) {
                     if let Some(t) = TokenType::from_keyword(s) {
-                        return success!((t, TokenValue::None));
+                        return success((t, TokenValue::None));
                     } else {
-                        return success!((TokenType::Name, TokenValue::Str(s.to_string())));
+                        return success((TokenType::Name, TokenValue::Str(s.to_string())));
                     }
                 }
             } else {

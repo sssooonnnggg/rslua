@@ -1,5 +1,5 @@
 use crate::compiler::CompileError;
-use crate::success;
+use crate::utils::success;
 use crate::types::{FloatType, IntType};
 use num_traits::Float;
 use std::hash::{Hash, Hasher};
@@ -79,10 +79,10 @@ macro_rules! bin_op_normal {
     ($name:ident, $op:tt) => {
         bin_op! {
             $name,
-            |a, b| success!(Const::Int(a $op b)),
-            |a, b| success!(Const::Float(a as FloatType $op b)),
-            |a, b| success!(Const::Float(a $op b as FloatType)),
-            |a, b| success!(Const::Float(a $op b))
+            |a, b| success(Const::Int(a $op b)),
+            |a, b| success(Const::Float(a as FloatType $op b)),
+            |a, b| success(Const::Float(a $op b as FloatType)),
+            |a, b| success(Const::Float(a $op b))
         }
     };
 }
@@ -91,7 +91,7 @@ macro_rules! bin_op_int {
     ($name:ident, $op:tt) => {
         bin_op! {
             $name,
-            |a, b| success!(Const::Int(a $op b)),
+            |a, b| success(Const::Int(a $op b)),
             |a, b| Ok(float_to_int(b).map(|b| Const::Int(a $op b))),
             |a, b| Ok(float_to_int(a).map(|a| Const::Int(a $op b))),
             |a, b| Ok(float_to_int(a).and_then(|a| float_to_int(b).and_then(|b| Some(Const::Int(a $op b)))))
@@ -106,15 +106,15 @@ impl Const {
 
     bin_op! {
         div,
-        |a, b| success!(Const::Float(a as FloatType / b as FloatType)),
-        |a, b| success!(Const::Float(a as FloatType / b)),
-        |a, b| success!(Const::Float(a / b as FloatType)),
-        |a, b| success!(Const::Float(a / b))
+        |a, b| success(Const::Float(a as FloatType / b as FloatType)),
+        |a, b| success(Const::Float(a as FloatType / b)),
+        |a, b| success(Const::Float(a / b as FloatType)),
+        |a, b| success(Const::Float(a / b))
     }
 
     bin_op! {
         idiv,
-        |a, b| if b == 0 { Err(CompileError::new("divide by zero")) } else { success!(Const::Int(a / b)) },
+        |a, b| if b == 0 { Err(CompileError::new("divide by zero")) } else { success(Const::Int(a / b)) },
         |_, _| Ok(None),
         |_, _| Ok(None),
         |_, _| Ok(None)
@@ -122,18 +122,18 @@ impl Const {
 
     bin_op! {
         mod_,
-        |a, b| success!(Const::Int(a % b)),
-        |a, b| success!(Const::Float(a as FloatType % b)),
-        |a, b| success!(Const::Float(a % b as FloatType)),
-        |a, b| success!(Const::Float(a % b))
+        |a, b| success(Const::Int(a % b)),
+        |a, b| success(Const::Float(a as FloatType % b)),
+        |a, b| success(Const::Float(a % b as FloatType)),
+        |a, b| success(Const::Float(a % b))
     }
 
     bin_op! {
         pow,
-        |a, b| success!(Const::Float((a as FloatType).powf(b as FloatType))),
-        |a, b| success!(Const::Float((a as FloatType).powf(b))),
-        |a:FloatType, b| success!(Const::Float(a.powf(b as FloatType))),
-        |a:FloatType, b| success!(Const::Float(a.powf(b)))
+        |a, b| success(Const::Float((a as FloatType).powf(b as FloatType))),
+        |a, b| success(Const::Float((a as FloatType).powf(b))),
+        |a:FloatType, b| success(Const::Float(a.powf(b as FloatType))),
+        |a:FloatType, b| success(Const::Float(a.powf(b)))
     }
 
     bin_op_int! {band, &}
@@ -144,8 +144,8 @@ impl Const {
 
     pub fn minus(&self) -> Result<Option<Const>, CompileError> {
         let result = match self {
-            Const::Int(i) => success!(Const::Int(-i)),
-            Const::Float(f) => success!(Const::Float(-f)),
+            Const::Int(i) => success(Const::Int(-i)),
+            Const::Float(f) => success(Const::Float(-f)),
             _ => return Ok(None),
         };
         ignore_unhashable_float(result)
@@ -153,7 +153,7 @@ impl Const {
 
     pub fn bnot(&self)-> Result<Option<Const>, CompileError> {
         match self {
-            Const::Int(i) => success!(Const::Int(!i)),
+            Const::Int(i) => success(Const::Int(!i)),
             _ => return Ok(None)
         }
     }

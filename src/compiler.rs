@@ -4,7 +4,8 @@ use crate::consts::Const;
 use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
-use crate::{error, success};
+use crate::{error};
+use crate::utils::success;
 use rslua_derive::Debugable;
 
 #[derive(Debugable)]
@@ -287,9 +288,9 @@ impl Compiler {
     // try constant folding expr
     fn try_const_folding(&self, expr: &Expr) -> Result<Option<Const>, CompileError> {
         match expr {
-            Expr::Int(i) => return success!(Const::Int(i.value())),
-            Expr::Float(f) => return success!(Const::Float(f.value())),
-            Expr::String(s) => return success!(Const::Str(s.value())),
+            Expr::Int(i) => return success(Const::Int(i.value())),
+            Expr::Float(f) => return success(Const::Float(f.value())),
+            Expr::String(s) => return success(Const::Str(s.value())),
             Expr::BinExpr(bin) => match bin.op {
                 BinOp::Add(_)
                 | BinOp::Minus(_)
@@ -308,7 +309,7 @@ impl Compiler {
                         self.try_const_folding(&bin.right)?,
                     ) {
                         if let Some(k) = self.const_folding_bin_op(&bin.op, l, r)? {
-                            return success!(k);
+                            return success(k);
                         }
                     }
                 }
@@ -318,7 +319,7 @@ impl Compiler {
                 UnOp::BNot(_) | UnOp::Minus(_) => {
                     if let Some(k) = self.try_const_folding(&un.expr)? {
                         if let Some(k) = self.const_folding_un_op(&un.op, k)? {
-                            return success!(k);
+                            return success(k);
                         }
                     }
                 }

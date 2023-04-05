@@ -1,11 +1,4 @@
 #[macro_export]
-macro_rules! success {
-    ($result:expr) => {
-        Ok(Some($result))
-    }
-}
-
-#[macro_export]
 macro_rules! error {
     ($self:ident, $error_type:ident, $msg:expr) => {
         // panic! when at debug mode, otherwise return Error
