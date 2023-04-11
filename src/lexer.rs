@@ -866,7 +866,7 @@ impl<'a> Lexer {
             ctx.comment_offset = ctx.offset;
         }
     }
-
+    
     fn lex_error<T>(&self, ctx: &Context, msg: &str) -> Result<T, LexError> {
         error!(
             self,

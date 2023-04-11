@@ -16,27 +16,6 @@ pub struct SyntaxError(String);
 
 type ParseResult<T> = Result<T, SyntaxError>;
 
-macro_rules! syntax_error {
-    ($self:ident, $msg:expr) => {{
-        let token = $self.tokens[$self.current].clone();
-        let ident = match token.value {
-            TokenValue::None => format!("{:?}", token.t),
-            _ => format!("{:?}", token.value),
-        };
-        let error_msg = format!(
-            "[syntax error] {} at line [{}:{}] near [{}]",
-            $msg, token.source.line, token.source.col, ident
-        );
-        error!($self, SyntaxError, error_msg)
-    }};
-}
-
-macro_rules! error_expected {
-    ($self:ident, $expected:expr) => {
-        syntax_error!($self, &format!("{:?} expected", $expected))?
-    };
-}
-
 impl Parser {
     pub fn new() -> Self {
         Parser {
@@ -193,7 +172,7 @@ impl Parser {
         match self.current_token_type() {
             TokenType::Assign => self.forenum(line, for_, var),
             TokenType::Comma | TokenType::In => self.forlist(line, for_, var),
-            _ => syntax_error!(self, "'=' or 'in' expected"),
+            _ => self.syntax_error("'=' or 'in' expected"),
         }
     }
 
@@ -325,7 +304,7 @@ impl Parser {
                     self.next_and_skip_comment();
                 }
                 TokenType::Name => params.params.push(Param::Name(self.check_name()?)),
-                _ => syntax_error!(self, "<name> or '...' expected")?,
+                _ => self.syntax_error("<name> or '...' expected")?,
             };
             if let Some(commas) = self.test_next(TokenType::Comma) {
                 params.commas.push(commas);
@@ -530,7 +509,11 @@ impl Parser {
                 TokenType::Ls => {
                     let line = self.current_line();
                     let ls = self.next_and_skip_comment();
-                    suffixes.push(Suffix::Index(ls, self.expr()?, self.check_match(TokenType::Rs, TokenType::Ls, line)?));
+                    suffixes.push(Suffix::Index(
+                        ls,
+                        self.expr()?,
+                        self.check_match(TokenType::Rs, TokenType::Ls, line)?,
+                    ));
                 }
                 TokenType::Colon => {
                     let colon = self.next_and_skip_comment();
@@ -566,10 +549,10 @@ impl Parser {
                 Expr::ParenExpr(Box::new(expr))
             }
             _ => {
-                return syntax_error!(
-                    self,
-                    &format!("unexpected symbol '{:?}'", self.current_token_type())
-                )
+                return self.syntax_error(&format!(
+                    "unexpected symbol '{:?}'",
+                    self.current_token_type()
+                ))
             }
         };
         Ok(expr)
@@ -623,7 +606,9 @@ impl Parser {
         self.skip_comment();
         let value = self.expr()?;
         self.skip_comment();
-        let sep = self.test_next(TokenType::Comma).or_else(|| self.test_next(TokenType::Semi));
+        let sep = self
+            .test_next(TokenType::Comma)
+            .or_else(|| self.test_next(TokenType::Semi));
         Ok(Field::RecField(RecField {
             key,
             equal,
@@ -635,7 +620,9 @@ impl Parser {
     // listfield -> expr
     fn listfield(&mut self) -> ParseResult<Field> {
         let expr = self.expr()?;
-        let sep = self.test_next(TokenType::Comma).or_else(|| self.test_next(TokenType::Semi));
+        let sep = self
+            .test_next(TokenType::Comma)
+            .or_else(|| self.test_next(TokenType::Semi));
         Ok(Field::ListField(ListField { value: expr, sep }))
     }
 
@@ -659,7 +646,7 @@ impl Parser {
             TokenType::String => FuncArgs::String(StringExpr {
                 token: self.next_and_skip_comment(),
             }),
-            _ => return syntax_error!(self, "function arguments expected"),
+            _ => return self.syntax_error("function arguments expected"),
         };
         Ok(func_args)
     }
@@ -733,12 +720,12 @@ impl Parser {
         self.skip_comment();
         if self.current_token_type() != end {
             if line == self.current_line() {
-                error_expected!(self, end);
+                self.error_expected(end)?;
             } else {
-                syntax_error!(
-                    self,
-                    &format!("{:?} expected (to close {:?} at line {})", end, start, line)
-                )?;
+                self.syntax_error(&format!(
+                    "{:?} expected (to close {:?} at line {})",
+                    end, start, line
+                ))?;
             }
         }
         Ok(self.next())
@@ -760,7 +747,7 @@ impl Parser {
 
     fn check(&self, expected: TokenType) -> ParseResult<Token> {
         if self.current_token_type() != expected {
-            error_expected!(self, expected)
+            self.error_expected(expected)
         } else {
             Ok(self.current_token())
         }
@@ -776,5 +763,22 @@ impl Parser {
         self.skip_comment();
         self.check(TokenType::Name)?;
         Ok(StringExpr { token: self.next() })
+    }
+
+    fn syntax_error<T>(&self, msg: &str) -> ParseResult<T> {
+        let token = self.current_token();
+        let ident = match token.value {
+            TokenValue::None => format!("{:?}", token.t),
+            _ => format!("{:?}", token.value),
+        };
+        let error_msg = format!(
+            "[syntax error] {} at line [{}:{}] near [{}]",
+            msg, token.source.line, token.source.col, ident
+        );
+        error!(self, SyntaxError, error_msg)
+    }
+
+    fn error_expected<T>(&self, expected: TokenType) -> ParseResult<T> {
+        self.syntax_error(&format!("{:?} expected", expected))
     }
 }
