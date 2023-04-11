@@ -6,9 +6,9 @@ use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
 use crate::{error};
 use crate::utils::success;
-use rslua_derive::Debugable;
+use rslua_derive::Debuggable;
 
-#[derive(Debugable)]
+#[derive(Debuggable)]
 pub struct Compiler {
     debug: bool,
     proto_contexts: Vec<ProtoContext>,

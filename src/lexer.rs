@@ -1,9 +1,9 @@
+use crate::error;
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
-use crate::{error};
 use crate::utils::success;
+use rslua_derive::Debuggable;
 use std::str;
-use rslua_derive::Debugable;
 
 // context for lexer
 struct Context<'a> {
@@ -98,7 +98,7 @@ impl LexerConfig {
     }
 }
 
-#[derive(Debugable)]
+#[derive(Debuggable)]
 pub struct Lexer {
     debug: bool,
     config: LexerConfig,
@@ -109,16 +109,6 @@ pub struct Lexer {
 pub struct LexError(String);
 
 type LexResult = Result<Option<(TokenType, TokenValue)>, LexError>;
-
-macro_rules! lex_error {
-    ($self:ident, $ctx:ident, $msg:expr) => {
-        error!(
-            $self,
-            LexError,
-            format!("[lex error] {} at line [{}:{}].", $msg, $ctx.line, $ctx.col)
-        )
-    };
-}
 
 impl<'a> Lexer {
     pub fn new() -> Self {
@@ -217,7 +207,7 @@ impl<'a> Lexer {
                 Ok(None)
             }
         } else {
-            lex_error!(self, ctx, "invalid single line comment")
+            self.lex_error(ctx, "invalid single line comment")
         }
     }
 
@@ -333,7 +323,7 @@ impl<'a> Lexer {
             match num {
                 Number::Int(n) => success((TokenType::Int, TokenValue::Int(n))),
                 Number::Float(n) => success((TokenType::Flt, TokenValue::Float(n))),
-                _ => lex_error!(self, ctx, "malformed number"),
+                _ => self.lex_error(ctx, "malformed number"),
             }
         } else {
             unreachable!();
@@ -353,7 +343,7 @@ impl<'a> Lexer {
                 return Ok((p1 << 4) + p2);
             }
         }
-        lex_error!(self, ctx, "hexadecimal digit expected")
+        self.lex_error(ctx, "hexadecimal digit expected")
     }
 
     fn try_read_utf8_esc(
@@ -363,7 +353,7 @@ impl<'a> Lexer {
     ) -> Result<(), LexError> {
         if let Some(c) = ctx.get() {
             if c != b'{' {
-                return lex_error!(self, ctx, "missing '{'");
+                return self.lex_error(ctx, "missing '{'");
             }
             ctx.next();
             if let Some(c) = self.try_read_hexa(ctx) {
@@ -371,7 +361,7 @@ impl<'a> Lexer {
                 while let Some(c) = self.try_read_hexa(ctx) {
                     r = (r << 4) + (c as u32);
                     if r > 0x10FFFF {
-                        return lex_error!(self, ctx, "UTF-8 value too large");
+                        return self.lex_error(ctx, "UTF-8 value too large");
                     }
                 }
                 if self.check_current(ctx, '}') {
@@ -381,13 +371,13 @@ impl<'a> Lexer {
                         bytes.append(&mut string.into_bytes());
                         ctx.next();
                     } else {
-                        return lex_error!(self, ctx, "invalid utf8 codepoint");
+                        return self.lex_error(ctx, "invalid utf8 codepoint");
                     }
                 } else {
-                    return lex_error!(self, ctx, "missing '}'");
+                    return self.lex_error(ctx, "missing '}'");
                 }
             } else {
-                return lex_error!(self, ctx, "hexadecimal digit expected");
+                return self.lex_error(ctx, "hexadecimal digit expected");
             }
         }
         Ok(())
@@ -411,7 +401,7 @@ impl<'a> Lexer {
             ctx.next();
         }
         if r > 0xFF {
-            lex_error!(self, ctx, "decimal escape too large")
+            self.lex_error(ctx, "decimal escape too large")
         } else {
             bytes.push(r as u8);
             Ok(())
@@ -455,7 +445,7 @@ impl<'a> Lexer {
                 }
                 _ if Lexer::is_digit(next) => self.try_read_dec_esc(ctx, bytes, next)?,
                 _ => {
-                    return lex_error!(self, ctx, "invalid escape sequence");
+                    return self.lex_error(ctx, "invalid escape sequence");
                 }
             }
         }
@@ -476,13 +466,13 @@ impl<'a> Lexer {
                 Some(b'\\') => self.try_read_esc(ctx, &mut bytes)?,
                 Some(c) => {
                     if Lexer::is_line_break(c) {
-                        return lex_error!(self, ctx, unfinished_error);
+                        return self.lex_error(ctx, unfinished_error);
                     } else {
                         bytes.push(c);
                         ctx.next();
                     }
                 }
-                None => return lex_error!(self, ctx, unfinished_error),
+                None => return self.lex_error(ctx, unfinished_error),
             }
         }
         if self.config.use_origin_string {
@@ -492,7 +482,7 @@ impl<'a> Lexer {
             ctx.next();
             success((TokenType::String, TokenValue::Str(string)))
         } else {
-            lex_error!(self, ctx, "invalid utf8 string")
+            self.lex_error(ctx, "invalid utf8 string")
         }
     }
 
@@ -562,10 +552,9 @@ impl<'a> Lexer {
                 _ => ctx.next(),
             }
         }
-        lex_error!(
-            self,
+        self.lex_error(
             ctx,
-            &format!("unfinished long {} (starting at line {})", sem, line)
+            &format!("unfinished long {} (starting at line {})", sem, line),
         )
     }
 
@@ -618,7 +607,7 @@ impl<'a> Lexer {
                     }
                 }
             } else {
-                return lex_error!(self, ctx, &format!("unknown token near {}", c as char));
+                return self.lex_error(ctx, &format!("unknown token near {}", c as char));
             }
         }
         unreachable!()
@@ -876,5 +865,13 @@ impl<'a> Lexer {
         if !t.is_comment() {
             ctx.comment_offset = ctx.offset;
         }
+    }
+
+    fn lex_error<T>(&self, ctx: &Context, msg: &str) -> Result<T, LexError> {
+        error!(
+            self,
+            LexError,
+            format!("[lex error] {} at line [{}:{}].", msg, ctx.line, ctx.col)
+        )
     }
 }

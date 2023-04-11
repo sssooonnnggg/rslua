@@ -2,9 +2,9 @@ use crate::error;
 
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
-use rslua_derive::Debugable;
+use rslua_derive::Debuggable;
 
-#[derive(Debugable)]
+#[derive(Debuggable)]
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
