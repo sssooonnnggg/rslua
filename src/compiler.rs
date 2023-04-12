@@ -1,10 +1,10 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
+use crate::error;
 use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
-use crate::{error};
 use crate::utils::success;
 use rslua_derive::Debuggable;
 
@@ -23,13 +23,6 @@ impl CompileError {
 }
 
 type CompileResult = Result<Proto, CompileError>;
-
-macro_rules! compile_error {
-    ($self:ident, $error:ident, $source:ident) => {{
-        let error_msg = format!("[compile error] {} at line [{}].", $error.0, $source.line);
-        error!($self, CompileError, error_msg)
-    }};
-}
 
 pub struct Reg {
     pub reg: u32,
@@ -540,7 +533,12 @@ impl Compiler {
         Ok(result)
     }
 
-    fn code_not(&mut self, op: &UnOp, input: Option<u32>, expr: &Expr) -> Result<ExprResult, CompileError> {
+    fn code_not(
+        &mut self,
+        op: &UnOp,
+        input: Option<u32>,
+        expr: &Expr,
+    ) -> Result<ExprResult, CompileError> {
         if let Some(_) = self.try_const_folding(expr)? {
             Ok(ExprResult::False)
         } else {
@@ -599,12 +597,17 @@ impl Compiler {
             Assignable::SuffixedExpr(_) => todo!(),
         }
     }
+
+    fn compile_error<T>(&self, e: CompileError, source: &Source) -> Result<T, CompileError> {
+        let error_msg = format!("[compile error] {} at line [{}].", e.0, source.line);
+        error!(self, CompileError, error_msg)
+    }
 }
 
 impl AstVisitor<CompileError> for Compiler {
     // error handler
     fn error(&mut self, e: CompileError, source: &Source) -> Result<(), CompileError> {
-        compile_error!(self, e, source)
+        self.compile_error(e, source)
     }
 
     // compile local stat
@@ -654,7 +657,8 @@ impl AstVisitor<CompileError> for Compiler {
         if extra > 0 {
             let left_start = stat.left.assignables.len() as i32 - extra;
             for i in 0..extra {
-                let target = self.get_assinable_reg(&stat.left.assignables[(left_start + i) as usize]);
+                let target =
+                    self.get_assinable_reg(&stat.left.assignables[(left_start + i) as usize]);
                 let src = (reg as i32 + i) as u32;
                 to_move.push((target, src));
             }
