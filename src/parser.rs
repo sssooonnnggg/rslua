@@ -1,18 +1,22 @@
-use crate::error;
-
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
-use rslua_derive::Debuggable;
+use rslua_derive::Traceable;
+use rslua_traits::error::Error;
 
-#[derive(Debuggable)]
+#[derive(Traceable)]
 pub struct Parser {
     tokens: Vec<Token>,
-    current: usize,
-    debug: bool,
+    current: usize
 }
 
 #[derive(Debug)]
 pub struct SyntaxError(String);
+
+impl Error for SyntaxError {
+    fn what(&self) -> &str {
+        &self.0
+    }
+}
 
 type ParseResult<T> = Result<T, SyntaxError>;
 
@@ -20,8 +24,7 @@ impl Parser {
     pub fn new() -> Self {
         Parser {
             tokens: Vec::new(),
-            current: 0,
-            debug: false,
+            current: 0
         }
     }
 
@@ -775,7 +778,7 @@ impl Parser {
             "[syntax error] {} at line [{}:{}] near [{}]",
             msg, token.source.line, token.source.col, ident
         );
-        error!(self, SyntaxError, error_msg)
+        Parser::trace_error(SyntaxError(error_msg))
     }
 
     fn error_expected<T>(&self, expected: TokenType) -> ParseResult<T> {

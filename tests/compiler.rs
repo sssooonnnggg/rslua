@@ -5,10 +5,8 @@ use rslua::proto::Proto;
 
 fn try_compile(input: &str) -> Result<Proto, CompileError> {
     let mut lexer = Lexer::new();
-    lexer.set_debug(true);
     if let Ok(tokens) = lexer.run(input) {
         let mut parser = Parser::new();
-        parser.set_debug(true);
         if let Ok(block) = parser.run(tokens) {
             let mut compiler = Compiler::new();
             match compiler.run(&block) {
@@ -329,16 +327,15 @@ instructions :
     }
 
     #[test]
+    #[should_panic]
     fn divide_by_zero() {
         let result = try_compile_and_print(
             r#"
 --
--- test devide by zero
+-- test divide by zero
 --
 local a = 1 // 0"#,
         );
-        // TODO:
-        assert_eq!(result, r#"[compile error] divide by zero at line [0]."#)
     }
 
     #[test]

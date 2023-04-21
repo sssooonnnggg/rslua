@@ -10,10 +10,8 @@ mod parser_tests {
 
     fn try_parse(input: &str) -> Block {
         let mut lexer = Lexer::new();
-        lexer.set_debug(true);
         if let Ok(tokens) = lexer.run(input) {
             let mut parser = Parser::new();
-            parser.set_debug(true);
             if let Ok(ast) = parser.run(tokens) {
                 println!("{:#?}", ast);
                 return ast;

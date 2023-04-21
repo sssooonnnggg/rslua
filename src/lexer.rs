@@ -1,8 +1,8 @@
-use crate::error;
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
 use crate::utils::success;
-use rslua_derive::Debuggable;
+use rslua_traits::error::Error;
+use rslua_derive::Traceable;
 use std::str;
 
 // context for lexer
@@ -98,9 +98,8 @@ impl LexerConfig {
     }
 }
 
-#[derive(Debuggable)]
+#[derive(Traceable)]
 pub struct Lexer {
-    debug: bool,
     config: LexerConfig,
     tokens: Vec<Token>,
 }
@@ -108,12 +107,17 @@ pub struct Lexer {
 #[derive(Debug)]
 pub struct LexError(String);
 
+impl Error for LexError {
+    fn what(&self) -> &str {
+        &self.0
+    }
+}
+
 type LexResult = Result<Option<(TokenType, TokenValue)>, LexError>;
 
 impl<'a> Lexer {
     pub fn new() -> Self {
         Lexer {
-            debug: false,
             tokens: Vec::<Token>::new(),
             config: LexerConfig::default(),
         }
@@ -868,10 +872,7 @@ impl<'a> Lexer {
     }
     
     fn lex_error<T>(&self, ctx: &Context, msg: &str) -> Result<T, LexError> {
-        error!(
-            self,
-            LexError,
-            format!("[lex error] {} at line [{}:{}].", msg, ctx.line, ctx.col)
-        )
+        let error_msg = format!("[lex error] {} at line [{}:{}].", msg, ctx.line, ctx.col);
+        Lexer::trace_error(LexError(error_msg))
     }
 }

@@ -8,7 +8,6 @@ mod lexer_tests {
 
     fn try_lexer(input: &str) -> Result<Vec<Token>, LexError> {
         let mut lexer = Lexer::new();
-        lexer.set_debug(true);
         lexer.run(input)
     }
 

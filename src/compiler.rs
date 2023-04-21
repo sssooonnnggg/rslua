@@ -1,16 +1,15 @@
 use crate::ast::*;
 use crate::ast_walker::{ast_walker, AstVisitor};
 use crate::consts::Const;
-use crate::error;
 use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
 use crate::utils::success;
-use rslua_derive::Debuggable;
+use rslua_traits::error::Error;
+use rslua_derive::Traceable;
 
-#[derive(Debuggable)]
+#[derive(Traceable)]
 pub struct Compiler {
-    debug: bool,
     proto_contexts: Vec<ProtoContext>,
 }
 
@@ -19,6 +18,12 @@ pub struct CompileError(pub String);
 impl CompileError {
     pub fn new(str: &str) -> Self {
         CompileError(str.to_string())
+    }
+}
+
+impl Error for CompileError {
+    fn what(&self) -> &str {
+        &self.0
     }
 }
 
@@ -179,7 +184,6 @@ impl ExprResult {
 impl Compiler {
     pub fn new() -> Self {
         Compiler {
-            debug: false,
             proto_contexts: Vec::new(),
         }
     }
@@ -600,7 +604,7 @@ impl Compiler {
 
     fn compile_error<T>(&self, e: CompileError, source: &Source) -> Result<T, CompileError> {
         let error_msg = format!("[compile error] {} at line [{}].", e.0, source.line);
-        error!(self, CompileError, error_msg)
+        Compiler::trace_error(CompileError(error_msg))
     }
 }
 

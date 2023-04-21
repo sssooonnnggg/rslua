@@ -12,4 +12,5 @@ categories = ["parsing"]
 
 [dependencies]
 num-traits = "0.2.12"
-rslua_derive = {path = "rslua_derive"}
+rslua_derive = { path = "rslua_derive" }
+rslua_traits = { path = "rslua_traits" }

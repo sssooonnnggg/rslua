@@ -3,7 +3,6 @@ pub mod ast_walker;
 pub mod compiler;
 pub mod consts;
 pub mod lexer;
-pub mod macros;
 pub mod opcodes;
 pub mod parser;
 pub mod tokens;

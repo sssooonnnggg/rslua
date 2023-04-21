@@ -447,14 +447,12 @@ impl AstVisitor for LuaWriter {
 
 fn try_convert(input: &str) -> String {
     let mut lexer = Lexer::new();
-    lexer.set_debug(true);
     lexer.set_config(LexerConfig {
         use_origin_string: true,
         reserve_comments: true,
     });
     if let Ok(tokens) = lexer.run(&input) {
         let mut parser = Parser::new();
-        parser.set_debug(true);
         if let Ok(ast) = parser.run(tokens) {
             let mut writter = LuaWriter::new();
             return writter.run(&ast).to_string();
