@@ -329,7 +329,7 @@ instructions :
     #[test]
     #[should_panic]
     fn divide_by_zero() {
-        let result = try_compile_and_print(
+        try_compile_and_print(
             r#"
 --
 -- test divide by zero

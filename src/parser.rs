@@ -95,12 +95,6 @@ impl Parser {
         Ok(Some(stat))
     }
 
-    fn commentstat(&mut self) -> ParseResult<CommentStat> {
-        let stat = CommentStat::new(self.current_token());
-        self.next();
-        Ok(stat)
-    }
-
     fn doblock(&mut self) -> ParseResult<DoBlock> {
         let line = self.current_line();
         let do_ = self.next();
