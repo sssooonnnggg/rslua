@@ -143,6 +143,36 @@ impl BinOp {
     }
 }
 
+impl Comments for BinOp {
+    fn get_comments(&self) -> Vec<&str> {
+        // refactor this
+        match self {
+            BinOp::Add(token) => token.get_comments(),
+            BinOp::Minus(token) => token.get_comments(),
+            BinOp::Mul(token) => token.get_comments(),
+            BinOp::Mod(token) => token.get_comments(),
+            BinOp::Pow(token) => token.get_comments(),
+            BinOp::Div(token) => token.get_comments(),
+            BinOp::IDiv(token) => token.get_comments(),
+            BinOp::BAnd(token) => token.get_comments(),
+            BinOp::BOr(token) => token.get_comments(),
+            BinOp::BXor(token) => token.get_comments(),
+            BinOp::Shl(token) => token.get_comments(),
+            BinOp::Shr(token) => token.get_comments(),
+            BinOp::Concat(token) => token.get_comments(),
+            BinOp::Ne(token) => token.get_comments(),
+            BinOp::Eq(token) => token.get_comments(),
+            BinOp::Lt(token) => token.get_comments(),
+            BinOp::Le(token) => token.get_comments(),
+            BinOp::Gt(token) => token.get_comments(),
+            BinOp::Ge(token) => token.get_comments(),
+            BinOp::And(token) => token.get_comments(),
+            BinOp::Or(token) => token.get_comments(),
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub enum Expr {
     Nil(Token),
@@ -159,27 +189,6 @@ pub enum Expr {
     BinExpr(BinExpr),
     UnExpr(UnExpr),
     SuffixedExpr(SuffixedExpr),
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum Assignable {
-    Name(StringExpr),
-    SuffixedExpr(SuffixedExpr),
-}
-
-impl Assignable {
-    pub fn unwrap_as_name(&self) -> &StringExpr {
-        match &self {
-            Assignable::Name(name) => name,
-            _ => unreachable!(),
-        }
-    }
-    pub fn unwrap_as_suffix(&self) -> &SuffixedExpr {
-        match &self {
-            Assignable::SuffixedExpr(suffix) => suffix,
-            _ => unreachable!(),
-        }
-    }
 }
 
 impl Expr {
@@ -220,6 +229,39 @@ impl Expr {
     }
 }
 
+impl Comments for Expr {
+    fn get_comments(&self) -> Vec<&str> {
+        unimplemented!()
+    }
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum Assignable {
+    Name(StringExpr),
+    SuffixedExpr(SuffixedExpr),
+}
+
+impl Assignable {
+    pub fn unwrap_as_name(&self) -> &StringExpr {
+        match &self {
+            Assignable::Name(name) => name,
+            _ => unreachable!(),
+        }
+    }
+    pub fn unwrap_as_suffix(&self) -> &SuffixedExpr {
+        match &self {
+            Assignable::SuffixedExpr(suffix) => suffix,
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl Comments for Assignable {
+    fn get_comments(&self) -> Vec<&str> {
+        unimplemented!()
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct FloatExpr {
     pub token: Token,
@@ -228,6 +270,12 @@ pub struct FloatExpr {
 impl FloatExpr {
     pub fn value(&self) -> FloatType {
         self.token.get_float()
+    }
+}
+
+impl Comments for FloatExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        self.token.get_comments()
     }
 }
 
@@ -242,6 +290,12 @@ impl IntExpr {
     }
 }
 
+impl Comments for IntExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        self.token.get_comments()
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct StringExpr {
     pub token: Token,
@@ -253,10 +307,22 @@ impl StringExpr {
     }
 }
 
+impl Comments for StringExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        self.token.get_comments()
+    }
+}
+
 #[derive(PartialEq, Clone, Debug)]
 pub struct SuffixedExpr {
     pub primary: Box<Expr>,
     pub suffixes: Vec<Suffix>,
+}
+
+impl Comments for SuffixedExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        unimplemented!()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -279,12 +345,33 @@ impl Suffix {
     }
 }
 
+impl Comments for Suffix {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            Suffix::Attr(token, _) => token.get_comments(),
+            Suffix::Index(token, _, _) => token.get_comments(),
+            Suffix::Method(token, _) => token.get_comments(),
+            Suffix::FuncArgs(args) => args.get_comments(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum FuncArgs {
     // '(' [ exprlist ] ')'
     Exprs(Token, ExprList, Token),
     Table(Table),
     String(StringExpr),
+}
+
+impl Comments for FuncArgs {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            FuncArgs::Exprs(token, _, _) => token.get_comments(),
+            FuncArgs::Table(table) => table.get_comments(),
+            FuncArgs::String(string) => string.get_comments(),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -302,11 +389,27 @@ impl ExprList {
     }
 }
 
+impl Comments for ExprList {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(expr) = self.exprs.first() {
+            expr.get_comments()
+        } else {
+            Vec::new()
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct Table {
     pub lb: Token,
     pub fields: Vec<Field>,
     pub rb: Token,
+}
+
+impl Comments for Table {
+    fn get_comments(&self) -> Vec<&str> {
+        self.lb.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
