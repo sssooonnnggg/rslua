@@ -5,7 +5,7 @@ use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
 use crate::utils::success;
-use rslua_traits::error::Error;
+use rslua_traits::Error;
 use rslua_derive::Traceable;
 
 #[derive(Traceable)]

@@ -162,7 +162,16 @@ impl Token {
             _ => unreachable!(),
         }
     }
+    pub fn get_str(&self) -> &str {
+        match &self.value {
+            TokenValue::Str(s) => s,
+            _ => unreachable!(),
+        }
+    }
     pub fn is_comment(&self) -> bool {
         self.t.is_comment()
+    }
+    pub fn get_comments(&self) -> Vec<&str> {
+        return self.comments.iter().map(|t| t.get_str()).collect();
     }
 }

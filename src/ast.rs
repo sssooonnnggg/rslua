@@ -1,5 +1,6 @@
 use crate::tokens::{Token, TokenType};
 use crate::types::{FloatType, IntType};
+use rslua_traits::Comments;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum UnOp {
@@ -8,6 +9,18 @@ pub enum UnOp {
     Not(Token),
     Len(Token),
     None,
+}
+
+impl Comments for UnOp {
+    fn get_comments(&self) -> Vec<&str> {
+        match self {
+            UnOp::Minus(token) => token.get_comments(),
+            UnOp::BNot(token) => token.get_comments(),
+            UnOp::Not(token) => token.get_comments(),
+            UnOp::Len(token) => token.get_comments(),
+            UnOp::None => vec![],
+        }
+    }
 }
 
 impl UnOp {

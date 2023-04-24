@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::tokens::{Token, TokenType, TokenValue};
 use rslua_derive::Traceable;
-use rslua_traits::error::Error;
+use rslua_traits::Error;
 
 #[derive(Traceable)]
 pub struct Parser {

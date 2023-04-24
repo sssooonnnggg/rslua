@@ -1,7 +1,7 @@
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
 use crate::utils::success;
-use rslua_traits::error::Error;
+use rslua_traits::Error;
 use rslua_derive::Traceable;
 use std::str;
 
