@@ -664,21 +664,6 @@ pub struct CallStat {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct CommentStat {
-    pub is_single_line: bool,
-    pub comment: StringExpr,
-}
-
-impl CommentStat {
-    pub fn new(token: Token) -> Self {
-        CommentStat {
-            is_single_line: token.t == TokenType::SComment,
-            comment: StringExpr { token },
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
 pub enum Stat {
     IfStat(IfStat),
     WhileStat(WhileStat),
