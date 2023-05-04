@@ -231,7 +231,22 @@ impl Expr {
 
 impl Comments for Expr {
     fn get_comments(&self) -> Vec<&str> {
-        unimplemented!()
+        match &self {
+            Expr::Nil(token) => token.get_comments(),
+            Expr::True(token) => token.get_comments(),
+            Expr::False(token) => token.get_comments(),
+            Expr::VarArg(token) => token.get_comments(),
+            Expr::Float(expr) => expr.get_comments(),
+            Expr::Int(expr) => expr.get_comments(),
+            Expr::String(expr) => expr.get_comments(),
+            Expr::Name(expr) => expr.get_comments(),
+            Expr::ParenExpr(expr) => expr.get_comments(),
+            Expr::FuncBody(expr) => expr.get_comments(),
+            Expr::Table(expr) => expr.get_comments(),
+            Expr::BinExpr(expr) => expr.get_comments(),
+            Expr::UnExpr(expr) => expr.get_comments(),
+            Expr::SuffixedExpr(expr) => expr.get_comments(),
+        }
     }
 }
 
@@ -258,7 +273,10 @@ impl Assignable {
 
 impl Comments for Assignable {
     fn get_comments(&self) -> Vec<&str> {
-        unimplemented!()
+        match &self {
+            Assignable::Name(name) => name.get_comments(),
+            Assignable::SuffixedExpr(suffix) => suffix.get_comments(),
+        }
     }
 }
 
@@ -321,7 +339,7 @@ pub struct SuffixedExpr {
 
 impl Comments for SuffixedExpr {
     fn get_comments(&self) -> Vec<&str> {
-        unimplemented!()
+        self.primary.get_comments()
     }
 }
 
@@ -433,6 +451,15 @@ impl Field {
     }
 }
 
+impl Comments for Field {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            Field::RecField(field) => field.get_comments(),
+            Field::ListField(field) => field.get_comments(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct RecField {
     pub key: FieldKey,
@@ -441,10 +468,22 @@ pub struct RecField {
     pub sep: Option<Token>,
 }
 
+impl Comments for RecField {
+    fn get_comments(&self) -> Vec<&str> {
+        self.key.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct ListField {
     pub value: Expr,
     pub sep: Option<Token>,
+}
+
+impl Comments for ListField {
+    fn get_comments(&self) -> Vec<&str> {
+        self.value.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -469,17 +508,38 @@ impl FieldKey {
     }
 }
 
+impl Comments for FieldKey {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            FieldKey::Name(name) => name.get_comments(),
+            FieldKey::Expr(token, ..) => token.get_comments(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct UnExpr {
     pub op: UnOp,
     pub expr: Box<Expr>,
 }
 
+impl Comments for UnExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        self.op.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct BinExpr {
-    pub op: BinOp,
     pub left: Box<Expr>,
+    pub op: BinOp,
     pub right: Box<Expr>,
+}
+
+impl Comments for BinExpr {
+    fn get_comments(&self) -> Vec<&str> {
+        self.left.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -589,6 +649,12 @@ pub struct FuncBody {
     pub rp: Token,
     pub block: Block,
     pub end: Token,
+}
+
+impl Comments for FuncBody {
+    fn get_comments(&self) -> Vec<&str> {
+        self.lp.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
