@@ -550,12 +550,28 @@ pub struct IfStat {
     pub end: Token,
 }
 
+impl Comments for IfStat {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(cond) = self.cond_blocks.first() {
+            cond.get_comments()
+        } else {
+            unreachable!("IfStat should have at least one cond block")
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct CondBlock {
     pub if_: Token,
     pub cond: Expr,
     pub then: Token,
     pub block: Block,
+}
+
+impl Comments for CondBlock {
+    fn get_comments(&self) -> Vec<&str> {
+        self.if_.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -567,6 +583,12 @@ pub struct WhileStat {
     pub end: Token,
 }
 
+impl Comments for WhileStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.while_.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct DoBlock {
     pub do_: Token,
@@ -574,10 +596,25 @@ pub struct DoBlock {
     pub end: Token,
 }
 
+impl Comments for DoBlock {
+    fn get_comments(&self) -> Vec<&str> {
+        self.do_.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum ForStat {
     ForNum(ForNum),
     ForList(ForList),
+}
+
+impl Comments for ForStat {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            ForStat::ForNum(stat) => stat.get_comments(),
+            ForStat::ForList(stat) => stat.get_comments(),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -595,6 +632,12 @@ pub struct ForNum {
     pub end: Token,
 }
 
+impl Comments for ForNum {
+    fn get_comments(&self) -> Vec<&str> {
+        self.for_.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct ForList {
     pub for_: Token,
@@ -606,10 +649,26 @@ pub struct ForList {
     pub end: Token,
 }
 
+impl Comments for ForList {
+    fn get_comments(&self) -> Vec<&str> {
+        self.for_.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct VarList {
     pub vars: Vec<StringExpr>,
     pub delimiters: Vec<Token>,
+}
+
+impl Comments for VarList {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(var) = self.vars.first() {
+            var.get_comments()
+        } else {
+            unreachable!("VarList should have at least one var")
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -618,6 +677,12 @@ pub struct RepeatStat {
     pub block: Block,
     pub until: Token,
     pub cond: Expr,
+}
+
+impl Comments for RepeatStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.repeat.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -634,12 +699,28 @@ pub struct FuncStat {
     pub body: FuncBody,
 }
 
+impl Comments for FuncStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.function.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct FuncName {
     // NAME {'.' NAME}
     pub fields: VarList,
     // [':' NAME]
     pub method: Option<(Token, StringExpr)>,
+}
+
+impl Comments for FuncName {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(field) = self.fields.vars.first() {
+            field.get_comments()
+        } else {
+            unreachable!("FuncName should have at least one field")
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -678,12 +759,27 @@ impl Param {
     }
 }
 
+impl Comments for Param {
+    fn get_comments(&self) -> Vec<&str> {
+        match &self {
+            Param::VarArg(token) => token.get_comments(),
+            Param::Name(expr) => expr.get_comments(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct LocalStat {
     pub local: Token,
     pub names: VarList,
     pub equal: Option<Token>,
     pub exprs: Option<ExprList>,
+}
+
+impl Comments for LocalStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.local.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -693,6 +789,12 @@ pub struct LabelStat {
     pub rdc: Token,
 }
 
+impl Comments for LabelStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.ldc.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct RetStat {
     pub return_: Token,
@@ -700,9 +802,21 @@ pub struct RetStat {
     pub semi: Option<Token>,
 }
 
+impl Comments for RetStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.return_.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct BreakStat {
     pub token: Token,
+}
+
+impl Comments for BreakStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.token.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -711,11 +825,27 @@ pub struct GotoStat {
     pub label: StringExpr,
 }
 
+impl Comments for GotoStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.goto.get_comments()
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct AssignStat {
     pub left: AssignableList,
     pub equal: Token,
     pub right: ExprList,
+}
+
+impl Comments for AssignStat {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(assignable) = self.left.assignables.first() {
+            assignable.get_comments()
+        } else {
+            unreachable!("AssignStat should have at least one assignable")
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -727,6 +857,12 @@ pub struct AssignableList {
 #[derive(Clone, PartialEq, Debug)]
 pub struct CallStat {
     pub call: Assignable,
+}
+
+impl Comments for CallStat {
+    fn get_comments(&self) -> Vec<&str> {
+        self.call.get_comments()
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -746,7 +882,37 @@ pub enum Stat {
     CallStat(CallStat),
 }
 
+impl Comments for Stat {
+    fn get_comments(&self) -> Vec<&str> {
+        match self {
+            Stat::IfStat(stat) => stat.get_comments(),
+            Stat::WhileStat(stat) => stat.get_comments(),
+            Stat::DoBlock(stat) => stat.get_comments(),
+            Stat::ForStat(stat) => stat.get_comments(),
+            Stat::RepeatStat(stat) => stat.get_comments(),
+            Stat::FuncStat(stat) => stat.get_comments(),
+            Stat::LocalStat(stat) => stat.get_comments(),
+            Stat::LabelStat(stat) => stat.get_comments(),
+            Stat::RetStat(stat) => stat.get_comments(),
+            Stat::BreakStat(stat) => stat.get_comments(),
+            Stat::GotoStat(stat) => stat.get_comments(),
+            Stat::AssignStat(stat) => stat.get_comments(),
+            Stat::CallStat(stat) => stat.get_comments(),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct Block {
     pub stats: Vec<Stat>,
+}
+
+impl Comments for Block {
+    fn get_comments(&self) -> Vec<&str> {
+        if let Some(stat) = self.stats.first() {
+            stat.get_comments()
+        } else {
+            Vec::new()
+        }
+    }
 }
