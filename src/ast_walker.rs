@@ -1,3 +1,5 @@
+use rslua_traits::Comments;
+
 use crate::ast::*;
 use crate::types::*;
 
@@ -154,6 +156,8 @@ pub trait AstVisitor<E = ()> {
     fn error(&mut self, e: E, _source: &Source) -> Result<(), E> {
         Err(e)
     }
+
+    fn comments(&mut self, _comments: &impl Comments) {}
 }
 
 pub mod ast_walker {
@@ -181,6 +185,7 @@ pub mod ast_walker {
     }
 
     pub fn walk_stat<T: AstVisitor<E>, E>(stat: &Stat, visitor: &mut T) -> Result<(), E> {
+        visitor.comments(stat);
         match stat {
             Stat::IfStat(ifstat) => walk_ifstat(ifstat, visitor),
             Stat::WhileStat(whilestat) => walk_whilestat(whilestat, visitor),
@@ -204,24 +209,27 @@ pub mod ast_walker {
             if !visitor.begin_if(&if_block.cond)? {
                 walk_expr(&if_block.cond, visitor)?;
             }
+            visitor.comments(&if_block.then);
             if !visitor.then(&if_block.block)? {
                 walk_block(&if_block.block, visitor)?;
             }
             while let Some(else_if_block) = if_blocks.next() {
+                visitor.comments(&else_if_block.if_);
                 if !visitor.begin_else_if(&else_if_block.cond)? {
                     walk_expr(&else_if_block.cond, visitor)?;
                 }
+                visitor.comments(&else_if_block.then);
                 if !visitor.then(&else_if_block.block)? {
                     walk_block(&else_if_block.block, visitor)?;
                 }
             }
             if let Some(else_block) = &stat.else_block {
-                if else_block.stats.len() > 0 {
-                    if !visitor.begin_else(else_block)? {
-                        walk_block(else_block, visitor)?;
-                    }
+                visitor.comments(else_block);
+                if !visitor.begin_else(else_block)? {
+                    walk_block(else_block, visitor)?;
                 }
             }
+            visitor.comments(&stat.end);
             visitor.end_if();
         }
         Ok(())
@@ -331,6 +339,7 @@ pub mod ast_walker {
     }
 
     pub fn walk_expr<T: AstVisitor<E>, E>(expr: &Expr, visitor: &mut T) -> Result<(), E> {
+        visitor.comments(expr);
         if !visitor.expr(expr)? {
             match expr {
                 Expr::Nil(_) => visitor.nil(),
@@ -475,10 +484,13 @@ pub mod ast_walker {
         Ok(())
     }
 
-    pub fn walk_listfield<T: AstVisitor<E>, E>(field: &ListField, visitor: &mut T) -> Result<(), E> {
+    pub fn walk_listfield<T: AstVisitor<E>, E>(
+        field: &ListField,
+        visitor: &mut T,
+    ) -> Result<(), E> {
         walk_expr(&field.value, visitor)?;
         Ok(())
-    } 
+    }
 
     pub fn walk_fieldkey<T: AstVisitor<E>, E>(key: &FieldKey, visitor: &mut T) -> Result<(), E> {
         if !visitor.begin_field_key(key)? {

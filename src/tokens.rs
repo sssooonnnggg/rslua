@@ -1,3 +1,5 @@
+use rslua_traits::Comments;
+
 use crate::types::{FloatType, IntType, Source};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -171,7 +173,10 @@ impl Token {
     pub fn is_comment(&self) -> bool {
         self.t.is_comment()
     }
-    pub fn get_comments(&self) -> Vec<&str> {
+}
+
+impl Comments for Token {
+    fn get_comments(&self) -> Vec<&str> {
         return self.comments.iter().map(|t| t.get_str()).collect();
     }
 }

@@ -2,6 +2,7 @@ use rslua::ast::*;
 use rslua::ast_walker::*;
 use rslua::lexer::{Lexer, LexerConfig};
 use rslua::parser::Parser;
+use rslua_traits::Comments;
 use std::fs::File;
 use std::fs::{create_dir, read_dir};
 use std::io::prelude::*;
@@ -77,6 +78,11 @@ impl LuaWriter {
         for _i in 0..self.indent {
             self.output.pop();
         }
+    }
+
+    fn append_and_incline(&mut self, content: &str) {
+        self.append(content);
+        self.incline();
     }
 }
 
@@ -442,6 +448,12 @@ impl AstVisitor for LuaWriter {
 
     fn end_paren_expr(&mut self) {
         self.append(")");
+    }
+
+    fn comments(&mut self, _comments:& impl Comments) {
+        for comment in _comments.get_comments() {
+            self.append_and_incline(&format!("--{}", comment));
+        }
     }
 }
 
