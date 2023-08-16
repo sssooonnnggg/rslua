@@ -36,9 +36,10 @@ pub trait AstVisitor<E = ()> {
     }
     fn end_do_block(&mut self) {}
 
-    fn for_num(&mut self, _fornum: &ForNum) -> Result<bool, E> {
+    fn begin_for(&mut self) -> Result<bool, E> {
         Ok(false)
     }
+    fn for_enum_equal(&mut self) {}
     fn for_list(&mut self, _forlist: &ForList) -> Result<bool, E> {
         Ok(false)
     }
@@ -239,9 +240,11 @@ pub mod ast_walker {
         if !visitor.begin_while(&stat.cond)? {
             walk_expr(&stat.cond, visitor)?;
         }
+        visitor.comments(&stat.do_);
         if !visitor.begin_while_block(&stat.block)? {
             walk_block(&stat.block, visitor)?;
         }
+        visitor.comments(&stat.end);
         visitor.end_while();
         Ok(())
     }
@@ -250,6 +253,7 @@ pub mod ast_walker {
         if !visitor.begin_do_block(&stat.block)? {
             walk_block(&stat.block, visitor)?;
         }
+        visitor.comments(&stat.end);
         visitor.end_do_block();
         Ok(())
     }
@@ -262,18 +266,25 @@ pub mod ast_walker {
     }
 
     pub fn walk_forenum<T: AstVisitor<E>, E>(stat: &ForNum, visitor: &mut T) -> Result<(), E> {
-        if !visitor.for_num(stat)? {
+        if !visitor.begin_for()? {
+            visitor.name(&stat.var);
+            visitor.comments(&stat.equal);
+            visitor.for_enum_equal();
             walk_expr(&stat.init, visitor)?;
+            visitor.comments(&stat.init_comma);
             visitor.expr_sep();
             walk_expr(&stat.limit, visitor)?;
             if let Some(expr) = &stat.step {
+                visitor.comments(stat.limit_comma.as_ref().unwrap());
                 visitor.expr_sep();
                 walk_expr(expr, visitor)?;
             }
+            visitor.comments(&stat.do_);
         }
         if !visitor.begin_for_block(&stat.body)? {
             walk_block(&stat.body, visitor)?;
         }
+        visitor.comments(&stat.end);
         visitor.end_for();
         Ok(())
     }

@@ -151,10 +151,13 @@ impl AstVisitor for LuaWriter {
         self.end();
     }
 
-    fn for_num(&mut self, fornum: &ForNum) -> WriteResult<bool> {
+    fn begin_for(&mut self) -> WriteResult<bool> {
         self.append_space("for");
-        self.append(&format!("{} = ", fornum.var.value()));
         Ok(false)
+    }
+
+    fn for_enum_equal(&mut self) {
+        self.space_append_space("=");
     }
 
     fn for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
