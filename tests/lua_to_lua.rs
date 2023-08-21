@@ -151,7 +151,7 @@ impl AstVisitor for LuaWriter {
         self.end();
     }
 
-    fn begin_for(&mut self) -> WriteResult<bool> {
+    fn begin_for_num(&mut self, _for_enum: &ForNum) -> WriteResult<bool> {
         self.append_space("for");
         Ok(false)
     }
@@ -160,16 +160,13 @@ impl AstVisitor for LuaWriter {
         self.space_append_space("=");
     }
 
-    fn for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
+    fn begin_for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
         self.append_space("for");
-        for (n, var) in forlist.vars.vars.iter().enumerate() {
-            self.append(&var.value());
-            if n < forlist.vars.vars.len() - 1 {
-                self.append(", ");
-            }
-        }
-        self.space_append_space("in");
         Ok(false)
+    }
+
+    fn for_list_in(&mut self) {
+        self.space_append_space("in");
     }
 
     fn begin_for_block(&mut self, _block: &Block) -> WriteResult<bool> {
@@ -453,7 +450,7 @@ impl AstVisitor for LuaWriter {
         self.append(")");
     }
 
-    fn comments(&mut self, _comments:& impl Comments) {
+    fn comments(&mut self, _comments: &impl Comments) {
         for comment in _comments.get_comments() {
             self.append_and_incline(&format!("--{}", comment));
         }

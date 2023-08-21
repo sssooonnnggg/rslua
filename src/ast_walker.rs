@@ -36,13 +36,17 @@ pub trait AstVisitor<E = ()> {
     }
     fn end_do_block(&mut self) {}
 
-    fn begin_for(&mut self) -> Result<bool, E> {
+    fn begin_for_num(&mut self, _for_enum: &ForNum) -> Result<bool, E> {
         Ok(false)
     }
     fn for_enum_equal(&mut self) {}
-    fn for_list(&mut self, _forlist: &ForList) -> Result<bool, E> {
+
+    fn begin_for_list(&mut self, _forlist: &ForList) -> Result<bool, E> {
         Ok(false)
     }
+
+    fn for_list_in(&mut self) {}
+
     fn begin_for_block(&mut self, _block: &Block) -> Result<bool, E> {
         Ok(false)
     }
@@ -266,7 +270,7 @@ pub mod ast_walker {
     }
 
     pub fn walk_forenum<T: AstVisitor<E>, E>(stat: &ForNum, visitor: &mut T) -> Result<(), E> {
-        if !visitor.begin_for()? {
+        if !visitor.begin_for_num(stat)? {
             visitor.name(&stat.var);
             visitor.comments(&stat.equal);
             visitor.for_enum_equal();
@@ -279,8 +283,8 @@ pub mod ast_walker {
                 visitor.expr_sep();
                 walk_expr(expr, visitor)?;
             }
-            visitor.comments(&stat.do_);
         }
+        visitor.comments(&stat.do_);
         if !visitor.begin_for_block(&stat.body)? {
             walk_block(&stat.body, visitor)?;
         }
@@ -290,12 +294,24 @@ pub mod ast_walker {
     }
 
     pub fn walk_forlist<T: AstVisitor<E>, E>(stat: &ForList, visitor: &mut T) -> Result<(), E> {
-        if !visitor.for_list(stat)? {
+        if !visitor.begin_for_list(stat)? {
+            stat.vars.vars.iter().enumerate().for_each(|(i, var)| {
+                visitor.comments(var);
+                visitor.name(var);
+                if i != stat.vars.vars.len() - 1 {
+                    visitor.comments(&stat.vars.delimiters[i]);
+                    visitor.expr_sep();
+                }
+            });
+            visitor.comments(&stat.in_);
+            visitor.for_list_in();
             walk_exprlist(&stat.exprs, visitor)?;
         }
+        visitor.comments(&stat.do_);
         if !visitor.begin_for_block(&stat.body)? {
             walk_block(&stat.body, visitor)?;
         }
+        visitor.comments(&stat.end);
         visitor.end_for();
         Ok(())
     }
@@ -306,6 +322,7 @@ pub mod ast_walker {
     ) -> Result<(), E> {
         if !visitor.begin_repeat(&stat.block)? {
             walk_block(&stat.block, visitor)?;
+            visitor.comments(&stat.until);
             visitor.until();
             walk_expr(&stat.cond, visitor)?;
         }
