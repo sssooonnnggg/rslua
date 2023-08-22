@@ -84,6 +84,15 @@ impl LuaWriter {
         self.append(content);
         self.incline();
     }
+
+    fn incline_if_has_comments(&mut self, comments: &impl Comments) {
+        if comments.has_comments() {
+            self.incline()
+        } else {
+            self.space()
+        }
+        self.comments(comments);
+    }
 }
 
 type WriteResult<T> = Result<T, ()>;
@@ -198,19 +207,29 @@ impl AstVisitor for LuaWriter {
 
     fn func(&mut self, funcstat: &FuncStat) {
         match funcstat.func_type {
-            FuncType::Local(_) => self.append_space("local function"),
+            FuncType::Local(_) => {
+                self.append("local");
+                self.incline_if_has_comments(&funcstat.function);
+                self.append("function");
+            }
             FuncType::Global => self.append_space("function"),
         };
         let func_name = &funcstat.func_name;
         let mut fields = func_name.fields.vars.iter();
         if let Some(name) = fields.next() {
+            self.incline_if_has_comments(name);
             self.append(&name.value());
-            while let Some(name) = fields.next() {
+            let mut remain_fields = fields.zip(func_name.fields.delimiters.iter());
+            while let Some((name, delimiter)) = remain_fields.next() {
+                self.comments(delimiter);
                 self.append(".");
+                self.comments(name);
                 self.append(&name.value());
             }
-            if let Some((_, method)) = &func_name.method {
+            if let Some((token, method)) = &func_name.method {
+                self.comments(token);
                 self.append(":");
+                self.comments(method);
                 self.append(&method.value());
             }
         }
@@ -450,8 +469,8 @@ impl AstVisitor for LuaWriter {
         self.append(")");
     }
 
-    fn comments(&mut self, _comments: &impl Comments) {
-        for comment in _comments.get_comments() {
+    fn comments(&mut self, comments: &impl Comments) {
+        for comment in comments.get_comments() {
             self.append_and_incline(&format!("--{}", comment));
         }
     }
@@ -516,16 +535,28 @@ fn write_method_call() {
 }
 
 #[test]
-fn parse_comments() {
-    let code = "
-        --Hello
-        local a = 1
-        local b = 2
-        --World
-        local c = 3
-    ";
+fn parse_comments_simple() {
+    let code = "--Hello
+local a = 1
+local b = 2
+--World
+local c = 3
+";
     let result = try_convert(code);
-    println!("{}", result);
+    assert_eq!(result, code);
+}
+
+#[test]
+fn parse_function_comments() {
+    let code = "local
+-- comment1
+function
+-- comment2
+abc.d.e:f()
+end
+";
+    let result = try_convert(code);
+    assert_eq!(code, result);
 }
 
 #[test]

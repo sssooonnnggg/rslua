@@ -701,7 +701,10 @@ pub struct FuncStat {
 
 impl Comments for FuncStat {
     fn get_comments(&self) -> Vec<&str> {
-        self.function.get_comments()
+        match &self.func_type {
+            FuncType::Global => self.function.get_comments(),
+            FuncType::Local(token) => token.get_comments(),
+        }
     }
 }
 
