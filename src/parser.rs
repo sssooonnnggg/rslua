@@ -303,8 +303,10 @@ impl Parser {
                 TokenType::Name => params.params.push(Param::Name(self.check_name()?)),
                 _ => self.syntax_error("<name> or '...' expected")?,
             };
+            self.skip_comment();
             if let Some(commas) = self.test_next(TokenType::Comma) {
                 params.commas.push(commas);
+                self.skip_comment();
             } else {
                 break;
             }
