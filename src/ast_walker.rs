@@ -396,6 +396,7 @@ pub mod ast_walker {
         if !visitor.begin_func_body(body)? {
             walk_block(&body.block, visitor)?;
         }
+        visitor.comments(&body.end);
         visitor.end_func_body();
         Ok(())
     }

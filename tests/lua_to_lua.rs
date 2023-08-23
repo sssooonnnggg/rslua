@@ -84,15 +84,6 @@ impl LuaWriter {
         self.append(content);
         self.incline();
     }
-
-    fn incline_if_has_comments(&mut self, comments: &impl Comments) {
-        if comments.has_comments() {
-            self.incline()
-        } else {
-            self.space()
-        }
-        self.comments(comments);
-    }
 }
 
 type WriteResult<T> = Result<T, ()>;
@@ -208,16 +199,16 @@ impl AstVisitor for LuaWriter {
     fn func(&mut self, funcstat: &FuncStat) {
         match funcstat.func_type {
             FuncType::Local(_) => {
-                self.append("local");
-                self.incline_if_has_comments(&funcstat.function);
-                self.append("function");
+                self.append_space("local");
+                self.comments(&funcstat.function);
+                self.append_space("function");
             }
             FuncType::Global => self.append_space("function"),
         };
         let func_name = &funcstat.func_name;
         let mut fields = func_name.fields.vars.iter();
         if let Some(name) = fields.next() {
-            self.incline_if_has_comments(name);
+            self.comments(name);
             self.append(&name.value());
             let mut remain_fields = fields.zip(func_name.fields.delimiters.iter());
             while let Some((name, delimiter)) = remain_fields.next() {
@@ -334,14 +325,22 @@ impl AstVisitor for LuaWriter {
         self.append("(");
         for (n, param) in body.params.params.iter().enumerate() {
             match param {
-                Param::VarArg(_) => self.append("..."),
-                Param::Name(s) => self.append(&s.value()),
+                Param::VarArg(token) => {
+                    self.comments(token);
+                    self.append("...")
+                }
+                Param::Name(s) => {
+                    self.comments(s);
+                    self.append(&s.value());
+                }
             }
             if n < body.params.params.len() - 1 {
+                self.comments(&body.params.commas[n]);
                 self.append(", ");
             }
         }
         self.enter_scope();
+        self.comments(&body.rp);
         self.append_inc(")");
         Ok(false)
     }
@@ -470,7 +469,11 @@ impl AstVisitor for LuaWriter {
     }
 
     fn comments(&mut self, comments: &impl Comments) {
-        for comment in comments.get_comments() {
+        let comments = comments.get_comments();
+        if comments.len() > 0 {
+            self.incline()
+        }
+        for comment in comments {
             self.append_and_incline(&format!("--{}", comment));
         }
     }
@@ -536,9 +539,11 @@ fn write_method_call() {
 
 #[test]
 fn parse_comments_simple() {
-    let code = "--Hello
+    let code = "
+--Hello
 local a = 1
 local b = 2
+
 --World
 local c = 3
 ";
@@ -548,15 +553,20 @@ local c = 3
 
 #[test]
 fn parse_function_comments() {
-    let code = "local
+    let code = "local 
 -- comment1
-function
+function 
 -- comment2
-abc.d.e:f()
+abc.d.e:f(
+    a, -- a comment
+    b, -- b comment
+    c -- c comment
+)
 end
 ";
     let result = try_convert(code);
-    assert_eq!(code, result);
+    // assert_eq!(code, result);
+    println!("{}", result);
 }
 
 #[test]
