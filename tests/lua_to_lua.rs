@@ -12,6 +12,7 @@ struct LuaWriter {
     output: String,
     indent: usize,
     depth: usize,
+    line_start: bool,
 }
 
 #[allow(dead_code)]
@@ -21,6 +22,7 @@ impl LuaWriter {
             output: String::new(),
             indent: 2,
             depth: 0,
+            line_start: true,
         }
     }
 
@@ -31,16 +33,24 @@ impl LuaWriter {
     }
 
     fn append(&mut self, content: &str) {
+        self.indent_at_line_start();
         self.output.push_str(content);
+    }
+
+    fn indent_at_line_start(&mut self) {
+        if self.line_start {
+            self.output.push_str(&" ".repeat(self.depth * self.indent));
+            self.line_start = false;
+        }
     }
 
     fn incline(&mut self) {
         self.output.push_str("\n");
-        self.output.push_str(&" ".repeat(self.depth * self.indent));
+        self.line_start = true;
     }
 
     fn space(&mut self) {
-        self.output.push_str(" ");
+        self.append(" ");
     }
 
     fn append_space(&mut self, content: &str) {
@@ -75,9 +85,6 @@ impl LuaWriter {
 
     fn leave_scope(&mut self) {
         self.depth -= 1;
-        for _i in 0..self.indent {
-            self.output.pop();
-        }
     }
 
     fn append_and_incline(&mut self, content: &str) {
@@ -323,6 +330,12 @@ impl AstVisitor for LuaWriter {
 
     fn begin_func_body(&mut self, body: &FuncBody) -> WriteResult<bool> {
         self.append("(");
+        let has_comments = body.params.params.iter().any(|param| param.has_comments())
+            || body.params.commas.iter().any(|comma| comma.has_comments());
+        if has_comments {
+            self.enter_scope();
+            self.incline();
+        }
         for (n, param) in body.params.params.iter().enumerate() {
             match param {
                 Param::VarArg(token) => {
@@ -339,9 +352,12 @@ impl AstVisitor for LuaWriter {
                 self.append(", ");
             }
         }
-        self.enter_scope();
         self.comments(&body.rp);
+        if has_comments {
+            self.leave_scope()
+        };
         self.append_inc(")");
+        self.enter_scope();
         Ok(false)
     }
 
@@ -470,8 +486,10 @@ impl AstVisitor for LuaWriter {
 
     fn comments(&mut self, comments: &impl Comments) {
         let comments = comments.get_comments();
-        if comments.len() > 0 {
-            self.incline()
+        if let Some(last_char) = self.output.chars().last() && !comments.is_empty(){
+            if last_char != ' ' && last_char != '\n'{
+                self.append(" ")
+            }
         }
         for comment in comments {
             self.append_and_incline(&format!("--{}", comment));
@@ -539,15 +557,14 @@ fn write_method_call() {
 
 #[test]
 fn parse_comments_simple() {
-    let code = "
---Hello
+    let code = "--Hello
 local a = 1
 local b = 2
-
 --World
 local c = 3
 ";
     let result = try_convert(code);
+    println!("{}", result);
     assert_eq!(result, code);
 }
 
