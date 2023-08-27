@@ -219,7 +219,6 @@ pub mod ast_walker {
                 walk_block(&if_block.block, visitor)?;
             }
             while let Some(else_if_block) = if_blocks.next() {
-                visitor.comments(&else_if_block.if_);
                 if !visitor.begin_else_if(&else_if_block.cond)? {
                     walk_expr(&else_if_block.cond, visitor)?;
                 }
@@ -229,7 +228,6 @@ pub mod ast_walker {
                 }
             }
             if let Some(else_block) = &stat.else_block {
-                visitor.comments(else_block);
                 if !visitor.begin_else(else_block)? {
                     walk_block(else_block, visitor)?;
                 }
