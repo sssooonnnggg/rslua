@@ -486,11 +486,12 @@ impl AstVisitor for LuaWriter {
 
     fn comments(&mut self, comments: &impl Comments) {
         let comments = comments.get_comments();
-        if let Some(last_char) = self.output.chars().last() && !comments.is_empty(){
-            if last_char != ' ' && last_char != '\n'{
-                self.append(" ")
+        if let Some(last_char) = self.output.chars().last() {
+            if !comments.is_empty() && last_char != ' ' && last_char != '\n' {
+                self.append(" ");
             }
         }
+
         for comment in comments {
             self.append_and_incline(&format!("--{}", comment));
         }
@@ -570,19 +571,15 @@ local c = 3
 
 #[test]
 fn parse_function_comments() {
-    let code = "local 
--- comment1
-function 
--- comment2
-abc.d.e:f(
-    a, -- a comment
-    b, -- b comment
-    c -- c comment
+    let code = "local function abc.d.e:f(
+  a, -- a comment
+  b, -- b comment
+  c -- c comment
 )
 end
 ";
     let result = try_convert(code);
-    // assert_eq!(code, result);
+    assert_eq!(code, result);
     println!("{}", result);
 }
 
