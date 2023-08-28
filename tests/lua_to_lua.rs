@@ -103,7 +103,7 @@ impl LuaWriter {
 type WriteResult<T> = Result<T, ()>;
 type WriteSuccess = WriteResult<()>;
 
-impl<'a> AstVisitor for LuaWriter {
+impl AstVisitor for LuaWriter {
     fn stat_sep(&mut self) {
         self.incline();
     }
