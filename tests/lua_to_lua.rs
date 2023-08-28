@@ -13,6 +13,7 @@ struct LuaWriter {
     indent: usize,
     depth: usize,
     line_start: bool,
+    comment_guard: bool,
 }
 
 #[allow(dead_code)]
@@ -23,6 +24,7 @@ impl LuaWriter {
             indent: 2,
             depth: 0,
             line_start: true,
+            comment_guard: false,
         }
     }
 
@@ -34,19 +36,24 @@ impl LuaWriter {
 
     fn append(&mut self, content: &str) {
         self.indent_at_line_start();
-        self.output.push_str(content);
+        self.output(content);
     }
 
     fn indent_at_line_start(&mut self) {
         if self.line_start {
-            self.output.push_str(&" ".repeat(self.depth * self.indent));
+            self.output(&" ".repeat(self.depth * self.indent));
             self.line_start = false;
         }
     }
 
     fn incline(&mut self) {
-        self.output.push_str("\n");
+        self.output("\n");
         self.line_start = true;
+    }
+
+    fn output(&mut self, content: &str) {
+        self.comment_guard = false;
+        self.output.push_str(content);
     }
 
     fn space(&mut self) {
@@ -96,7 +103,7 @@ impl LuaWriter {
 type WriteResult<T> = Result<T, ()>;
 type WriteSuccess = WriteResult<()>;
 
-impl AstVisitor for LuaWriter {
+impl<'a> AstVisitor for LuaWriter {
     fn stat_sep(&mut self) {
         self.incline();
     }
@@ -484,17 +491,20 @@ impl AstVisitor for LuaWriter {
         self.append(")");
     }
 
-    fn comments(&mut self, comments: &impl Comments) {
-        let comments = comments.get_comments();
+    fn comments(&mut self, target: &impl Comments) {
+        if self.comment_guard {
+            return;
+        }
+        let comments = target.get_comments();
         if let Some(last_char) = self.output.chars().last() {
             if !comments.is_empty() && last_char != ' ' && last_char != '\n' {
                 self.append(" ");
             }
         }
-
-        for comment in comments {
+        comments.iter().for_each(|comment| {
             self.append_and_incline(&format!("--{}", comment));
-        }
+        });
+        self.comment_guard = !comments.is_empty();
     }
 }
 
@@ -581,6 +591,17 @@ end
     let result = try_convert(code);
     assert_eq!(code, result);
     println!("{}", result);
+}
+
+#[test]
+fn parse_comment_stat() {
+    let code = "val, i = parse(str, i)
+-- Set
+res[key] = val
+";
+    let result = try_convert(code);
+    println!("{}", result);
+    assert_eq!(code, result);
 }
 
 #[test]
