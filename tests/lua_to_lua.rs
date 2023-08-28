@@ -174,7 +174,7 @@ impl AstVisitor for LuaWriter {
         self.space_append_space("=");
     }
 
-    fn begin_for_list(&mut self, forlist: &ForList) -> WriteResult<bool> {
+    fn begin_for_list(&mut self, _: &ForList) -> WriteResult<bool> {
         self.append_space("for");
         Ok(false)
     }
