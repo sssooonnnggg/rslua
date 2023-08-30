@@ -243,13 +243,16 @@ impl AstVisitor for LuaWriter {
     fn local_stat(&mut self, stat: &LocalStat) -> WriteSuccess {
         self.append_space("local");
         for (n, name) in stat.names.vars.iter().enumerate() {
+            self.comments(name);
             self.append(&name.value());
             if n < stat.names.vars.len() - 1 {
-                self.append(", ");
+                self.comments(&stat.names.delimiters[n]);
+                self.append_space(",");
             }
         }
         self.space();
-        if let Some(_) = stat.equal {
+        if let Some(token) = &stat.equal {
+            self.comments(token);
             self.append_space("=");
             ast_walker::walk_exprlist(stat.exprs.as_ref().unwrap(), self)?;
         }
@@ -501,9 +504,9 @@ impl AstVisitor for LuaWriter {
                 self.append(" ");
             }
         }
-        comments.iter().for_each(|comment| {
-            self.append_and_incline(&format!("--{}", comment));
-        });
+        comments
+            .iter()
+            .for_each(|comment| self.append_and_incline(&format!("--{}", comment)));
         self.comment_guard = !comments.is_empty();
     }
 }
