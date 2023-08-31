@@ -167,19 +167,16 @@ pub trait AstVisitor<E = ()> {
 
 pub fn walk_block<T: AstVisitor<E>, E>(block: &Block, visitor: &mut T) -> Result<(), E> {
     for stat in block.stats.iter() {
-        match walk_stat(stat, visitor) {
-            Err(e) => {
-                return visitor.error(
-                    e,
-                    &Source {
-                        line: 0,
-                        col: 0,
-                        length: 0,
-                    },
-                )
-            }
-            _ => (),
-        };
+        if let Err(e) = walk_stat(stat, visitor) {
+            return visitor.error(
+                e,
+                &Source {
+                    line: 0,
+                    col: 0,
+                    length: 0,
+                },
+            );
+        }
         visitor.stat_sep();
     }
     Ok(())
@@ -214,7 +211,7 @@ pub fn walk_ifstat<T: AstVisitor<E>, E>(stat: &IfStat, visitor: &mut T) -> Resul
         if !visitor.then(&if_block.block)? {
             walk_block(&if_block.block, visitor)?;
         }
-        while let Some(else_if_block) = if_blocks.next() {
+        for else_if_block in if_blocks {
             if !visitor.begin_else_if(&else_if_block.cond)? {
                 walk_expr(&else_if_block.cond, visitor)?;
             }
@@ -476,7 +473,7 @@ pub fn walk_table<T: AstVisitor<E>, E>(table: &Table, visitor: &mut T) -> Result
     Ok(())
 }
 
-pub fn walk_fields<T: AstVisitor<E>, E>(fields: &Vec<Field>, visitor: &mut T) -> Result<(), E> {
+pub fn walk_fields<T: AstVisitor<E>, E>(fields: &[Field], visitor: &mut T) -> Result<(), E> {
     for field in fields.iter() {
         walk_field(field, visitor)?;
         visitor.field_sep();
