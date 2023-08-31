@@ -1,5 +1,6 @@
 use crate::ast::*;
-use crate::ast_walker::{ast_walker, AstVisitor};
+use crate::ast_walker;
+use crate::ast_walker::AstVisitor;
 use crate::consts::Const;
 use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};

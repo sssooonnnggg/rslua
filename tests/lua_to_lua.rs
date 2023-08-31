@@ -1,5 +1,6 @@
 use rslua::ast::*;
-use rslua::ast_walker::*;
+use rslua::ast_walker;
+use rslua::ast_walker::AstVisitor;
 use rslua::lexer::{Lexer, LexerConfig};
 use rslua::parser::Parser;
 use rslua_traits::Comments;
