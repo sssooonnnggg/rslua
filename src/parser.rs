@@ -6,7 +6,7 @@ use rslua_traits::Error;
 #[derive(Traceable)]
 pub struct Parser {
     tokens: Vec<Token>,
-    current: usize
+    current: usize,
 }
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ impl Parser {
     pub fn new() -> Self {
         Parser {
             tokens: Vec::new(),
-            current: 0
+            current: 0,
         }
     }
 
@@ -423,7 +423,7 @@ impl Parser {
 
     // exprlist -> expr { ',' expr }
     fn exprlist(&mut self) -> ParseResult<ExprList> {
-        let mut exprs = ExprList::new();
+        let mut exprs  = ExprList::default();
         exprs.exprs.push(self.expr()?);
         while let Some(comma) = self.test_next(TokenType::Comma) {
             exprs.commas.push(comma);
@@ -634,7 +634,7 @@ impl Parser {
 
                 // empty arg list
                 if let Some(rp) = self.test_next(TokenType::Rp) {
-                    return Ok(FuncArgs::Exprs(lp, ExprList::new(), rp));
+                    return Ok(FuncArgs::Exprs(lp, ExprList::default(), rp));
                 }
 
                 let exprs = self.exprlist()?;

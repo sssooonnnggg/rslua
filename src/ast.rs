@@ -34,9 +34,7 @@ impl UnOp {
         }
     }
     pub fn priority(&self) -> u8 {
-        match self {
-            _ => 12,
-        }
+        12
     }
 }
 
@@ -131,15 +129,10 @@ impl BinOp {
     }
 
     pub fn is_comp(&self) -> bool {
-        match self {
-            BinOp::Le(_)
-            | BinOp::Ge(_)
-            | BinOp::Ne(_)
-            | BinOp::Eq(_)
-            | BinOp::Lt(_)
-            | BinOp::Gt(_) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            BinOp::Le(_) | BinOp::Ge(_) | BinOp::Ne(_) | BinOp::Eq(_) | BinOp::Lt(_) | BinOp::Gt(_)
+        )
     }
 }
 
@@ -392,19 +385,10 @@ impl Comments for FuncArgs {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct ExprList {
     pub exprs: Vec<Expr>,
     pub commas: Vec<Token>,
-}
-
-impl ExprList {
-    pub fn new() -> Self {
-        ExprList {
-            exprs: Vec::new(),
-            commas: Vec::new(),
-        }
-    }
 }
 
 impl Comments for ExprList {
