@@ -6,10 +6,10 @@ use crate::opcodes::*;
 use crate::proto::{Proto, ProtoContext};
 use crate::types::Source;
 use crate::utils::success;
-use rslua_traits::Error;
 use rslua_derive::Traceable;
+use rslua_traits::Error;
 
-#[derive(Traceable)]
+#[derive(Default, Traceable)]
 pub struct Compiler {
     proto_contexts: Vec<ProtoContext>,
 }
@@ -183,12 +183,6 @@ impl ExprResult {
 }
 
 impl Compiler {
-    pub fn new() -> Self {
-        Compiler {
-            proto_contexts: Vec::new(),
-        }
-    }
-
     pub fn run(&mut self, block: &Block) -> CompileResult {
         self.main_func(block)
     }
@@ -227,8 +221,8 @@ impl Compiler {
 
     fn adjust_assign(&mut self, num_left: usize, right_exprs: Option<&ExprList>) -> i32 {
         let extra = num_left as i32 - right_exprs.map_or(0, |v| v.exprs.len()) as i32;
-        if let Some(_) = right_exprs.and_then(|v| v.exprs.last()) {
-            // TODO : process multi return value
+        if right_exprs.and_then(|v| v.exprs.last()).is_some() {
+            todo!("process multi return value")
         }
 
         if extra > 0 {
@@ -264,7 +258,7 @@ impl Compiler {
                 todo!()
             }
             Expr::BinExpr(_) | Expr::UnExpr(_) => self.folding_or_code(expr, reg)?,
-            Expr::ParenExpr(expr) => self.folding_or_code(&expr, reg)?,
+            Expr::ParenExpr(expr) => self.folding_or_code(expr, reg)?,
             _ => todo!(),
         };
         Ok(result)
@@ -323,7 +317,7 @@ impl Compiler {
                 }
                 _ => (),
             },
-            Expr::ParenExpr(expr) => return self.try_const_folding(&expr),
+            Expr::ParenExpr(expr) => return self.try_const_folding(expr),
             _ => (),
         }
         Ok(None)
@@ -438,11 +432,11 @@ impl Compiler {
         match op {
             _ if op.is_comp() => {
                 let (left_rk, right_rk) = get_rk();
-                result = self.code_comp(&op, result, left_rk, right_rk);
+                result = self.code_comp(op, result, left_rk, right_rk);
             }
             _ => {
                 let (left_rk, right_rk) = get_rk();
-                self.proto().code_bin_op(&op, reg, left_rk, right_rk);
+                self.proto().code_bin_op(op, reg, left_rk, right_rk);
             }
         };
 
@@ -459,7 +453,7 @@ impl Compiler {
                 };
 
                 let proto = self.proto();
-                proto.code_comp(&op, left, right);
+                proto.code_comp(op, left, right);
                 let jump = proto.code_jmp(NO_JUMP, 0);
                 ExprResult::new_jump(reg, jump)
             }
@@ -544,7 +538,7 @@ impl Compiler {
         input: Option<u32>,
         expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
-        if let Some(_) = self.try_const_folding(expr)? {
+        if self.try_const_folding(expr)?.is_some() {
             Ok(ExprResult::False)
         } else {
             let result = self.expr(expr, input)?;

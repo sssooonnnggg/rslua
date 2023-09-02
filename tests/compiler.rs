@@ -8,7 +8,7 @@ fn try_compile(input: &str) -> Result<Proto, CompileError> {
     if let Ok(tokens) = lexer.run(input) {
         let mut parser = Parser::new();
         if let Ok(block) = parser.run(tokens) {
-            let mut compiler = Compiler::new();
+            let mut compiler = Compiler::default();
             match compiler.run(&block) {
                 Ok(proto) => {
                     println!("{:?}", proto);
