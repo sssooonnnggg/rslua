@@ -222,7 +222,7 @@ impl Compiler {
     fn adjust_assign(&mut self, num_left: usize, right_exprs: Option<&ExprList>) -> i32 {
         let extra = num_left as i32 - right_exprs.map_or(0, |v| v.exprs.len()) as i32;
         if right_exprs.and_then(|v| v.exprs.last()).is_some() {
-            todo!("process multi return value")
+            // todo!("process multi return value")
         }
 
         if extra > 0 {
@@ -348,18 +348,18 @@ impl Compiler {
         r: Const,
     ) -> Result<Option<Const>, CompileError> {
         let result = match op {
-            BinOp::Add(_) => l.add(r)?,
-            BinOp::Minus(_) => l.sub(r)?,
-            BinOp::Mul(_) => l.mul(r)?,
-            BinOp::Div(_) => l.div(r)?,
+            BinOp::Add(_) => (l + r)?,
+            BinOp::Minus(_) => (l - r)?,
+            BinOp::Mul(_) => (l * r)?,
+            BinOp::Div(_) => (l / r)?,
             BinOp::IDiv(_) => l.idiv(r)?,
-            BinOp::Mod(_) => l.mod_(r)?,
+            BinOp::Mod(_) => (l % r)?,
             BinOp::Pow(_) => l.pow(r)?,
-            BinOp::BAnd(_) => l.band(r)?,
-            BinOp::BOr(_) => l.bor(r)?,
-            BinOp::BXor(_) => l.bxor(r)?,
-            BinOp::Shl(_) => l.shl(r)?,
-            BinOp::Shr(_) => l.shr(r)?,
+            BinOp::BAnd(_) => (l & r)?,
+            BinOp::BOr(_) => (l | r)?,
+            BinOp::BXor(_) => (l ^ r)?,
+            BinOp::Shl(_) => (l << r)?,
+            BinOp::Shr(_) => (l >> r)?,
             _ => None,
         };
         Ok(result)

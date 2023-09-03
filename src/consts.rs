@@ -1,6 +1,6 @@
 use crate::compiler::CompileError;
-use crate::utils::success;
 use crate::types::{FloatType, IntType};
+use crate::utils::success;
 use num_traits::Float;
 use std::hash::{Hash, Hasher};
 
@@ -39,23 +39,17 @@ fn float_to_int(f: FloatType) -> Option<IntType> {
 fn ignore_unhashable_float(
     input: Result<Option<Const>, CompileError>,
 ) -> Result<Option<Const>, CompileError> {
-    // compitibale with lua
+    // compatible with lua
     // won't constant folding Nan/Inf/0.0
     match &input {
-        Ok(k) => match k {
-            Some(k) => match k {
-                Const::Float(f) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => Ok(None),
-                _ => input,
-            },
-            _ => input,
-        },
+        Ok(Some(Const::Float(f))) if (*f).is_nan() || (*f).is_infinite() || *f == 0.0 => Ok(None),
         _ => input,
     }
 }
 
 macro_rules! bin_op {
-    ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr) => {
-        pub fn $name(self, other: Const) -> Result<Option<Const>, CompileError> {
+    ($name:ident, $int_int:expr, $int_float:expr, $float_int:expr, $float_float:expr $(, $access:tt)?) => {
+        $($access)? fn $name(self, other: Const) -> Result<Option<Const>, CompileError> {
             let result = match self {
                 Const::Int(a) => match other {
                     Const::Int(b) => $int_int(a, b),
@@ -100,32 +94,13 @@ macro_rules! bin_op_int {
 }
 
 impl Const {
-    bin_op_normal! {add, +}
-    bin_op_normal! {sub, -}
-    bin_op_normal! {mul, *}
-
-    bin_op! {
-        div,
-        |a, b| success(Const::Float(a as FloatType / b as FloatType)),
-        |a, b| success(Const::Float(a as FloatType / b)),
-        |a, b| success(Const::Float(a / b as FloatType)),
-        |a, b| success(Const::Float(a / b))
-    }
-
     bin_op! {
         idiv,
         |a, b| if b == 0 { Err(CompileError::new("divide by zero")) } else { success(Const::Int(a / b)) },
         |_, _| Ok(None),
         |_, _| Ok(None),
-        |_, _| Ok(None)
-    }
-
-    bin_op! {
-        mod_,
-        |a, b| success(Const::Int(a % b)),
-        |a, b| success(Const::Float(a as FloatType % b)),
-        |a, b| success(Const::Float(a % b as FloatType)),
-        |a, b| success(Const::Float(a % b))
+        |_, _| Ok(None),
+        pub
     }
 
     bin_op! {
@@ -133,14 +108,9 @@ impl Const {
         |a, b| success(Const::Float((a as FloatType).powf(b as FloatType))),
         |a, b| success(Const::Float((a as FloatType).powf(b))),
         |a:FloatType, b| success(Const::Float(a.powf(b as FloatType))),
-        |a:FloatType, b| success(Const::Float(a.powf(b)))
+        |a:FloatType, b| success(Const::Float(a.powf(b))),
+        pub
     }
-
-    bin_op_int! {band, &}
-    bin_op_int! {bor, |}
-    bin_op_int! {bxor, ^}
-    bin_op_int! {shl, <<}
-    bin_op_int! {shr, >>}
 
     pub fn minus(&self) -> Result<Option<Const>, CompileError> {
         let result = match self {
@@ -151,10 +121,72 @@ impl Const {
         ignore_unhashable_float(result)
     }
 
-    pub fn bnot(&self)-> Result<Option<Const>, CompileError> {
+    pub fn bnot(&self) -> Result<Option<Const>, CompileError> {
         match self {
             Const::Int(i) => success(Const::Int(!i)),
-            _ => return Ok(None)
+            _ => return Ok(None),
         }
     }
+}
+
+impl std::ops::Add for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_normal! {add, +}
+}
+
+impl std::ops::Sub for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_normal! {sub, -}
+}
+
+impl std::ops::Mul for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_normal! {mul, *}
+}
+
+impl std::ops::Div for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op! {
+        div,
+        |a, b| success(Const::Float(a as FloatType / b as FloatType)),
+        |a, b| success(Const::Float(a as FloatType / b)),
+        |a, b| success(Const::Float(a / b as FloatType)),
+        |a, b| success(Const::Float(a / b))
+    }
+}
+
+impl std::ops::Rem for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op! {
+        rem,
+        |a, b| success(Const::Int(a % b)),
+        |a, b| success(Const::Float(a as FloatType % b)),
+        |a, b| success(Const::Float(a % b as FloatType)),
+        |a, b| success(Const::Float(a % b))
+    }
+}
+
+impl std::ops::BitXor for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_int! {bitxor, ^}
+}
+
+impl std::ops::BitAnd for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_int! {bitand, &}
+}
+
+impl std::ops::BitOr for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_int! {bitor, |}
+}
+
+impl std::ops::Shl for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_int! {shl, <<}
+}
+
+impl std::ops::Shr for Const {
+    type Output = Result<Option<Const>, CompileError>;
+    bin_op_int! {shr, >>}
 }
