@@ -7,7 +7,7 @@ mod lexer_tests {
     use std::io::prelude::*;
 
     fn try_lexer(input: &str) -> Result<Vec<Token>, LexError> {
-        let mut lexer = Lexer::new();
+        let mut lexer = Lexer::default();
         lexer.run(input)
     }
 

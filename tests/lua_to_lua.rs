@@ -513,7 +513,7 @@ impl AstVisitor for LuaWriter {
 }
 
 fn try_convert(input: &str) -> String {
-    let mut lexer = Lexer::new();
+    let mut lexer = Lexer::default();
     lexer.set_config(LexerConfig {
         use_origin_string: true,
         reserve_comments: true,

@@ -7,7 +7,7 @@ mod parser_tests {
     use std::io::prelude::*;
 
     fn try_parse(input: &str) -> Block {
-        let mut lexer = Lexer::new();
+        let mut lexer = Lexer::default();
         if let Ok(tokens) = lexer.run(input) {
             let mut parser = Parser::new();
             if let Ok(ast) = parser.run(tokens) {

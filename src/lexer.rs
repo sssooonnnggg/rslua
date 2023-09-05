@@ -1,8 +1,8 @@
 use crate::tokens::{Token, TokenType, TokenValue};
 use crate::types::{FloatType, IntType, Number, Source};
 use crate::utils::success;
-use rslua_traits::Error;
 use rslua_derive::Traceable;
+use rslua_traits::Error;
 use std::str;
 
 // context for lexer
@@ -82,23 +82,14 @@ impl<'a> Context<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct LexerConfig {
     // if use origin string, lexer won't escape special chars and keep the quotes or string boundaries.
     pub use_origin_string: bool,
     // reserve comments or not
     pub reserve_comments: bool,
 }
-
-impl LexerConfig {
-    pub fn default() -> Self {
-        LexerConfig {
-            use_origin_string: false,
-            reserve_comments: false,
-        }
-    }
-}
-
-#[derive(Traceable)]
+#[derive(Traceable, Default)]
 pub struct Lexer {
     config: LexerConfig,
     tokens: Vec<Token>,
@@ -116,13 +107,6 @@ impl Error for LexError {
 type LexResult = Result<Option<(TokenType, TokenValue)>, LexError>;
 
 impl<'a> Lexer {
-    pub fn new() -> Self {
-        Lexer {
-            tokens: Vec::<Token>::new(),
-            config: LexerConfig::default(),
-        }
-    }
-
     pub fn set_config(&mut self, config: LexerConfig) {
         self.config = config;
     }
@@ -154,7 +138,7 @@ impl<'a> Lexer {
             } else {
                 // append eos and return tokens
                 self.add_token(&mut ctx, TokenType::Eos, TokenValue::None);
-                return Ok(std::mem::replace(&mut self.tokens, Vec::new()));
+                return Ok(std::mem::take(&mut self.tokens));
             }
         }
     }
@@ -168,7 +152,7 @@ impl<'a> Lexer {
         ctx.next();
 
         // skip \r\n or \n\r
-        if old != ctx.get() && self.check_current_if(ctx, |c| Lexer::is_line_break(c)) {
+        if old != ctx.get() && self.check_current_if(ctx, Lexer::is_line_break) {
             ctx.next();
         }
 
@@ -525,7 +509,7 @@ impl<'a> Lexer {
         }
 
         // skip first line break
-        if self.check_current_if(ctx, |c| Lexer::is_line_break(c)) {
+        if self.check_current_if(ctx, Lexer::is_line_break) {
             self.read_line_break(ctx)?;
         }
 
@@ -537,12 +521,11 @@ impl<'a> Lexer {
             match c {
                 b']' => {
                     if self.try_read_long_string_boundary(ctx, b']') == sep_count as i8 {
-                        let length;
-                        if self.config.use_origin_string {
-                            length = ctx.current - start;
+                        let length = if self.config.use_origin_string {
+                            ctx.current - start
                         } else {
-                            length = ctx.current - 2 - sep_count - start;
-                        }
+                            ctx.current - 2 - sep_count - start
+                        };
                         if let Some(slice) = ctx.buffer.get(start..(start + length)) {
                             return Ok(slice.to_string());
                         }
@@ -597,10 +580,10 @@ impl<'a> Lexer {
             if let Some(t) = token_type {
                 ctx.next();
                 return success((t, TokenValue::None));
-            } else if self.check_current_if(ctx, |c| Lexer::is_valid_name_start(c)) {
+            } else if self.check_current_if(ctx, Lexer::is_valid_name_start) {
                 let mut word: Vec<u8> = Vec::new();
                 ctx.write_into(1, &mut word);
-                while self.check_current_if(ctx, |c| Lexer::is_valid_name(c)) {
+                while self.check_current_if(ctx, Lexer::is_valid_name) {
                     ctx.write_into(1, &mut word);
                 }
                 if let Ok(s) = str::from_utf8(&word) {
@@ -622,24 +605,15 @@ impl<'a> Lexer {
     }
 
     fn is_line_break(c: u8) -> bool {
-        match c {
-            b'\r' | b'\n' => true,
-            _ => false,
-        }
+        matches!(c, b'\r' | b'\n')
     }
 
     fn is_space(c: u8) -> bool {
-        match c {
-            b' ' | b'\t' | b'\x0B' | b'\x0C' => true,
-            _ => false,
-        }
+        matches!(c, b' ' | b'\t' | b'\x0B' | b'\x0C')
     }
 
     fn is_digit(c: u8) -> bool {
-        match c {
-            b'0' | b'1' | b'2' | b'3' | b'4' | b'5' | b'6' | b'7' | b'8' | b'9' => true,
-            _ => false,
-        }
+        c.is_ascii_digit()
     }
 
     fn is_hex_digit(c: u8) -> bool {
@@ -669,10 +643,10 @@ impl<'a> Lexer {
     }
 
     fn to_hex_digit(c: u8) -> u8 {
-        if c >= b'0' && c <= b'9' {
-            return c - b'0';
+        if c.is_ascii_digit() {
+            c - b'0'
         } else {
-            return ((c as char).to_ascii_lowercase() as u8) - b'a' + 10;
+            ((c as char).to_ascii_lowercase() as u8) - b'a' + 10
         }
     }
 
@@ -686,7 +660,7 @@ impl<'a> Lexer {
 
     fn starts_with_0x(bytes: &[u8], i: usize) -> bool {
         bytes.len() > i + 2
-            && bytes[i + 0] == b'0'
+            && bytes[i] == b'0'
             && (bytes[i + 1] == b'x' || bytes[i + 1] == b'X')
     }
 
@@ -796,7 +770,7 @@ impl<'a> Lexer {
             e += exp_value * esign;
             i = index;
         }
-        r = r * (2 as FloatType).powf(e as FloatType);
+        r *= (2 as FloatType).powf(e as FloatType);
         Lexer::skip_spaces(bytes, i);
         if empty || i != bytes.len() {
             None
@@ -870,7 +844,7 @@ impl<'a> Lexer {
             ctx.comment_offset = ctx.offset;
         }
     }
-    
+
     fn lex_error<T>(&self, ctx: &Context, msg: &str) -> Result<T, LexError> {
         let error_msg = format!("[lex error] {} at line [{}:{}].", msg, ctx.line, ctx.col);
         Lexer::trace_error(LexError(error_msg))

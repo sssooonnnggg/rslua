@@ -4,7 +4,7 @@ use rslua::parser::*;
 use rslua::proto::Proto;
 
 fn try_compile(input: &str) -> Result<Proto, CompileError> {
-    let mut lexer = Lexer::new();
+    let mut lexer = Lexer::default();
     if let Ok(tokens) = lexer.run(input) {
         let mut parser = Parser::new();
         if let Ok(block) = parser.run(tokens) {

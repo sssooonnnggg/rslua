@@ -143,7 +143,7 @@ impl Const {
     pub fn bnot(&self) -> Result<Option<Const>, CompileError> {
         match self {
             Const::Int(i) => success(Const::Int(!i)),
-            _ => return Ok(None),
+            _ => Ok(None),
         }
     }
 }
