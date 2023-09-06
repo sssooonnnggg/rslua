@@ -196,7 +196,7 @@ impl Compiler {
     }
 
     fn push_proto(&mut self) {
-        self.proto_contexts.push(ProtoContext::new());
+        self.proto_contexts.push(ProtoContext::default());
     }
 
     fn pop_proto(&mut self) -> Proto {

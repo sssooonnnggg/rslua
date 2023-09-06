@@ -6,7 +6,7 @@ use rslua::proto::Proto;
 fn try_compile(input: &str) -> Result<Proto, CompileError> {
     let mut lexer = Lexer::default();
     if let Ok(tokens) = lexer.run(input) {
-        let mut parser = Parser::new();
+        let mut parser = Parser::default();
         if let Ok(block) = parser.run(tokens) {
             let mut compiler = Compiler::default();
             match compiler.run(&block) {

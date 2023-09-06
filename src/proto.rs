@@ -21,8 +21,8 @@ pub struct Proto {
     pub protos: Vec<Proto>,
 }
 
-impl Proto {
-    pub fn new() -> Proto {
+impl Default for Proto {
+    fn default() -> Self {
         Proto {
             stack_size: 2,
             param_count: 0,
@@ -34,6 +34,9 @@ impl Proto {
             protos: Vec::new(),
         }
     }
+}
+
+impl Proto {
 
     pub fn open(&mut self) {}
 
@@ -241,19 +244,13 @@ impl fmt::Debug for Proto {
     }
 }
 
+#[derive(Default)]
 pub struct ProtoContext {
     pub reg_top: u32,
     pub proto: Proto,
 }
 
 impl ProtoContext {
-    pub fn new() -> Self {
-        ProtoContext {
-            reg_top: 0,
-            proto: Proto::new(),
-        }
-    }
-
     pub fn check_stack(&mut self, n: u32) {
         let new_stack = self.reg_top + n;
         if new_stack > self.proto.stack_size {

@@ -519,7 +519,7 @@ fn try_convert(input: &str) -> String {
         reserve_comments: true,
     });
     if let Ok(tokens) = lexer.run(&input) {
-        let mut parser = Parser::new();
+        let mut parser = Parser::default();
         if let Ok(ast) = parser.run(tokens) {
             let mut writter = LuaWriter::new();
             return writter.run(&ast).to_string();

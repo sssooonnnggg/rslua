@@ -289,9 +289,6 @@ pub struct Instruction(u32);
 #[allow(dead_code)]
 #[allow(non_snake_case)]
 impl Instruction {
-    pub fn new() -> Self {
-        Instruction(0)
-    }
 
     pub fn get_op(&self) -> OpCode {
         OpCode::from_u32(((self.0) >> POS_OP) & Instruction::mask1(SIZE_OP, 0))

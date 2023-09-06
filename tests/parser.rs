@@ -9,7 +9,7 @@ mod parser_tests {
     fn try_parse(input: &str) -> Block {
         let mut lexer = Lexer::default();
         if let Ok(tokens) = lexer.run(input) {
-            let mut parser = Parser::new();
+            let mut parser = Parser::default();
             if let Ok(ast) = parser.run(tokens) {
                 println!("{:#?}", ast);
                 return ast;
@@ -47,8 +47,8 @@ mod parser_tests {
                 assert!(matches!(if_.else_, Some(..)));
                 assert!(matches!(if_.cond_blocks[0].cond, Expr::True(..)));
                 assert!(matches!(if_.cond_blocks[1].cond, Expr::True(..)));
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -59,8 +59,8 @@ mod parser_tests {
         match stat {
             Stat::WhileStat(while_) => {
                 assert!(matches!(while_.cond, Expr::True(..)));
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -69,35 +69,25 @@ mod parser_tests {
         let fornum = try_parse("for i = 1, 10, 1 do end");
         let fornum_stat = &fornum.stats[0];
         match fornum_stat {
-            Stat::ForStat(for_) => {
-                match &for_ {
-                    ForStat::ForNum(for_num) => {
-                        assert_eq!(for_num.var.value(), "i");
-                        assert_eq!(for_num.init.unwrap_as_int(), 1);
-                        assert_eq!(for_num.limit.unwrap_as_int(), 10);
-                        assert_eq!(for_num.step.as_ref().unwrap().unwrap_as_int(), 1);
-                    },
-                    _ => unreachable!()
-                }
-            },
-            _ => unreachable!()
+            Stat::ForStat(ForStat::ForNum(for_num)) => {
+                assert_eq!(for_num.var.value(), "i");
+                assert_eq!(for_num.init.unwrap_as_int(), 1);
+                assert_eq!(for_num.limit.unwrap_as_int(), 10);
+                assert_eq!(for_num.step.as_ref().unwrap().unwrap_as_int(), 1);
+            }
+            _ => unreachable!(),
         }
 
         let forlist = try_parse("for a, b in c, d do end");
         let forlist_stat = &forlist.stats[0];
         match forlist_stat {
-            Stat::ForStat(for_) => {
-                match &for_ {
-                    ForStat::ForList(for_list) => {
-                        assert_eq!(for_list.vars.vars[0].value(), "a");
-                        assert_eq!(for_list.vars.vars[1].value(), "b");
-                        assert_eq!(for_list.exprs.exprs[0].unwrap_as_name().value(), "c");
-                        assert_eq!(for_list.exprs.exprs[1].unwrap_as_name().value(), "d");
-                    },
-                    _ => unreachable!()
-                }
-            },
-            _ => unreachable!()
+            Stat::ForStat(ForStat::ForList(for_list)) => {
+                assert_eq!(for_list.vars.vars[0].value(), "a");
+                assert_eq!(for_list.vars.vars[1].value(), "b");
+                assert_eq!(for_list.exprs.exprs[0].unwrap_as_name().value(), "c");
+                assert_eq!(for_list.exprs.exprs[1].unwrap_as_name().value(), "d");
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -112,15 +102,13 @@ mod parser_tests {
     fn repeatstat() {
         let ast = try_parse("repeat until a > 0");
         match &ast.stats[0] {
-            Stat::RepeatStat(repeat) => {
-                match &repeat.cond {
-                    Expr::BinExpr(expr) => {
-                        assert_eq!(expr.left.unwrap_as_name().value(), "a");
-                        assert!(matches!(expr.op, BinOp::Gt(..)));
-                        assert_eq!(expr.right.unwrap_as_int(), 0);
-                    },
-                    _ => unreachable!(),
+            Stat::RepeatStat(repeat) => match &repeat.cond {
+                Expr::BinExpr(expr) => {
+                    assert_eq!(expr.left.unwrap_as_name().value(), "a");
+                    assert!(matches!(expr.op, BinOp::Gt(..)));
+                    assert_eq!(expr.right.unwrap_as_int(), 0);
                 }
+                _ => unreachable!(),
             },
             _ => unreachable!(),
         };
@@ -138,8 +126,8 @@ mod parser_tests {
                 assert_eq!(stat.body.params.params[0].unwrap_as_name(), "a");
                 assert_eq!(stat.body.params.params[1].unwrap_as_name(), "b");
                 assert_eq!(stat.body.params.params[2].unwrap_as_name(), "c");
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         };
     }
 
@@ -155,8 +143,8 @@ mod parser_tests {
                 assert_eq!(stat.body.params.params[0].unwrap_as_name(), "a");
                 assert_eq!(stat.body.params.params[1].unwrap_as_name(), "b");
                 assert_eq!(stat.body.params.params[2].unwrap_as_name(), "c");
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         };
     }
 
@@ -171,8 +159,8 @@ mod parser_tests {
                 assert_eq!(stat.exprs.as_ref().unwrap().exprs[0].unwrap_as_int(), 1);
                 assert_eq!(stat.exprs.as_ref().unwrap().exprs[1].unwrap_as_int(), 2);
                 assert_eq!(stat.exprs.as_ref().unwrap().exprs[2].unwrap_as_int(), 3);
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         };
     }
 
@@ -181,7 +169,7 @@ mod parser_tests {
         let ast = try_parse("::LABEL::");
         match &ast.stats[0] {
             Stat::LabelStat(label) => assert_eq!(label.label.value(), "LABEL"),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
     }
 
@@ -196,13 +184,23 @@ mod parser_tests {
                         assert!(matches!(bin.op, BinOp::Add(..)));
                         assert_eq!(bin.left.unwrap_as_int(), 1);
                         assert_eq!(bin.right.unwrap_as_name().value(), "a");
-                    },
-                    _ => unreachable!()
+                    }
+                    _ => unreachable!(),
                 }
-                assert_eq!(ret.exprs.as_ref().unwrap().exprs[1].unwrap_as_name().value(), "b");
-                assert_eq!(ret.exprs.as_ref().unwrap().exprs[2].unwrap_as_name().value(), "c");
-            },
-            _ => unreachable!()
+                assert_eq!(
+                    ret.exprs.as_ref().unwrap().exprs[1]
+                        .unwrap_as_name()
+                        .value(),
+                    "b"
+                );
+                assert_eq!(
+                    ret.exprs.as_ref().unwrap().exprs[2]
+                        .unwrap_as_name()
+                        .value(),
+                    "c"
+                );
+            }
+            _ => unreachable!(),
         };
     }
 
@@ -213,7 +211,7 @@ mod parser_tests {
             Stat::GotoStat(goto) => {
                 assert_eq!(goto.label.value(), "LABEL");
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -224,23 +222,22 @@ mod parser_tests {
             Stat::AssignStat(stat) => {
                 match &stat.left.assignables[0] {
                     Assignable::Name(name) => assert_eq!(name.value(), "a"),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
                 match &stat.left.assignables[1] {
                     Assignable::Name(name) => assert_eq!(name.value(), "b"),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
                 match &stat.left.assignables[2] {
                     Assignable::Name(name) => assert_eq!(name.value(), "c"),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 };
 
                 assert_eq!(stat.right.exprs[0].unwrap_as_int(), 1);
                 assert_eq!(stat.right.exprs[1].unwrap_as_int(), 2);
                 assert_eq!(stat.right.exprs[2].unwrap_as_int(), 3);
-                    
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -248,24 +245,22 @@ mod parser_tests {
     fn callstat() {
         let ast = try_parse("foo(1, 2, 3)");
         match &ast.stats[0] {
-            Stat::CallStat(call) => {
-                match &call.call {
-                    Assignable::SuffixedExpr(expr) => {
-                        assert_eq!(expr.primary.unwrap_as_name().value(), "foo");
-                        let func_args = expr.suffixes[0].unwrap_as_func_args();
-                        match func_args {
-                            FuncArgs::Exprs(_, args, _) => {
-                                assert_eq!(args.exprs[0].unwrap_as_int(), 1);
-                                assert_eq!(args.exprs[1].unwrap_as_int(), 2);
-                                assert_eq!(args.exprs[2].unwrap_as_int(), 3);
-                            },
-                            _ => unreachable!()
+            Stat::CallStat(call) => match &call.call {
+                Assignable::SuffixedExpr(expr) => {
+                    assert_eq!(expr.primary.unwrap_as_name().value(), "foo");
+                    let func_args = expr.suffixes[0].unwrap_as_func_args();
+                    match func_args {
+                        FuncArgs::Exprs(_, args, _) => {
+                            assert_eq!(args.exprs[0].unwrap_as_int(), 1);
+                            assert_eq!(args.exprs[1].unwrap_as_int(), 2);
+                            assert_eq!(args.exprs[2].unwrap_as_int(), 3);
                         }
-                    },
-                    _ => unreachable!()
+                        _ => unreachable!(),
+                    }
                 }
-            }
-            _ => unreachable!()
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
         }
     }
 
@@ -273,24 +268,22 @@ mod parser_tests {
     fn exprlist() {
         let ast = try_parse("a(a, b, c)");
         match &ast.stats[0] {
-            Stat::CallStat(call) => {
-                match &call.call {
-                    Assignable::SuffixedExpr(expr) => {
-                        assert_eq!(expr.primary.unwrap_as_name().value(), "a");
-                        let func_args = expr.suffixes[0].unwrap_as_func_args();
-                        match func_args {
-                            FuncArgs::Exprs(_, args, _) => {
-                                assert_eq!(args.exprs[0].unwrap_as_name().value(), "a");
-                                assert_eq!(args.exprs[1].unwrap_as_name().value(), "b");
-                                assert_eq!(args.exprs[2].unwrap_as_name().value(), "c");
-                            },
-                            _ => unreachable!()
+            Stat::CallStat(call) => match &call.call {
+                Assignable::SuffixedExpr(expr) => {
+                    assert_eq!(expr.primary.unwrap_as_name().value(), "a");
+                    let func_args = expr.suffixes[0].unwrap_as_func_args();
+                    match func_args {
+                        FuncArgs::Exprs(_, args, _) => {
+                            assert_eq!(args.exprs[0].unwrap_as_name().value(), "a");
+                            assert_eq!(args.exprs[1].unwrap_as_name().value(), "b");
+                            assert_eq!(args.exprs[2].unwrap_as_name().value(), "c");
                         }
+                        _ => unreachable!(),
                     }
-                    _ => unreachable!()
                 }
+                _ => unreachable!(),
             },
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -305,13 +298,23 @@ mod parser_tests {
                     Expr::Table(table) => {
                         let field = &table.fields;
                         assert_eq!(field[0].unwrap_as_list_field().value.unwrap_as_int(), 1);
-                        assert_eq!(field[1].unwrap_as_list_field().value.unwrap_as_float().to_ne_bytes(), 1.5_f64.to_ne_bytes());
-                        assert_eq!(field[2].unwrap_as_list_field().value.unwrap_as_string(), "2");
+                        assert_eq!(
+                            field[1]
+                                .unwrap_as_list_field()
+                                .value
+                                .unwrap_as_float()
+                                .to_ne_bytes(),
+                            1.5_f64.to_ne_bytes()
+                        );
+                        assert_eq!(
+                            field[2].unwrap_as_list_field().value.unwrap_as_string(),
+                            "2"
+                        );
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
 
         match &ast2.stats[0] {
@@ -320,25 +323,38 @@ mod parser_tests {
                 match &local.exprs.as_ref().unwrap().exprs[0] {
                     Expr::Table(table) => {
                         let field = &table.fields;
-                        assert_eq!(field[0].unwrap_as_rec_field().key.unwrap_as_name().value(), "a");
+                        assert_eq!(
+                            field[0].unwrap_as_rec_field().key.unwrap_as_name().value(),
+                            "a"
+                        );
                         assert_eq!(field[0].unwrap_as_rec_field().value.unwrap_as_string(), "1");
-                        assert_eq!(field[1].unwrap_as_rec_field().key.unwrap_as_expr().unwrap_as_string(), "b");
+                        assert_eq!(
+                            field[1]
+                                .unwrap_as_rec_field()
+                                .key
+                                .unwrap_as_expr()
+                                .unwrap_as_string(),
+                            "b"
+                        );
                         assert_eq!(field[1].unwrap_as_rec_field().value.unwrap_as_int(), 2);
                         let expr = field[2].unwrap_as_rec_field().key.unwrap_as_expr();
                         match &expr {
                             Expr::BinExpr(bin) => {
                                 assert!(matches!(bin.op, BinOp::Minus(..)));
-                                assert_eq!(bin.left.clone().to_assignable().unwrap_as_name().value(), "a");
+                                assert_eq!(
+                                    bin.left.clone().to_assignable().unwrap_as_name().value(),
+                                    "a"
+                                );
                                 assert_eq!(bin.right.unwrap_as_int(), 1);
-                            },
-                            _ => unreachable!()
+                            }
+                            _ => unreachable!(),
                         }
                         assert_eq!(field[2].unwrap_as_rec_field().value.unwrap_as_int(), 3);
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -352,7 +368,7 @@ mod parser_tests {
                 let suffixes = &suffix_expr.suffixes;
                 match &suffixes[0] {
                     Suffix::Method(_, str) => assert_eq!(str.value(), "b"),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
                 match &suffixes[1] {
                     Suffix::FuncArgs(args) => {
@@ -361,7 +377,7 @@ mod parser_tests {
                             assert_eq!(table.fields.len(), 0)
                         }
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
                 match &suffixes[2] {
                     Suffix::FuncArgs(args) => {
@@ -370,7 +386,7 @@ mod parser_tests {
                             assert_eq!(str.value(), "literal")
                         }
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
                 match &suffixes[3] {
                     Suffix::FuncArgs(args) => {
@@ -379,10 +395,10 @@ mod parser_tests {
                             assert_eq!(exprs.exprs.len(), 0)
                         }
                     }
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     }
 
@@ -407,7 +423,7 @@ mod parser_tests {
                     }
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
 
         // add is left associative
@@ -426,7 +442,7 @@ mod parser_tests {
                     assert_eq!(binop.right.unwrap_as_int(), 3);
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -434,33 +450,25 @@ mod parser_tests {
     fn method_call() {
         let ast = try_parse("str:sub(i,i)");
         match &ast.stats[0] {
-            Stat::CallStat(call) => {
-                match &call.call {
-                    Assignable::SuffixedExpr(suffixed_expr) => {
-                        assert_eq!(suffixed_expr.primary.unwrap_as_name().value(), "str");
-                        let suffixes = &suffixed_expr.suffixes;
-                        match &suffixes[0] {
-                            Suffix::Method(_, name) => assert_eq!(name.value(), "sub"),
-                            _ => unreachable!()
-                        }
-
-                        match &suffixes[1] {
-                            Suffix::FuncArgs(args) => {
-                                match args {
-                                    FuncArgs::Exprs(_, exprs, _) => {
-                                        assert_eq!(exprs.exprs[0].unwrap_as_name().value(), "i");
-                                        assert_eq!(exprs.exprs[1].unwrap_as_name().value(), "i");
-                                    }
-                                    _ => unreachable!()
-                                }
-                            }
-                            _ => unreachable!()
-                        }
+            Stat::CallStat(call) => match &call.call {
+                Assignable::SuffixedExpr(suffixed_expr) => {
+                    assert_eq!(suffixed_expr.primary.unwrap_as_name().value(), "str");
+                    let suffixes = &suffixed_expr.suffixes;
+                    match &suffixes[0] {
+                        Suffix::Method(_, name) => assert_eq!(name.value(), "sub"),
+                        _ => unreachable!(),
                     }
-                    _ => unreachable!()
+                    match &suffixes[1] {
+                        Suffix::FuncArgs(FuncArgs::Exprs(_, exprs, _)) => {
+                            assert_eq!(exprs.exprs[0].unwrap_as_name().value(), "i");
+                            assert_eq!(exprs.exprs[1].unwrap_as_name().value(), "i");
+                        }
+                        _ => unreachable!(),
+                    }
                 }
-            }
-            _ => unreachable!()
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
         }
     }
 
@@ -486,7 +494,7 @@ mod parser_tests {
                                     assert_eq!(value.value(), 1);
                                 }
                             }
-                            _ => unreachable!()
+                            _ => unreachable!(),
                         }
 
                         match &*bin.right {
@@ -502,13 +510,13 @@ mod parser_tests {
                                     assert_eq!(value.value(), 2);
                                 }
                             }
-                            _ => unreachable!()
+                            _ => unreachable!(),
                         }
-                    },
-                    _ => unreachable!()
+                    }
+                    _ => unreachable!(),
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }

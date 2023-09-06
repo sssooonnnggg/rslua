@@ -3,7 +3,7 @@ use crate::tokens::{Token, TokenType, TokenValue};
 use rslua_derive::Traceable;
 use rslua_traits::Error;
 
-#[derive(Traceable)]
+#[derive(Traceable, Default)]
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
@@ -21,12 +21,6 @@ impl Error for SyntaxError {
 type ParseResult<T> = Result<T, SyntaxError>;
 
 impl Parser {
-    pub fn new() -> Self {
-        Parser {
-            tokens: Vec::new(),
-            current: 0,
-        }
-    }
 
     pub fn run(&mut self, tokens: Vec<Token>) -> ParseResult<Block> {
         self.reset();
@@ -40,10 +34,7 @@ impl Parser {
         while !self.is_block_end() {
             let stat = self.stat()?;
             if let Some(stat) = stat {
-                let should_break = match stat {
-                    Stat::RetStat(_) => true,
-                    _ => false,
-                };
+                let should_break = matches!(stat, Stat::RetStat(_));
                 stats.push(stat);
                 if should_break {
                     break;
@@ -341,7 +332,7 @@ impl Parser {
     fn localstat(&mut self, local: Token) -> ParseResult<LocalStat> {
         let names = self.varlist(TokenType::Comma, None)?;
         let equal = self.test_next(TokenType::Assign);
-        let exprs = if let Some(_) = equal {
+        let exprs = if equal.is_some() {
             Some(self.exprlist()?)
         } else {
             None
@@ -489,7 +480,7 @@ impl Parser {
                 self.next_and_skip_comment();
                 return Ok(Expr::FuncBody(self.funcbody()?));
             }
-            _ => return Ok(self.suffixedexpr()?),
+            _ => return self.suffixedexpr(),
         };
         self.next_and_skip_comment();
         Ok(expr)
@@ -705,14 +696,11 @@ impl Parser {
     // if reach a block end
     fn is_block_end(&self) -> bool {
         let token = self.current_token();
-        match token.t {
-            TokenType::Else
+        matches!(token.t, TokenType::Else
             | TokenType::ElseIf
             | TokenType::End
             | TokenType::Until
-            | TokenType::Eos => true,
-            _ => false,
-        }
+            | TokenType::Eos)
     }
 
     fn check_match(&mut self, end: TokenType, start: TokenType, line: usize) -> ParseResult<Token> {
