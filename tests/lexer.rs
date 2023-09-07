@@ -132,9 +132,9 @@ mod lexer_tests {
     #[test]
     fn str_to_int() {
         assert_eq!(Some(0x12345678), Lexer::str_to_int("0x12345678"));
-        assert_eq!(Some(0x6789aBcD), Lexer::str_to_int("0x6789aBcD"));
-        assert_eq!(Some(-0x6789aBcD), Lexer::str_to_int("-0x6789aBcD"));
-        assert_eq!(Some(-0x6789aBcD), Lexer::str_to_int("  -0x6789aBcD    "));
+        assert_eq!(Some(0x6789ABCD), Lexer::str_to_int("0x6789aBcD"));
+        assert_eq!(Some(-0x6789ABCD), Lexer::str_to_int("-0x6789aBcD"));
+        assert_eq!(Some(-0x6789ABCD), Lexer::str_to_int("  -0x6789aBcD    "));
         assert_eq!(Some(0x7FFFFFFF), Lexer::str_to_int("0x7FFFFFFF"));
         assert_eq!(Some(-0x7FFFFFFF), Lexer::str_to_int("-0x7FFFFFFF"));
         assert_eq!(None, Lexer::str_to_int("0x"));

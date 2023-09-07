@@ -6,19 +6,9 @@ pub enum Number {
     None,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Source {
     pub line: usize,
     pub col: usize,
     pub length: usize,
-}
-
-impl Source {
-    pub fn new() -> Self {
-        Source {
-            length: 0,
-            line: 0,
-            col: 0,
-        }
-    }
 }

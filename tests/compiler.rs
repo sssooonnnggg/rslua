@@ -26,7 +26,7 @@ fn try_compile(input: &str) -> Result<Proto, CompileError> {
 fn try_compile_and_print(input: &str) -> String {
     match try_compile(input) {
         Ok(proto) => format!("{:?}", proto),
-        Err(e) => format!("{}", e.0),
+        Err(e) => e.0,
     }
 }
 

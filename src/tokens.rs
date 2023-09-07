@@ -122,10 +122,7 @@ impl TokenType {
     }
 
     pub fn is_comment(&self) -> bool {
-        match &self {
-            TokenType::SComment | TokenType::MComment => true,
-            _ => false,
-        }
+        matches!(self, TokenType::SComment | TokenType::MComment)
     }
 }
 

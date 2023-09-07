@@ -225,8 +225,8 @@ impl AstVisitor for LuaWriter {
         if let Some(name) = fields.next() {
             self.comments(name);
             self.append(&name.value());
-            let mut remain_fields = fields.zip(func_name.fields.delimiters.iter());
-            while let Some((name, delimiter)) = remain_fields.next() {
+            let remain_fields = fields.zip(func_name.fields.delimiters.iter());
+            for (name, delimiter) in remain_fields {
                 self.comments(delimiter);
                 self.append(".");
                 self.comments(name);
@@ -377,7 +377,7 @@ impl AstVisitor for LuaWriter {
     }
 
     fn begin_table(&mut self, t: &Table) -> WriteResult<bool> {
-        if t.fields.len() > 0 {
+        if !t.fields.is_empty() {
             self.enter_scope();
             self.append_inc("{");
         } else {
@@ -387,7 +387,7 @@ impl AstVisitor for LuaWriter {
     }
 
     fn end_table(&mut self, t: &Table) {
-        if t.fields.len() > 0 {
+        if !t.fields.is_empty() {
             self.leave_scope();
             self.append("}");
         }
@@ -402,17 +402,15 @@ impl AstVisitor for LuaWriter {
     }
 
     fn begin_field_key(&mut self, key: &FieldKey) -> WriteResult<bool> {
-        match key {
-            FieldKey::Expr(_, _, _) => self.append_space("["),
-            _ => (),
+        if let FieldKey::Expr(..) = key {
+            self.append_space("[");
         }
         Ok(false)
     }
 
     fn end_field_key(&mut self, key: &FieldKey) {
-        match key {
-            FieldKey::Expr(_, _, _) => self.space_append("]"),
-            _ => (),
+        if let FieldKey::Expr(..) = key {
+            self.space_append("]")
         }
     }
 
@@ -518,7 +516,7 @@ fn try_convert(input: &str) -> String {
         use_origin_string: true,
         reserve_comments: true,
     });
-    if let Ok(tokens) = lexer.run(&input) {
+    if let Ok(tokens) = lexer.run(input) {
         let mut parser = Parser::default();
         if let Ok(ast) = parser.run(tokens) {
             let mut writter = LuaWriter::new();
@@ -541,9 +539,9 @@ fn convert_lua(src: &str, dst: &str) -> std::io::Result<()> {
 
 use std::process::Command;
 fn exists_lua_bin() -> Option<String> {
-    if let Ok(_) = Command::new("lua").output() {
+    if Command::new("lua").output().is_ok() {
         Some("lua".to_string())
-    } else if let Ok(_) = Command::new("lua5.3").output() {
+    } else if Command::new("lua5.3").output().is_ok() {
         Some("lua5.3".to_string())
     } else {
         None
@@ -551,7 +549,7 @@ fn exists_lua_bin() -> Option<String> {
 }
 
 fn execute_lua_tests(bin: &str, dir: &str) -> String {
-    let output = Command::new(&bin)
+    let output = Command::new(bin)
         .current_dir(dir)
         .arg("test_all.lua")
         .output();
