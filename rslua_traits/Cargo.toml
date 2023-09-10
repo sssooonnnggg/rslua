@@ -8,5 +8,6 @@ repository = "https://github.com/sssooonnnggg/rslua.git"
 readme = "README.md"
 keywords = ["lua", "lua53", "parser", "lexer"]
 categories = ["parsing"]
+description = "Some traits for rslua"
 
 [dependencies]
