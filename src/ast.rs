@@ -399,6 +399,9 @@ impl Comments for ExprList {
             Vec::new()
         }
     }
+    fn has_comments(&self) -> bool {
+        self.exprs.iter().any(|expr| expr.has_comments())
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]

@@ -82,6 +82,10 @@ pub trait AstVisitor<E = ()> {
         Ok(())
     }
 
+    fn exprlist(&mut self, _stat: &ExprList) -> Result<(), E> {
+        Ok(())
+    }
+
     fn expr(&mut self, _stat: &Expr) -> Result<bool, E> {
         Ok(false)
     }
@@ -296,7 +300,7 @@ pub fn walk_forlist<T: AstVisitor<E>, E>(stat: &ForList, visitor: &mut T) -> Res
         });
         visitor.comments(&stat.in_);
         visitor.for_list_in();
-        walk_exprlist(&stat.exprs, visitor)?;
+        visitor.exprlist(&stat.exprs)?;
     }
     visitor.comments(&stat.do_);
     if !visitor.begin_for_block(&stat.body)? {
@@ -450,7 +454,10 @@ pub fn walk_funcargs<T: AstVisitor<E>, E>(args: &FuncArgs, visitor: &mut T) -> R
         match args {
             FuncArgs::String(s) => visitor.string(s),
             FuncArgs::Table(t) => walk_table(t, visitor)?,
-            FuncArgs::Exprs(_, exprs, _) => walk_exprlist(exprs, visitor)?,
+            FuncArgs::Exprs(_, exprs, rp) => {
+                visitor.exprlist(exprs)?;
+                visitor.comments(rp);
+            }
         }
     }
     visitor.end_func_args();
@@ -511,15 +518,5 @@ pub fn walk_fieldkey<T: AstVisitor<E>, E>(key: &FieldKey, visitor: &mut T) -> Re
         };
     }
     visitor.end_field_key(key);
-    Ok(())
-}
-
-pub fn walk_exprlist<T: AstVisitor<E>, E>(exprlist: &ExprList, visitor: &mut T) -> Result<(), E> {
-    for (n, expr) in exprlist.exprs.iter().enumerate() {
-        walk_expr(expr, visitor)?;
-        if n < exprlist.exprs.len() - 1 {
-            visitor.expr_sep();
-        }
-    }
     Ok(())
 }

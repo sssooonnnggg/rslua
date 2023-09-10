@@ -9,12 +9,19 @@ use std::fs::{create_dir, read_dir};
 use std::io::prelude::*;
 use std::str;
 
+#[derive(PartialEq)]
+enum FuncCallType {
+    WithComments,
+    WithOutComments,
+}
+
 struct LuaWriter {
     output: String,
     indent: usize,
     depth: usize,
     line_start: bool,
     comment_guard: bool,
+    func_call_stack: Vec<FuncCallType>,
 }
 
 #[allow(dead_code)]
@@ -26,6 +33,7 @@ impl LuaWriter {
             depth: 0,
             line_start: true,
             comment_guard: false,
+            func_call_stack: vec![],
         }
     }
 
@@ -255,7 +263,7 @@ impl AstVisitor for LuaWriter {
         if let Some(token) = &stat.equal {
             self.comments(token);
             self.append_space("=");
-            ast_walker::walk_exprlist(stat.exprs.as_ref().unwrap(), self)?;
+            self.exprlist(stat.exprs.as_ref().unwrap())?;
         }
         Ok(())
     }
@@ -267,7 +275,7 @@ impl AstVisitor for LuaWriter {
 
     fn ret_stat(&mut self, stat: &RetStat) -> WriteSuccess {
         self.append_space("return");
-        ast_walker::walk_exprlist(stat.exprs.as_ref().unwrap(), self)?;
+        self.exprlist(stat.exprs.as_ref().unwrap())?;
         Ok(())
     }
 
@@ -289,7 +297,7 @@ impl AstVisitor for LuaWriter {
             }
         }
         self.space_append_space("=");
-        ast_walker::walk_exprlist(&stat.right, self)?;
+        self.exprlist(&stat.right)?;
         Ok(())
     }
 
@@ -298,8 +306,15 @@ impl AstVisitor for LuaWriter {
         Ok(())
     }
 
-    fn expr_sep(&mut self) {
-        self.append(", ");
+    fn exprlist(&mut self, exprs: &ExprList) -> WriteSuccess {
+        for (n, expr) in exprs.exprs.iter().enumerate() {
+            self.comments(expr);
+            ast_walker::walk_expr(expr, self)?;
+            if n < exprs.exprs.len() - 1 {
+                self.append(", ");
+            }
+        }
+        Ok(())
     }
 
     fn nil(&mut self) {
@@ -475,12 +490,26 @@ impl AstVisitor for LuaWriter {
         self.append("]");
     }
 
-    fn begin_func_args(&mut self, _args: &FuncArgs) -> WriteResult<bool> {
+    fn begin_func_args(&mut self, args: &FuncArgs) -> WriteResult<bool> {
         self.append("(");
+        if let FuncArgs::Exprs(_, exprs, _) = args {
+            if exprs.has_comments() {
+                self.func_call_stack.push(FuncCallType::WithComments);
+                self.incline();
+                self.enter_scope();
+                return Ok(false);
+            }
+        }
+        self.func_call_stack.push(FuncCallType::WithOutComments);
         Ok(false)
     }
 
     fn end_func_args(&mut self) {
+        if let Some(call_type) = self.func_call_stack.pop() {
+            if call_type == FuncCallType::WithComments {
+                self.leave_scope();
+            }
+        }
         self.append(")");
     }
 
@@ -491,6 +520,10 @@ impl AstVisitor for LuaWriter {
 
     fn end_paren_expr(&mut self) {
         self.append(")");
+    }
+
+    fn expr_sep(&mut self) {
+        self.append(", ");
     }
 
     fn comments(&mut self, target: &impl Comments) {
@@ -596,10 +629,23 @@ end
 }
 
 #[test]
-fn parse_comment_stat() {
+fn parse_stat_comment() {
     let code = "val, i = parse(str, i)
 -- Set
 res[key] = val
+";
+    let result = try_convert(code);
+    println!("{}", result);
+    assert_eq!(code, result);
+}
+
+#[test]
+fn parse_function_call_comment() {
+    let code = "foo(
+  a, -- first argument
+  b, -- second argument
+  c -- last argument
+)
 ";
     let result = try_convert(code);
     println!("{}", result);

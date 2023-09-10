@@ -415,11 +415,14 @@ impl Parser {
     // exprlist -> expr { ',' expr }
     fn exprlist(&mut self) -> ParseResult<ExprList> {
         let mut exprs  = ExprList::default();
+        self.skip_comment();
         exprs.exprs.push(self.expr()?);
         while let Some(comma) = self.test_next(TokenType::Comma) {
             exprs.commas.push(comma);
+            self.skip_comment();
             exprs.exprs.push(self.expr()?)
         }
+        self.skip_comment();
         Ok(exprs)
     }
 
