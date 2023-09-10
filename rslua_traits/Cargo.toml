@@ -2,7 +2,11 @@
 name = "rslua_traits"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.72.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/sssooonnnggg/rslua.git"
+readme = "README.md"
+keywords = ["lua", "lua53", "parser", "lexer"]
+categories = ["parsing"]
 
 [dependencies]
