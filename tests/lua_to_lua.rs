@@ -374,6 +374,11 @@ impl AstVisitor for LuaWriter {
             self.incline();
         }
         for (n, param) in body.params.params.iter().enumerate() {
+            if param.has_comments() {
+                self.incline_if_not_line_start();
+            } else if n > 0 {
+                self.space();
+            }
             match param {
                 Param::VarArg(token) => {
                     self.comments(token);
@@ -386,12 +391,13 @@ impl AstVisitor for LuaWriter {
             }
             if n < body.params.params.len() - 1 {
                 self.comments(&body.params.commas[n]);
-                self.append(", ");
+                self.append(",");
             }
         }
         self.comments(&body.rp);
         if has_comments {
-            self.leave_scope()
+            self.incline();
+            self.leave_scope();
         };
         self.append_inc(")");
         self.enter_scope();
@@ -627,17 +633,20 @@ local c = 3
 }
 
 #[test]
-fn parse_function_comments() {
+fn parse_function_definition_comments() {
     let code = "local function abc.d.e:f(
-  a, -- a comment
-  b, -- b comment
-  c -- c comment
+  -- a comment
+  a,
+  -- b comment
+  b,
+  -- c comment
+  c
 )
 end
 ";
     let result = try_convert(code);
-    assert_eq!(code, result);
     println!("{}", result);
+    assert_eq!(code, result);
 }
 
 #[test]
