@@ -60,6 +60,12 @@ impl LuaWriter {
         self.line_start = true;
     }
 
+    fn incline_if_not_line_start(&mut self) {
+        if !self.line_start {
+            self.incline();
+        }
+    }
+
     fn output(&mut self, content: &str) {
         self.comment_guard = false;
         self.output.push_str(content);
@@ -308,10 +314,15 @@ impl AstVisitor for LuaWriter {
 
     fn exprlist(&mut self, exprs: &ExprList) -> WriteSuccess {
         for (n, expr) in exprs.exprs.iter().enumerate() {
-            self.comments(expr);
+            if expr.has_comments() {
+                self.incline_if_not_line_start();
+                self.comments(expr);
+            } else if n > 0 {
+                self.space();
+            }
             ast_walker::walk_expr(expr, self)?;
             if n < exprs.exprs.len() - 1 {
-                self.append(", ");
+                self.append(",");
             }
         }
         Ok(())
@@ -508,6 +519,7 @@ impl AstVisitor for LuaWriter {
         if let Some(call_type) = self.func_call_stack.pop() {
             if call_type == FuncCallType::WithComments {
                 self.leave_scope();
+                self.incline_if_not_line_start();
             }
         }
         self.append(")");
@@ -642,9 +654,12 @@ res[key] = val
 #[test]
 fn parse_function_call_comment() {
     let code = "foo(
-  a, -- first argument
-  b, -- second argument
-  c -- last argument
+  -- first argument
+  a,
+  -- second argument
+  b,
+  -- last argument
+  c
 )
 ";
     let result = try_convert(code);
