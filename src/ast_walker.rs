@@ -482,6 +482,7 @@ pub fn walk_table<T: AstVisitor<E>, E>(table: &Table, visitor: &mut T) -> Result
 
 pub fn walk_fields<T: AstVisitor<E>, E>(fields: &[Field], visitor: &mut T) -> Result<(), E> {
     for field in fields.iter() {
+        visitor.comments(field);
         walk_field(field, visitor)?;
         visitor.field_sep();
     }

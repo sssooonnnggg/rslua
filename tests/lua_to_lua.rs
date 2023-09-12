@@ -677,6 +677,26 @@ fn parse_function_call_comment() {
 }
 
 #[test]
+fn parse_table_field() {
+    let code = "local t = {
+  -- a comment
+  a = 1,
+  -- b comment
+  b = 2,
+  -- c comment
+  c = 3,
+  -- array commment
+  1,
+  2,
+  3,
+}
+";
+    let result = try_convert(code);
+    println!("{}", result);
+    assert_eq!(code, result);
+}
+
+#[test]
 fn lua_to_lua() -> std::io::Result<()> {
     let lua_dir: &'static str = "./lua";
     let tmp: &'static str = "./tmp";
