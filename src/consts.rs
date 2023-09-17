@@ -1,7 +1,6 @@
 use crate::compiler::CompileError;
 use crate::types::{FloatType, IntType};
 use crate::utils::success;
-use num_traits::Float;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, PartialEq)]
@@ -17,12 +16,7 @@ impl Hash for Const {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
             Const::Int(i) => i.hash(state),
-            Const::Float(f) => {
-                let (m, e, s) = Float::integer_decode(*f);
-                m.hash(state);
-                e.hash(state);
-                s.hash(state);
-            }
+            Const::Float(f) => f.to_bits().hash(state),
             Const::Str(s) => s.hash(state),
         }
     }
