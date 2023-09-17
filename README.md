@@ -8,11 +8,11 @@ Yet another Lua lexer and Lua parser for Lua 5.3 written in pure Rust.
 ## Lexer
 
 - **input** str
-- **output** Result<&Vec\<Token>, LexError>
+- **output** Result<Vec\<Token>, LexError>
 
 ```rust
 use rslua::lexer::Lexer;
-let mut lexer = Lexer::new();
+let mut lexer = Lexer::default();
 let tokens = lexer.run(input_lua_code)?;
 ```
 
@@ -25,11 +25,11 @@ let tokens = lexer.run(input_lua_code)?;
 
 ## Parser
 
-- **input** &Vec\<Token>
+- **input** Vec\<Token>
 - **output** Result<Block, SyntaxError>
 
 ```rust
-let mut parser = Parser::new();
+let mut parser = Parser::default();
 let block = parser.run(tokens)?;
 ```
 
