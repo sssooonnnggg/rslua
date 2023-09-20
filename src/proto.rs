@@ -170,12 +170,7 @@ impl Proto {
     }
 
     pub fn get_local_var(&self, name: &str) -> Option<u32> {
-        for (i, var) in self.local_vars.iter().enumerate() {
-            if var.name == name {
-                return Some(i as u32);
-            }
-        }
-        None
+        self.local_vars.iter().position(|var| var.name == name).map(|i| i as u32)
     }
 
     pub fn add_const(&mut self, k: Const) -> u32 {
