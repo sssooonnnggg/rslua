@@ -388,12 +388,7 @@ impl Compiler {
     }
 
     fn alloc_reg(&mut self, input: &Option<u32>) -> Reg {
-        let reg = input.unwrap_or_else(|| self.context().reserve_regs(1));
-        if Some(reg) == *input {
-            Reg::new(reg)
-        } else {
-            Reg::new_temp(reg)
-        }
+        input.map_or_else(|| Reg::new_temp(self.context().reserve_regs(1)), Reg::new)
     }
 
     fn code_bin_op(

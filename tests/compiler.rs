@@ -740,7 +740,8 @@ instructions :
 
     #[test]
     fn code_and_3() {
-        let output = try_compile_and_print("local a; local b = true and 0 and 1 and 2.0 and 'str' and a");
+        let output =
+            try_compile_and_print("local a; local b = true and 0 and 1 and 2.0 and 'str' and a");
         let expected = r#"
 stack size : 2
 consts :
@@ -788,7 +789,9 @@ instructions :
 
     #[test]
     fn code_and_5() {
-        let output = try_compile_and_print("local a, b, c, d, e, f; local g = a >= b and c == d and (e + 1) ~= (f - 2)");
+        let output = try_compile_and_print(
+            "local a, b, c, d, e, f; local g = a >= b and c == d and (e + 1) ~= (f - 2)",
+        );
         let expected = r#"
 stack size : 8
 consts :
@@ -820,17 +823,46 @@ instructions :
         assert_eq!(output, expected);
     }
 
+    // >local a, b, c, d, e; local f = a and b and c and d and e
+    // ; source chunk: (interactive mode)
+
+    // ; function [0] definition (level 1) 0
+    // ; 1 upvalues, 0 params, is_vararg = 1, 6 stacks
+    // .function  1 0 1 6
+    // .local  "a"  ; 0
+    // .local  "b"  ; 1
+    // .local  "c"  ; 2
+    // .local  "d"  ; 3
+    // .local  "e"  ; 4
+    // .local  "f"  ; 5
+    // .upvalue  "_ENV"  1  0  ; 0  instack=1  idx=0
+    // [01] loadnil   0   4        ; R0 to R4 := nil
+    // [02] testset   5   0   0    ; if not R0 then R5 = R0 else pc+=1 (goto [4])
+    // [03] jmp       0   7        ; pc+=7 (goto [11])
+    // [04] testset   5   1   0    ; if not R1 then R5 = R1 else pc+=1 (goto [6])
+    // [05] jmp       0   5        ; pc+=5 (goto [11])
+    // [06] testset   5   2   0    ; if not R2 then R5 = R2 else pc+=1 (goto [8])
+    // [07] jmp       0   3        ; pc+=3 (goto [11])
+    // [08] testset   5   3   0    ; if not R3 then R5 = R3 else pc+=1 (goto [10])
+    // [09] jmp       0   1        ; pc+=1 (goto [11])
+    // [10] move      5   4        ; R5 := R4
+    // [11] return    0   1        ; return
+    // ; end of function 0
+
     #[test]
     #[should_panic]
     fn test_short_circuit_test_set() {
-        let output = try_compile_and_print("local a, b, c, d, e; local f = a and b and c and d and e;");
+        let output =
+            try_compile_and_print("local a, b, c, d, e; local f = a and b and c and d and e;");
         // TODO:
     }
 
     #[test]
     #[should_panic]
     fn test_short_circuit_test() {
-        let output = try_compile_and_print("local a, b, c, d, e; local f = not a and not b and not c and not d and not e;");
+        let output = try_compile_and_print(
+            "local a, b, c, d, e; local f = not a and not b and not c and not d and not e;",
+        );
         // TODO:
     }
 }
