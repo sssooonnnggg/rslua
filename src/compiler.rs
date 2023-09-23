@@ -103,11 +103,13 @@ impl Jump {
         self.reg.free(context);
     }
 
-    pub fn inverse_cond(&self, context: &mut ProtoContext) {
+    pub fn inverse_falsy_cond(&self, context: &mut ProtoContext) {
         let proto = &mut context.proto;
         let cond = self.pc - 1;
         let instruction = proto.get_instruction(cond);
-        instruction.set_arg_A(1 - instruction.get_arg_A());
+        if instruction.get_op().go_if_falsy_by_default() {
+            instruction.set_arg_A(1 - instruction.get_arg_A());
+        }
     }
 
     pub fn concat_true_jumps(&mut self, other: &mut Jump) {
@@ -468,7 +470,8 @@ impl Compiler {
             // do const folding if left is const value
             ExprResult::True | ExprResult::Const(_) => self.expr(right_expr, input),
             ExprResult::Jump(j) => {
-                j.inverse_cond(self.context());
+                // Short circuit, jump when it is false
+                j.inverse_falsy_cond(self.context());
                 let mut right = self.expr(right_expr, Some(j.reg.reg))?;
                 match &mut right {
                     ExprResult::Jump(rj) => rj.concat_false_jumps(j),
@@ -539,7 +542,7 @@ impl Compiler {
             let result = self.expr(expr, input)?;
             match &result {
                 ExprResult::Jump(j) => {
-                    j.inverse_cond(self.context());
+                    j.inverse_falsy_cond(self.context());
                     Ok(result)
                 }
                 ExprResult::Nil | ExprResult::False => Ok(ExprResult::True),

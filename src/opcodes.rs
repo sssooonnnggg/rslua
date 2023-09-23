@@ -178,10 +178,10 @@ pub enum OpCode {
     Le,
 
     // A C
-    // if not (R(A) <=> C) then pc++
+    // if not (R(A) == C) then pc++
     Test,
     // A B C
-    // if (R(B) <=> C) then R(A) := R(B) else pc++
+    // if not (R(B) == C) then pc++ else R(A) := R(B)
     TestSet,
 
     // A B C
@@ -282,6 +282,27 @@ impl OpCode {
             _ => unreachable!("unknown op code : {}!", u),
         }
     }
+
+    pub fn is_test(self) -> bool {
+        matches!(self, OpCode::Test | OpCode::TestSet)
+    }
+
+    pub fn is_comp(self) -> bool {
+        matches!(self, OpCode::Eq | OpCode::Lt | OpCode::Le)
+    }
+
+    pub fn followed_by_jump(self) -> bool {
+        self.is_test() || self.is_comp()
+    }
+
+    pub fn go_if_falsy_by_default(self) -> bool {
+        self.is_comp()
+    }
+
+    pub fn go_if_truthy_by_default(self) -> bool {
+        self.is_test()
+    }
+
 }
 
 pub struct Instruction(u32);
