@@ -469,43 +469,39 @@ impl Compiler {
         match &mut left {
             // do const folding if left is const value
             ExprResult::True | ExprResult::Const(_) => self.expr(right_expr, input),
-            ExprResult::Jump(j) => {
-                // Short circuit, jump when it is false
-                j.inverse_falsy_cond(self.context());
-                let mut right = self.expr(right_expr, Some(j.reg.reg))?;
-                match &mut right {
-                    ExprResult::Jump(rj) => rj.concat_false_jumps(j),
-                    _ => todo!(),
-                };
-                Ok(right)
+            ExprResult::Jump(j) => self.go_if_true(j, right_expr),
+            ExprResult::Reg(reg) => {
+                let mut jump = self.code_test_with_jump(input, reg);
+                self.go_if_true(&mut jump, right_expr)
             }
-            ExprResult::Reg(_reg) => self.code_test(input, left, right_expr),
             _ => todo!(),
         }
     }
 
-    fn code_test(
+    // Short circuit, jump when it is false
+    fn go_if_true(
+        &mut self,
+        jump: &mut Jump,
+        right_expr: &Expr,
+    ) -> Result<ExprResult, CompileError> {
+        jump.inverse_falsy_cond(self.context());
+        let mut right = self.expr(right_expr, Some(jump.reg.reg))?;
+        match &mut right {
+            ExprResult::Jump(rj) => rj.concat_false_jumps(jump),
+            _ => (), // _ => todo!(),
+        };
+        Ok(right)
+    }
+
+    fn code_test_with_jump(
         &mut self,
         input: Option<u32>,
-        left: ExprResult,
-        right: &Expr,
-    ) -> Result<ExprResult, CompileError> {
-        match &left {
-            ExprResult::Reg(r) => {
-                let proto = self.proto();
-                proto.code_test_set(NO_REG, r.reg, 0);
-                let jump = proto.code_jmp(NO_JUMP, 0);
-                let right_input = self.get_right_input(input, &left);
-                let right_result = self.expr(right, right_input)?;
-                let mut jump = Jump::new(self.alloc_reg(&input), jump);
-                match &right_result {
-                    ExprResult::Reg(r) if r.is_const() => jump.set_reg_should_move(r.reg),
-                    _ => (),
-                };
-                Ok(ExprResult::Jump(jump))
-            }
-            _ => unreachable!(),
-        }
+        reg: &Reg,
+    ) -> Jump {
+        let proto = self.proto();
+        proto.code_test_set(NO_REG, reg.reg, 0);
+        let jump = proto.code_jmp(NO_JUMP, 0);
+        Jump::new(self.alloc_reg(&input), jump)
     }
 
     fn code_un_op(

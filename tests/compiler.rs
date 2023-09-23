@@ -850,7 +850,6 @@ instructions :
     // ; end of function 0
 
     #[test]
-    #[should_panic]
     fn test_short_circuit_test_set() {
         let output =
             try_compile_and_print("local a, b, c, d, e; local f = a and b and c and d and e;");
@@ -858,7 +857,6 @@ instructions :
     }
 
     #[test]
-    #[should_panic]
     fn test_short_circuit_test() {
         let output = try_compile_and_print(
             "local a, b, c, d, e; local f = not a and not b and not c and not d and not e;",
