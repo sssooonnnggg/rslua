@@ -3,7 +3,7 @@ use crate::types::{FloatType, IntType};
 use crate::utils::success;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Const {
     Int(IntType),
     Float(FloatType),

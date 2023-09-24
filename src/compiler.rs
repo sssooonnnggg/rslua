@@ -30,6 +30,7 @@ impl Error for CompileError {
 
 type CompileResult = Result<Proto, CompileError>;
 
+#[derive(Debug)]
 pub struct Reg {
     pub reg: u32,
     pub temp: bool,
@@ -68,7 +69,9 @@ impl Reg {
     }
 }
 
+#[derive(Debug)]
 pub struct Jump {
+    // FIXME: the reg field represent next available register, which should not be stored inside jump struct
     pub reg: Reg,
     pub pc: usize,
     pub true_jumps: Vec<usize>,
@@ -137,10 +140,18 @@ impl Jump {
     }
 }
 
+#[derive(Debug)]
+pub struct Test {
+    pub pending_tests: Vec<usize>,
+    pub jump: Jump,
+}
+
+#[derive(Debug)]
 pub enum ExprResult {
     Const(Const),
     Reg(Reg),
     Jump(Jump),
+    Test(Test),
     Nil,
     True,
     False,
@@ -465,14 +476,14 @@ impl Compiler {
         right_expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
         // get left expr result
-        let mut left = self.expr(left_expr, input)?;
-        match &mut left {
+        let left = self.expr(left_expr, input)?;
+        match left {
             // do const folding if left is const value
             ExprResult::True | ExprResult::Const(_) => self.expr(right_expr, input),
             ExprResult::Jump(j) => self.go_if_true(j, right_expr),
             ExprResult::Reg(reg) => {
-                let mut jump = self.code_test_with_jump(input, reg);
-                self.go_if_true(&mut jump, right_expr)
+                let jump = self.code_test_with_jump(input, &reg);
+                self.go_if_true(jump, right_expr)
             }
             _ => todo!(),
         }
@@ -481,23 +492,26 @@ impl Compiler {
     // Short circuit, jump when it is false
     fn go_if_true(
         &mut self,
-        jump: &mut Jump,
+        mut jump: Jump,
         right_expr: &Expr,
     ) -> Result<ExprResult, CompileError> {
         jump.inverse_falsy_cond(self.context());
-        let mut right = self.expr(right_expr, Some(jump.reg.reg))?;
-        match &mut right {
-            ExprResult::Jump(rj) => rj.concat_false_jumps(jump),
-            _ => (), // _ => todo!(),
-        };
-        Ok(right)
+        let right = self.expr(right_expr, Some(jump.reg.reg))?;
+        println!("{:?}", right_expr);
+        match right {
+            ExprResult::Jump(mut rj) => {
+                rj.concat_false_jumps(&mut jump);
+                Ok(ExprResult::Jump(rj))
+            }
+            ExprResult::Reg(r) => Ok(ExprResult::Reg(r)),
+            _ => {
+                println!("{:?}", right);
+                unreachable!()
+            }
+        }
     }
 
-    fn code_test_with_jump(
-        &mut self,
-        input: Option<u32>,
-        reg: &Reg,
-    ) -> Jump {
+    fn code_test_with_jump(&mut self, input: Option<u32>, reg: &Reg) -> Jump {
         let proto = self.proto();
         proto.code_test_set(NO_REG, reg.reg, 0);
         let jump = proto.code_jmp(NO_JUMP, 0);
@@ -575,6 +589,7 @@ impl Compiler {
                 j.free(self.context());
                 0
             }
+            ExprResult::Test(_) => todo!(),
         };
 
         if temp_reg != reg {
